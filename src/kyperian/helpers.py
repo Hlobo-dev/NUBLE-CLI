@@ -123,7 +123,7 @@ def handle_exit_command(console):
 def get_config_dir():
     """Get or create the config directory"""
     home = Path.home()
-    config_dir = home / ".rallies"
+    config_dir = home / ".kyperian"
     config_dir.mkdir(exist_ok=True)
     return config_dir
 
@@ -187,71 +187,39 @@ def handle_key_command(prompt, agent, console):
 
 
 def handle_feed_command(console):
-    """Handle the /feed command - show recent high-scoring questions"""
-    try:
-        console.print("[yellow]Loading feed...[/yellow]")
-        
-        # Make request to the feed API
-        response = requests.get("https://rallies.ai/api/get-feed-conversations?myfeed=0", timeout=10)
-        
-        if response.status_code == 200:
-            data = response.json()
-            if data.get("success") and data.get("conversations"):
-                conversations = data["conversations"]
-                
-                # Filter for score > 4 and limit to 25, sorted by created_at
-                high_score_conversations = [
-                    conv for conv in conversations 
-                    if conv.get("score", 0) > 4
-                ]
-                
-                # Sort by created_at (most recent first)
-                high_score_conversations.sort(
-                    key=lambda x: x.get("created_at", ""), 
-                    reverse=True
-                )
-                
-                # Take only the first 25
-                feed_items = high_score_conversations[:25]
-                
-                if feed_items:
-                    console.print(f"\n[bright_cyan]Rallies feed, recent questions:[/bright_cyan]")
-                    
-                    # Build markdown content
-                    markdown_content = []
-                    for i, item in enumerate(feed_items, 1):
-                        question = item.get("question", "").strip()
-                        unique_link = item.get("unique_link", "")
-                        score = item.get("score", 0)
-                        
-                        if question and unique_link:
-                            # Truncate long questions
-                            if len(question) > 80:
-                                question = question[:77] + "..."
-                            
-                            url = f"https://rallies.ai/chat/{unique_link}"
-                            markdown_content.append(f"{i:2}. [{question}]({url})")
-                    
-                    # Render all links as markdown
-                    if markdown_content:
-                        markdown_text = "\n".join(markdown_content)
-                        console.print(Markdown(markdown_text))
-                        console.print()
-                        console.print("[dim]Click any question to open it in your browser[/dim]")
-                else:
-                    console.print("[yellow]No high-scoring questions found in the feed.[/yellow]")
-            else:
-                console.print("[red]Failed to load feed data.[/red]")
-        else:
-            console.print(f"[red]API request failed with status {response.status_code}[/red]")
-            
-    except requests.exceptions.Timeout:
-        console.print("[red]Request timed out. Please try again.[/red]")
-    except requests.exceptions.RequestException as e:
-        console.print(f"[red]Network error: {str(e)}[/red]")
-    except Exception as e:
-        console.print(f"[red]Error loading feed: {str(e)}[/red]")
+    """Handle the /feed command - show example queries and tips"""
+    console.print(f"\n[bright_cyan]KYPERIAN - Example Queries:[/bright_cyan]\n")
     
+    examples = [
+        ("Stock Analysis", [
+            "What happened to AAPL stock today?",
+            "Analyze NVDA's technical indicators",
+            "Compare MSFT and GOOGL performance this month",
+        ]),
+        ("SEC Filings", [
+            "What are the key risks in Tesla's latest 10-K?",
+            "Summarize Apple's revenue segments from their annual report",
+            "Find any mention of AI investments in Microsoft's 10-Q",
+        ]),
+        ("Market Overview", [
+            "Which tech stocks are down the most today?",
+            "Show me stocks with unusual volume today",
+            "What's moving the market today?",
+        ]),
+        ("Options & Trading", [
+            "What's the options flow on SPY today?",
+            "Find stocks with high implied volatility",
+            "Analyze gamma exposure on major indices",
+        ]),
+    ]
+    
+    for category, queries in examples:
+        console.print(f"[yellow]{category}:[/yellow]")
+        for query in queries:
+            console.print(f"  • {query}")
+        console.print()
+    
+    console.print("[dim]Try any of these queries or ask your own question![/dim]")
     return True
 
 

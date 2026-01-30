@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "kyperian"
 version = "1.0.0"
-description = "Institutional-Grade AI Investment Research Platform"
+description = "KYPERIAN - Institutional-Grade AI Investment Research Platform"
 authors = [{name = "KYPERIAN"}]
 license = {text = "GPL-3.0"}
 readme = "README.md"
@@ -27,8 +27,7 @@ dependencies = [
 ]
 
 [project.scripts]
-kyperian = "rallies.cli:main"
-rallies = "rallies.cli:main"
+kyperian = "kyperian.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

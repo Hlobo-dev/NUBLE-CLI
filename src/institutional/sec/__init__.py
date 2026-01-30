@@ -13,7 +13,7 @@ Features:
 - Export to PDF, DOCX, Excel
 - Citation support with source links
 
-Original TENK by Rallies.ai - Enhanced for Institutional Research Platform
+Enhanced for KYPERIAN Institutional Research Platform
 """
 
 import os

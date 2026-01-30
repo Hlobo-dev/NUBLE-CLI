@@ -1,7 +1,7 @@
 import sys
 from rich.text import Text
-from rallies.manager import Manager
-from rallies import console
+from kyperian.manager import Manager
+from kyperian import console
 
 def display_application_banner():
     banner_text = """

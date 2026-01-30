@@ -3,7 +3,7 @@ SEC Filings Module - TENK Integration
 ======================================
 
 AI-powered SEC filings analysis using Claude Opus 4.5 and semantic search.
-Based on TENK by Rallies.ai, enhanced for institutional use.
+Enhanced for KYPERIAN institutional research.
 
 Features:
 - Download and index SEC filings (10-K, 10-Q, 8-K, 13F, etc.)

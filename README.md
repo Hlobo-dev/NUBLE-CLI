@@ -33,8 +33,8 @@ KYPERIAN is an institutional-grade AI investment research platform that combines
 
 \`\`\`bash
 # Clone the repository
-git clone https://github.com/Hlobo-dev/rallies-cli.git
-cd rallies-cli
+git clone https://github.com/Hlobo-dev/KYPERIAN-CLI.git
+cd KYPERIAN-CLI
 
 # Create virtual environment
 python -m venv .venv
@@ -70,7 +70,7 @@ pip install -e .
 
 \`\`\`
 src/
-├── rallies/          # CLI Application
+├── kyperian/         # CLI Application
 │   ├── cli.py        # Interactive shell
 │   ├── llm.py        # Claude/OpenAI integration
 │   ├── manager.py    # Query orchestration
