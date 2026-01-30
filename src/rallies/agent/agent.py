@@ -1,18 +1,22 @@
 import os
-import numpy as np
+import json
 import subprocess
 import tempfile
 import requests
-from .prompts import agent_prompt, answer_prompt, summary_prompt, compact_prompt
-from ..llm import LLM
+from .prompts import agent_prompt, answer_prompt, summary_prompt, compact_prompt, action_prompt
+from ..llm import LLM, token_tracker
 
 
 class Agent:
     def __init__(self, api_key=None):
         self.current_dir = os.path.dirname(os.path.abspath(__file__))
         self.api_key = api_key
-        self.last_usage = 0
-        self.last_limit = 0
+        self.llm = LLM()
+        
+    @property
+    def token_tracker(self):
+        """Access to the global token tracker for usage stats."""
+        return token_tracker
         
     def parse_messages(self, messages: list) -> list:
          parsed_messages = []
@@ -28,57 +32,109 @@ class Agent:
         message = []
         message.append({"role": "developer", "content": agent_prompt})
         message.extend(self.parse_messages(messages))
-        response = LLM().prompt(message, requires_json = True)
+        response = self.llm.prompt(message, requires_json = True)
         return response
     
     def action(self, question, title, description):
+        """
+        Execute a research action using Claude directly with web search.
+        Uses Polygon API for market data and Claude for analysis.
+        """
         try:
-            headers = {"Content-Type": "application/json"}
-            payload = {
-                "question": question,
-                "title": title,
-                "description": description
-            }
-            
-            if self.api_key:
-                headers["Authorization"] = f"Bearer {self.api_key}"
-            
-            response = requests.post(
-                "https://rallies.ai/api/complete-cli-action",
-                json=payload,
-                headers=headers,
-                timeout=180
+            # Build a research prompt for Claude
+            action_request = action_prompt.format(
+                question=question,
+                title=title,
+                description=description
             )
-            if response.status_code == 200:
-                result = response.json()
-                if result.get("allowed") == False:
-                    error_msg = result.get("error", "Unknown error")
-                    if "Rate limit exceeded" in error_msg:
-                        error_display = f"[red]⚠ Rate limit reached:[/red] {error_msg}"
-                    elif "Invalid API key" in error_msg:
-                        error_display = f"[red]⚠ Authentication failed:[/red] Invalid API key"
-                    else:
-                        error_display = f"[red]⚠ Access denied:[/red] {error_msg}"
-                    raise Exception(error_display)
-                
-                self.last_usage = result.get("current_usage", 0)
-                self.last_limit = result.get("limit", 0)
-                return result.get("results", "No results returned")
-            else:
-                raise Exception(f"[red]⚠ API Error:[/red] Request failed with status {response.status_code}")
-                
-        except requests.exceptions.RequestException as e:
-            raise Exception(f"[red]⚠ Network Error:[/red] {str(e)}")
+            
+            messages = [
+                {"role": "developer", "content": action_request},
+                {"role": "user", "content": f"Research task: {title}\n\nDetails: {description}\n\nOriginal question: {question}"}
+            ]
+            
+            # Try to get real market data from Polygon if we have a ticker
+            market_data = self._get_market_data(question, title, description)
+            if market_data:
+                messages.append({
+                    "role": "user", 
+                    "content": f"Here is real-time market data to help with your analysis:\n\n{market_data}"
+                })
+            
+            # Get response from Claude
+            response = self.llm.prompt(messages)
+            return response
+            
         except Exception as e:
-            if "[red]" in str(e):
-                raise
-            raise Exception(f"[red]⚠ Error:[/red] {str(e)}")
+            return f"[red]⚠ Error:[/red] {str(e)}"
+    
+    def _get_market_data(self, question, title, description):
+        """
+        Fetch real market data from Polygon API if available.
+        """
+        polygon_key = os.getenv("POLYGON_API_KEY")
+        if not polygon_key:
+            return None
+        
+        # Try to extract ticker from the question/title/description
+        import re
+        text = f"{question} {title} {description}".upper()
+        
+        # Common stock ticker patterns
+        ticker_patterns = [
+            r'\b(AAPL|MSFT|GOOGL|GOOG|AMZN|META|NVDA|TSLA|AMD|INTC|NFLX|DIS|JPM|BAC|WMT|V|MA|HD|PG|JNJ|UNH|XOM|CVX|PFE|ABBV|MRK|KO|PEP|COST|AVGO|ADBE|CRM|ORCL|CSCO|ACN|TXN|QCOM|NOW|IBM|INTU|SNOW|PLTR|COIN|SQ|PYPL|ROKU|SHOP|ZM|DDOG|NET|CRWD|ZS|OKTA|MDB|U|RBLX|ABNB|UBER|LYFT|DASH|SNAP|PINS|TWTR|SPOT|SOFI|HOOD|RIVN|LCID|NIO|XPEV|LI|F|GM|BABA|JD|PDD|BIDU|NKE|LULU|TGT|LOW|TJX|SBUX|MCD|CMG|DPZ|YUM|MAR|HLT|BA|LMT|RTX|GE|CAT|DE|MMM|HON|UPS|FDX)\b',
+        ]
+        
+        tickers = []
+        for pattern in ticker_patterns:
+            matches = re.findall(pattern, text)
+            tickers.extend(matches)
+        
+        # Remove duplicates while preserving order
+        seen = set()
+        tickers = [t for t in tickers if not (t in seen or seen.add(t))]
+        
+        if not tickers:
+            return None
+        
+        # Get data for up to 3 tickers
+        market_info = []
+        for ticker in tickers[:3]:
+            try:
+                # Get previous day's data
+                url = f"https://api.polygon.io/v2/aggs/ticker/{ticker}/prev?apiKey={polygon_key}"
+                resp = requests.get(url, timeout=10)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    if data.get("results"):
+                        result = data["results"][0]
+                        change = ((result["c"] - result["o"]) / result["o"]) * 100 if result["o"] else 0
+                        market_info.append(
+                            f"**{ticker}**: Open ${result['o']:.2f}, Close ${result['c']:.2f}, "
+                            f"High ${result['h']:.2f}, Low ${result['l']:.2f}, "
+                            f"Volume {result['v']:,.0f}, Change {change:+.2f}%"
+                        )
+                
+                # Get ticker details
+                details_url = f"https://api.polygon.io/v3/reference/tickers/{ticker}?apiKey={polygon_key}"
+                resp = requests.get(details_url, timeout=10)
+                if resp.status_code == 200:
+                    details = resp.json().get("results", {})
+                    if details.get("name"):
+                        market_info.append(f"Company: {details.get('name')}")
+                    if details.get("market_cap"):
+                        market_info.append(f"Market Cap: ${details.get('market_cap'):,.0f}")
+                        
+            except Exception:
+                continue
+        
+        return "\n".join(market_info) if market_info else None
     
     def summarize(self, messages):
         message = []
         message.append({"role": "developer", "content": summary_prompt})
         message.extend(self.parse_messages(messages))
-        summary = LLM().prompt(message)
+        summary = self.llm.prompt(message)
         return summary
     
     def answer(self, question, messages):
@@ -86,14 +142,14 @@ class Agent:
         answer_prompt_formatted = answer_prompt.replace("--question--", question)
         message.append({"role": "developer", "content": answer_prompt_formatted})
         message.extend(self.parse_messages(messages))
-        for chunk in LLM().prompt_stream(message):
+        for chunk in self.llm.prompt_stream(message):
             yield chunk
 
     def compact(self, messages):
         message = []
         message.append({"role": "developer", "content": compact_prompt})
         message.extend(self.parse_messages(messages))
-        summary = LLM().prompt(message)
+        summary = self.llm.prompt(message)
 
         messages.clear()
         messages.append({"role": "user", "content": summary})

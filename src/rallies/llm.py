@@ -1,6 +1,7 @@
 import os
 import json
 from functools import wraps
+from datetime import datetime, timedelta
 
 # Try Anthropic first (Claude), fallback to OpenAI
 try:
@@ -14,6 +15,63 @@ try:
     OPENAI_AVAILABLE = True
 except ImportError:
     OPENAI_AVAILABLE = False
+
+
+class TokenTracker:
+    """Tracks Claude API token usage across the session."""
+    _instance = None
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._init_tracker()
+        return cls._instance
+    
+    def _init_tracker(self):
+        self.session_start = datetime.now()
+        self.input_tokens = 0
+        self.output_tokens = 0
+        self.total_requests = 0
+        self.cache_read_tokens = 0
+        self.cache_creation_tokens = 0
+    
+    def add_usage(self, input_tokens=0, output_tokens=0, cache_read=0, cache_creation=0):
+        """Add token usage from an API call."""
+        self.input_tokens += input_tokens
+        self.output_tokens += output_tokens
+        self.cache_read_tokens += cache_read
+        self.cache_creation_tokens += cache_creation
+        self.total_requests += 1
+    
+    @property
+    def total_tokens(self):
+        return self.input_tokens + self.output_tokens
+    
+    @property
+    def session_duration(self):
+        return datetime.now() - self.session_start
+    
+    def get_cost_estimate(self):
+        """Estimate cost based on Claude Sonnet pricing (as of 2025)."""
+        # Claude Sonnet 4 pricing: $3/M input, $15/M output
+        input_cost = (self.input_tokens / 1_000_000) * 3.0
+        output_cost = (self.output_tokens / 1_000_000) * 15.0
+        return input_cost + output_cost
+    
+    def get_summary(self):
+        """Get formatted usage summary."""
+        return {
+            "total_tokens": self.total_tokens,
+            "input_tokens": self.input_tokens,
+            "output_tokens": self.output_tokens,
+            "requests": self.total_requests,
+            "cost_estimate": f"${self.get_cost_estimate():.4f}",
+            "session_minutes": int(self.session_duration.total_seconds() / 60)
+        }
+    
+    def reset(self):
+        """Reset the tracker."""
+        self._init_tracker()
 
 
 def retry_json_decode(max_retries=3):
@@ -33,6 +91,10 @@ def retry_json_decode(max_retries=3):
             
         return wrapper
     return decorator
+
+
+# Global token tracker instance
+token_tracker = TokenTracker()
 
 
 class LLM:
@@ -110,6 +172,16 @@ class LLM:
                 system=system_prompt or "You are a helpful AI assistant.",
                 messages=converted_msgs,
             )
+            
+            # Track token usage
+            if hasattr(response, 'usage'):
+                token_tracker.add_usage(
+                    input_tokens=response.usage.input_tokens,
+                    output_tokens=response.usage.output_tokens,
+                    cache_read=getattr(response.usage, 'cache_read_input_tokens', 0) or 0,
+                    cache_creation=getattr(response.usage, 'cache_creation_input_tokens', 0) or 0
+                )
+            
             response_text = response.content[0].text
         else:
             # OpenAI path
@@ -148,6 +220,16 @@ class LLM:
             ) as stream:
                 for text in stream.text_stream:
                     yield text
+                
+                # Get final message for token tracking
+                final_message = stream.get_final_message()
+                if hasattr(final_message, 'usage'):
+                    token_tracker.add_usage(
+                        input_tokens=final_message.usage.input_tokens,
+                        output_tokens=final_message.usage.output_tokens,
+                        cache_read=getattr(final_message.usage, 'cache_read_input_tokens', 0) or 0,
+                        cache_creation=getattr(final_message.usage, 'cache_creation_input_tokens', 0) or 0
+                    )
         else:
             # OpenAI path
             response = self.client.responses.create(

@@ -132,7 +132,7 @@ class Manager:
                         planning_live.stop()
                         console.print(result)
                         console.print()
-                        console.print(f"[dim white]Contact us at [/dim white][link=mailto:support@rallies.ai][white]support@rallies.ai[/white][/link] [dim white]in case of any issues[/dim white]", justify="right")
+                        console.print(f"[dim white]Please check your API keys and try again[/dim white]", justify="right")
                         return ""
 
                     # Add to conversation
@@ -178,10 +178,12 @@ class Manager:
         # remove large amounts of raw data to reduce token usage
         conversation = [item for item in conversation if "type" not in item or item["type"] != "data"]
         
-        usage_info = ""
-        if hasattr(self.agent, 'last_usage') and hasattr(self.agent, 'last_limit'):
-            usage_info = f"[dim white]Usage left: [/dim white][pink]{self.agent.last_limit - self.agent.last_usage}[/pink] | "
+        # Get Claude API usage from token tracker
+        tracker = self.agent.token_tracker
+        usage_info = f"[dim white]Claude API: [/dim white][bright_green]{tracker.total_tokens:,}[/bright_green][dim white] tokens[/dim white] | "
+        cost_info = f"[dim white]~[/dim white][yellow]{tracker.get_cost_estimate():.4f}[/yellow][dim white]$[/dim white] | "
         
-        console.print(f"{usage_info}[dim white]Tokens used: [/dim white][white]{tokens:,}[/white] | [dim white]powered by [/dim white][bright_cyan]KYPERIAN[/bright_cyan]", justify="right")
+        console.print(f"{usage_info}{cost_info}[dim white]Requests: [/dim white][white]{tracker.total_requests}[/white] | [dim white]powered by [/dim white][bright_cyan]KYPERIAN[/bright_cyan]", justify="right")
 
         return answer_text 
+
