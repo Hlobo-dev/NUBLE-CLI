@@ -177,3 +177,16 @@ Desktop.ini
 config.json
 .secrets
 api_keys.txt
+# Reference source code (not needed in repo)
+TENK_SOURCE/
+
+# Local database files
+*.db
+filings_db/
+test_filings_db/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
