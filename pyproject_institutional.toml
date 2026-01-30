@@ -1,0 +1,115 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "institutional"
+version = "1.0.0"
+description = "Institutional-grade financial research platform with multi-provider data aggregation"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.9"
+keywords = [
+    "finance",
+    "stocks",
+    "trading",
+    "research",
+    "analysis",
+    "institutional",
+    "ai",
+    "llm",
+    "technical-analysis",
+    "sentiment-analysis"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial :: Investment",
+]
+dependencies = [
+    "aiohttp>=3.8.0",
+    "httpx>=0.24.0",
+    "openai>=1.0.0",
+    "rich>=13.0.0",
+    "tiktoken>=0.5.0",
+]
+
+[project.optional-dependencies]
+ml = [
+    "torch>=2.0.0",
+    "transformers>=4.30.0",
+    "scikit-learn>=1.0.0",
+    "numpy>=1.24.0",
+    "pandas>=2.0.0",
+]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+    "mypy>=1.0.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "ruff>=0.0.270",
+]
+all = [
+    "institutional[ml,dev]",
+]
+
+[project.scripts]
+institutional = "institutional.cli:main"
+inst = "institutional.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/yourusername/institutional"
+Documentation = "https://github.com/yourusername/institutional#readme"
+Repository = "https://github.com/yourusername/institutional"
+Issues = "https://github.com/yourusername/institutional/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"*" = ["*.json", "*.yaml", "*.yml"]
+
+[tool.black]
+line-length = 100
+target-version = ["py39", "py310", "py311", "py312"]
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+    | \.mypy_cache
+    | \.venv
+    | build
+    | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 100
+known_first_party = ["institutional"]
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "W", "I", "N", "D", "UP", "ANN", "S", "B", "C4"]
+ignore = ["ANN101", "ANN102", "D100", "D104"]
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_functions = "test_*"

@@ -1,0 +1,620 @@
+"""
+SEC Filings Export
+==================
+
+Export SEC filings analysis to PDF, DOCX, and XLSX formats.
+Based on TENK export capabilities.
+"""
+
+import os
+from typing import Optional, Dict, Any, List
+from dataclasses import dataclass
+from datetime import datetime
+import re
+import json
+
+# Optional imports for export formats
+try:
+    from weasyprint import HTML, CSS
+    PDF_AVAILABLE = True
+except ImportError:
+    PDF_AVAILABLE = False
+
+try:
+    from docx import Document
+    from docx.shared import Pt, Inches
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    DOCX_AVAILABLE = True
+except ImportError:
+    DOCX_AVAILABLE = False
+
+try:
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    XLSX_AVAILABLE = True
+except ImportError:
+    XLSX_AVAILABLE = False
+
+
+@dataclass
+class ExportResult:
+    """Result of an export operation"""
+    success: bool
+    filepath: Optional[str]
+    format: str
+    error: Optional[str] = None
+    file_size: Optional[int] = None
+
+
+class FilingsExporter:
+    """
+    Export SEC filings analysis results to various formats.
+    
+    Supports:
+    - PDF: Professional formatted reports
+    - DOCX: Editable Word documents
+    - XLSX: Structured spreadsheet data
+    """
+    
+    # CSS for PDF styling
+    PDF_STYLE = """
+    body {
+        font-family: 'Helvetica Neue', Arial, sans-serif;
+        font-size: 12pt;
+        line-height: 1.6;
+        color: #333;
+        margin: 40px;
+    }
+    h1 {
+        color: #1a365d;
+        border-bottom: 3px solid #2b6cb0;
+        padding-bottom: 10px;
+        font-size: 28pt;
+    }
+    h2 {
+        color: #2b6cb0;
+        margin-top: 30px;
+        font-size: 20pt;
+    }
+    h3 {
+        color: #4a5568;
+        font-size: 16pt;
+    }
+    p {
+        margin: 10px 0;
+        text-align: justify;
+    }
+    ul, ol {
+        margin: 10px 0;
+        padding-left: 30px;
+    }
+    li {
+        margin: 5px 0;
+    }
+    table {
+        border-collapse: collapse;
+        width: 100%;
+        margin: 20px 0;
+    }
+    th, td {
+        border: 1px solid #e2e8f0;
+        padding: 12px;
+        text-align: left;
+    }
+    th {
+        background-color: #2b6cb0;
+        color: white;
+        font-weight: bold;
+    }
+    tr:nth-child(even) {
+        background-color: #f7fafc;
+    }
+    .highlight {
+        background-color: #fef3c7;
+        padding: 2px 4px;
+        border-radius: 3px;
+    }
+    .risk-high {
+        color: #c53030;
+        font-weight: bold;
+    }
+    .risk-medium {
+        color: #dd6b20;
+    }
+    .risk-low {
+        color: #38a169;
+    }
+    .footer {
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 1px solid #e2e8f0;
+        font-size: 10pt;
+        color: #718096;
+        text-align: center;
+    }
+    .header-meta {
+        color: #718096;
+        font-size: 10pt;
+        margin-bottom: 30px;
+    }
+    blockquote {
+        border-left: 4px solid #2b6cb0;
+        padding-left: 20px;
+        margin: 20px 0;
+        color: #4a5568;
+        font-style: italic;
+    }
+    """
+    
+    def __init__(self, output_dir: str = "./exports"):
+        """
+        Initialize the exporter.
+        
+        Args:
+            output_dir: Directory for exported files
+        """
+        self.output_dir = output_dir
+        os.makedirs(output_dir, exist_ok=True)
+    
+    def export_pdf(
+        self,
+        content: str,
+        title: str,
+        ticker: str = None,
+        metadata: Dict[str, Any] = None,
+    ) -> ExportResult:
+        """
+        Export analysis to PDF format.
+        
+        Args:
+            content: Markdown content to export
+            title: Report title
+            ticker: Stock ticker (optional)
+            metadata: Additional metadata
+            
+        Returns:
+            ExportResult
+        """
+        if not PDF_AVAILABLE:
+            return ExportResult(
+                success=False,
+                filepath=None,
+                format="pdf",
+                error="weasyprint not installed. Run: pip install weasyprint"
+            )
+        
+        try:
+            # Convert markdown to HTML
+            html_content = self._markdown_to_html(content)
+            
+            # Build full HTML document
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+            ticker_str = f" ({ticker})" if ticker else ""
+            
+            html = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <title>{title}{ticker_str}</title>
+            </head>
+            <body>
+                <h1>{title}{ticker_str}</h1>
+                <div class="header-meta">
+                    Generated: {timestamp} | Rallies Institutional Research Platform
+                </div>
+                {html_content}
+                <div class="footer">
+                    This report was generated by Rallies AI using Claude Opus 4.5.
+                    SEC filings data sourced from SEC EDGAR.
+                </div>
+            </body>
+            </html>
+            """
+            
+            # Generate filename
+            filename = self._generate_filename(title, ticker, "pdf")
+            filepath = os.path.join(self.output_dir, filename)
+            
+            # Generate PDF
+            HTML(string=html).write_pdf(
+                filepath,
+                stylesheets=[CSS(string=self.PDF_STYLE)]
+            )
+            
+            file_size = os.path.getsize(filepath)
+            
+            return ExportResult(
+                success=True,
+                filepath=filepath,
+                format="pdf",
+                file_size=file_size,
+            )
+            
+        except Exception as e:
+            return ExportResult(
+                success=False,
+                filepath=None,
+                format="pdf",
+                error=str(e),
+            )
+    
+    def export_docx(
+        self,
+        content: str,
+        title: str,
+        ticker: str = None,
+        metadata: Dict[str, Any] = None,
+    ) -> ExportResult:
+        """
+        Export analysis to DOCX format.
+        
+        Args:
+            content: Markdown content to export
+            title: Report title
+            ticker: Stock ticker (optional)
+            metadata: Additional metadata
+            
+        Returns:
+            ExportResult
+        """
+        if not DOCX_AVAILABLE:
+            return ExportResult(
+                success=False,
+                filepath=None,
+                format="docx",
+                error="python-docx not installed. Run: pip install python-docx"
+            )
+        
+        try:
+            doc = Document()
+            
+            # Title
+            ticker_str = f" ({ticker})" if ticker else ""
+            title_para = doc.add_heading(f"{title}{ticker_str}", level=0)
+            title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            
+            # Metadata
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+            meta_para = doc.add_paragraph(f"Generated: {timestamp}")
+            meta_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            meta_para.runs[0].font.size = Pt(10)
+            meta_para.runs[0].font.color.theme_color = None
+            
+            doc.add_paragraph()  # Spacing
+            
+            # Parse and add content
+            self._add_markdown_to_docx(doc, content)
+            
+            # Footer
+            doc.add_paragraph()
+            footer = doc.add_paragraph(
+                "This report was generated by Rallies AI using Claude Opus 4.5. "
+                "SEC filings data sourced from SEC EDGAR."
+            )
+            footer.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            footer.runs[0].font.size = Pt(9)
+            
+            # Save
+            filename = self._generate_filename(title, ticker, "docx")
+            filepath = os.path.join(self.output_dir, filename)
+            doc.save(filepath)
+            
+            file_size = os.path.getsize(filepath)
+            
+            return ExportResult(
+                success=True,
+                filepath=filepath,
+                format="docx",
+                file_size=file_size,
+            )
+            
+        except Exception as e:
+            return ExportResult(
+                success=False,
+                filepath=None,
+                format="docx",
+                error=str(e),
+            )
+    
+    def export_xlsx(
+        self,
+        data: List[Dict[str, Any]],
+        title: str,
+        ticker: str = None,
+        sheets: Dict[str, List[Dict[str, Any]]] = None,
+    ) -> ExportResult:
+        """
+        Export structured data to XLSX format.
+        
+        Args:
+            data: List of dicts for main sheet
+            title: Workbook title
+            ticker: Stock ticker (optional)
+            sheets: Additional named sheets
+            
+        Returns:
+            ExportResult
+        """
+        if not XLSX_AVAILABLE:
+            return ExportResult(
+                success=False,
+                filepath=None,
+                format="xlsx",
+                error="openpyxl not installed. Run: pip install openpyxl"
+            )
+        
+        try:
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Analysis"
+            
+            # Style definitions
+            header_font = Font(bold=True, color="FFFFFF")
+            header_fill = PatternFill(start_color="2B6CB0", end_color="2B6CB0", fill_type="solid")
+            header_align = Alignment(horizontal="center", vertical="center")
+            thin_border = Border(
+                left=Side(style='thin'),
+                right=Side(style='thin'),
+                top=Side(style='thin'),
+                bottom=Side(style='thin')
+            )
+            
+            # Write main data
+            if data and len(data) > 0:
+                headers = list(data[0].keys())
+                
+                # Header row
+                for col, header in enumerate(headers, 1):
+                    cell = ws.cell(row=1, column=col, value=header)
+                    cell.font = header_font
+                    cell.fill = header_fill
+                    cell.alignment = header_align
+                    cell.border = thin_border
+                
+                # Data rows
+                for row, item in enumerate(data, 2):
+                    for col, header in enumerate(headers, 1):
+                        cell = ws.cell(row=row, column=col, value=item.get(header, ""))
+                        cell.border = thin_border
+                
+                # Auto-adjust column widths
+                for col in range(1, len(headers) + 1):
+                    max_length = max(
+                        len(str(ws.cell(row=1, column=col).value)),
+                        max(len(str(ws.cell(row=r, column=col).value or "")) for r in range(2, len(data) + 2))
+                    )
+                    ws.column_dimensions[chr(64 + col)].width = min(max_length + 2, 50)
+            
+            # Additional sheets
+            if sheets:
+                for sheet_name, sheet_data in sheets.items():
+                    if not sheet_data:
+                        continue
+                    
+                    new_ws = wb.create_sheet(title=sheet_name[:31])  # Excel 31 char limit
+                    headers = list(sheet_data[0].keys())
+                    
+                    # Header row
+                    for col, header in enumerate(headers, 1):
+                        cell = new_ws.cell(row=1, column=col, value=header)
+                        cell.font = header_font
+                        cell.fill = header_fill
+                        cell.alignment = header_align
+                        cell.border = thin_border
+                    
+                    # Data rows
+                    for row, item in enumerate(sheet_data, 2):
+                        for col, header in enumerate(headers, 1):
+                            cell = new_ws.cell(row=row, column=col, value=item.get(header, ""))
+                            cell.border = thin_border
+            
+            # Save
+            filename = self._generate_filename(title, ticker, "xlsx")
+            filepath = os.path.join(self.output_dir, filename)
+            wb.save(filepath)
+            
+            file_size = os.path.getsize(filepath)
+            
+            return ExportResult(
+                success=True,
+                filepath=filepath,
+                format="xlsx",
+                file_size=file_size,
+            )
+            
+        except Exception as e:
+            return ExportResult(
+                success=False,
+                filepath=None,
+                format="xlsx",
+                error=str(e),
+            )
+    
+    def export_json(
+        self,
+        data: Dict[str, Any],
+        title: str,
+        ticker: str = None,
+    ) -> ExportResult:
+        """
+        Export data to JSON format.
+        
+        Args:
+            data: Data to export
+            title: Report title
+            ticker: Stock ticker (optional)
+            
+        Returns:
+            ExportResult
+        """
+        try:
+            # Add metadata
+            export_data = {
+                "title": title,
+                "ticker": ticker,
+                "generated_at": datetime.now().isoformat(),
+                "platform": "Rallies Institutional Research",
+                "model": "Claude Opus 4.5",
+                "data": data,
+            }
+            
+            filename = self._generate_filename(title, ticker, "json")
+            filepath = os.path.join(self.output_dir, filename)
+            
+            with open(filepath, 'w', encoding='utf-8') as f:
+                json.dump(export_data, f, indent=2, default=str)
+            
+            file_size = os.path.getsize(filepath)
+            
+            return ExportResult(
+                success=True,
+                filepath=filepath,
+                format="json",
+                file_size=file_size,
+            )
+            
+        except Exception as e:
+            return ExportResult(
+                success=False,
+                filepath=None,
+                format="json",
+                error=str(e),
+            )
+    
+    def _markdown_to_html(self, markdown: str) -> str:
+        """
+        Simple markdown to HTML conversion.
+        
+        Args:
+            markdown: Markdown text
+            
+        Returns:
+            HTML string
+        """
+        html = markdown
+        
+        # Headers
+        html = re.sub(r'^### (.+)$', r'<h3>\1</h3>', html, flags=re.MULTILINE)
+        html = re.sub(r'^## (.+)$', r'<h2>\1</h2>', html, flags=re.MULTILINE)
+        html = re.sub(r'^# (.+)$', r'<h2>\1</h2>', html, flags=re.MULTILINE)  # h2 since h1 is title
+        
+        # Bold and italic
+        html = re.sub(r'\*\*\*(.+?)\*\*\*', r'<strong><em>\1</em></strong>', html)
+        html = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', html)
+        html = re.sub(r'\*(.+?)\*', r'<em>\1</em>', html)
+        
+        # Lists
+        lines = html.split('\n')
+        result = []
+        in_list = False
+        
+        for line in lines:
+            if line.strip().startswith('- '):
+                if not in_list:
+                    result.append('<ul>')
+                    in_list = True
+                result.append(f'<li>{line.strip()[2:]}</li>')
+            elif line.strip().startswith('* '):
+                if not in_list:
+                    result.append('<ul>')
+                    in_list = True
+                result.append(f'<li>{line.strip()[2:]}</li>')
+            else:
+                if in_list:
+                    result.append('</ul>')
+                    in_list = False
+                if line.strip() and not line.strip().startswith('<'):
+                    result.append(f'<p>{line}</p>')
+                else:
+                    result.append(line)
+        
+        if in_list:
+            result.append('</ul>')
+        
+        return '\n'.join(result)
+    
+    def _add_markdown_to_docx(self, doc: Document, markdown: str):
+        """
+        Add markdown content to a DOCX document.
+        
+        Args:
+            doc: Document object
+            markdown: Markdown text
+        """
+        lines = markdown.split('\n')
+        in_list = False
+        
+        for line in lines:
+            line = line.strip()
+            
+            if not line:
+                if in_list:
+                    in_list = False
+                continue
+            
+            # Headers
+            if line.startswith('### '):
+                doc.add_heading(line[4:], level=3)
+            elif line.startswith('## '):
+                doc.add_heading(line[3:], level=2)
+            elif line.startswith('# '):
+                doc.add_heading(line[2:], level=1)
+            # List items
+            elif line.startswith('- ') or line.startswith('* '):
+                doc.add_paragraph(line[2:], style='List Bullet')
+                in_list = True
+            # Regular paragraph
+            else:
+                # Clean up markdown formatting
+                line = re.sub(r'\*\*\*(.+?)\*\*\*', r'\1', line)
+                line = re.sub(r'\*\*(.+?)\*\*', r'\1', line)
+                line = re.sub(r'\*(.+?)\*', r'\1', line)
+                doc.add_paragraph(line)
+    
+    def _generate_filename(self, title: str, ticker: str, ext: str) -> str:
+        """
+        Generate a unique filename.
+        
+        Args:
+            title: Report title
+            ticker: Stock ticker
+            ext: File extension
+            
+        Returns:
+            Filename string
+        """
+        # Clean title
+        clean_title = re.sub(r'[^\w\s-]', '', title)
+        clean_title = re.sub(r'\s+', '_', clean_title)[:50]
+        
+        # Timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        # Build filename
+        if ticker:
+            return f"{ticker}_{clean_title}_{timestamp}.{ext}"
+        else:
+            return f"{clean_title}_{timestamp}.{ext}"
+    
+    def list_exports(self) -> List[Dict[str, Any]]:
+        """
+        List all exported files.
+        
+        Returns:
+            List of file info dicts
+        """
+        exports = []
+        
+        for filename in os.listdir(self.output_dir):
+            filepath = os.path.join(self.output_dir, filename)
+            if os.path.isfile(filepath):
+                exports.append({
+                    "filename": filename,
+                    "filepath": filepath,
+                    "size": os.path.getsize(filepath),
+                    "modified": datetime.fromtimestamp(os.path.getmtime(filepath)).isoformat(),
+                    "format": filename.split('.')[-1] if '.' in filename else "unknown",
+                })
+        
+        return sorted(exports, key=lambda x: x["modified"], reverse=True)

@@ -68,9 +68,13 @@ class Manager:
         if handle_command(prompt, conversation, self.agent, console):
             return ""
         
-        if not os.getenv("OPENAI_API_KEY"):
-            console.print("[red]⚠ We need to set our OpenAI key first. Please set OPENAI_API_KEY environment variable with your OpenAI key.[/red]")
-            console.print("[dim white]e.g export OPENAI_API_KEY=sk-... - once done open rallies again[/dim white]")
+        # Check for API keys - either OpenAI or Anthropic works now
+        if not os.getenv("OPENAI_API_KEY") and not os.getenv("ANTHROPIC_API_KEY"):
+            console.print("[red]⚠ No API key found. Please set either:[/red]")
+            console.print("[dim white]  • ANTHROPIC_API_KEY for Claude (recommended)[/dim white]")
+            console.print("[dim white]  • OPENAI_API_KEY for OpenAI[/dim white]")
+            console.print()
+            console.print("[dim white]Add to .env file: ANTHROPIC_API_KEY=sk-ant-...[/dim white]")
             console.print()
             exit()
 
