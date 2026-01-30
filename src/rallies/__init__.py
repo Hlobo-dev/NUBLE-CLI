@@ -1,4 +1,4 @@
-"""Rallies - Stock Analysis Agent"""
+"""KYPERIAN - Institutional-Grade AI Investment Research"""
 
 import os
 from pathlib import Path
@@ -23,6 +23,6 @@ try:
 except ImportError:
     pass  # dotenv not installed
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 
 console = Console()

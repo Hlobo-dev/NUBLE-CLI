@@ -5,12 +5,12 @@ from rallies import console
 
 def display_application_banner():
     banner_text = """
-██╗    ██████╗ █████╗ ██╗     ██╗     ██╗███████╗███████╗
-  ██╗  ██╔══██╗██╔══██╗██║     ██║     ██║██╔════╝██╔════╝
-    ██ ╗█████╔╝███████║██║     ██║     ██║█████╗  ███████╗
-  ██╔╝ ██╔══██╗██╔══██║██║     ██║     ██║██╔══╝  ╚════██║
-██╔╝   ██║  ██║██║  ██║███████╗███████╗██║███████╗███████║
-╚╝     ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚══════╝╚═╝╚══════╝╚══════╝
+██╗  ██╗██╗   ██╗██████╗ ███████╗██████╗ ██╗ █████╗ ███╗   ██╗
+██║ ██╔╝╚██╗ ██╔╝██╔══██╗██╔════╝██╔══██╗██║██╔══██╗████╗  ██║
+█████╔╝  ╚████╔╝ ██████╔╝█████╗  ██████╔╝██║███████║██╔██╗ ██║
+██╔═██╗   ╚██╔╝  ██╔═══╝ ██╔══╝  ██╔══██╗██║██╔══██║██║╚██╗██║
+██║  ██╗   ██║   ██║     ███████╗██║  ██║██║██║  ██║██║ ╚████║
+╚═╝  ╚═╝   ╚═╝   ╚═╝     ╚══════╝╚═╝  ╚═╝╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝
 """
     
     # Create gradient effect similar to Gemini CLI
@@ -30,7 +30,7 @@ def display_application_banner():
         full_banner.append('\n')
     
     # Add subtitle with gradient
-    subtitle = Text("AI powered investment research, backed by real-time data", style="bold bright_magenta")
+    subtitle = Text("Institutional-Grade AI Investment Research", style="bold bright_magenta")
     full_banner.append('\n')
     full_banner.append(subtitle)
     

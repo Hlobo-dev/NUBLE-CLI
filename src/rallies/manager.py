@@ -182,6 +182,6 @@ class Manager:
         if hasattr(self.agent, 'last_usage') and hasattr(self.agent, 'last_limit'):
             usage_info = f"[dim white]Usage left: [/dim white][pink]{self.agent.last_limit - self.agent.last_usage}[/pink] | "
         
-        console.print(f"{usage_info}[dim white]Tokens used: [/dim white][white]{tokens:,}[/white] | [dim white]with [/dim white][magenta]♥[/magenta] [dim white]by [/dim white][link=https://rallies.ai][dim white]rallies.ai[/dim white][/link]", justify="right")
+        console.print(f"{usage_info}[dim white]Tokens used: [/dim white][white]{tokens:,}[/white] | [dim white]powered by [/dim white][bright_cyan]KYPERIAN[/bright_cyan]", justify="right")
 
         return answer_text 

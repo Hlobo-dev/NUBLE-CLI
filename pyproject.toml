@@ -3,10 +3,10 @@ requires = ["setuptools>=45", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "rallies"
-version = "0.1.0"
-description = "Stock Analysis Agent"
-authors = [{name = "Rallies Team"}]
+name = "kyperian"
+version = "1.0.0"
+description = "Institutional-Grade AI Investment Research Platform"
+authors = [{name = "KYPERIAN"}]
 license = {text = "GPL-3.0"}
 readme = "README.md"
 requires-python = ">=3.8"
@@ -21,10 +21,13 @@ dependencies = [
     "tiktoken",
     "requests",
     "openai",
+    "anthropic",
+    "python-dotenv",
     "numpy"
 ]
 
 [project.scripts]
+kyperian = "rallies.cli:main"
 rallies = "rallies.cli:main"
 
 [tool.setuptools.packages.find]
