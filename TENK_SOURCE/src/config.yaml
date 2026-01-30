@@ -1,0 +1,20 @@
+model:
+  name: gpt-5.2
+  max_turns: 50
+
+search:
+  top_k: 10
+  chunk_size: 3000
+  chunk_overlap: 500
+
+embeddings:
+  model: all-MiniLM-L6-v2
+
+edgar:
+  identity: "YourName yourname@example.com"
+
+database:
+  path: db/filings.db
+
+exports:
+  dir: exports

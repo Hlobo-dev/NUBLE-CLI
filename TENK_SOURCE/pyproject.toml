@@ -1,0 +1,64 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tenk"
+version = "0.1.2"
+description = "Talk to SEC filings with AI"
+readme = "README.md"
+license = {text = "Personal Use License"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Rallies.ai", email = "support@rallies.ai"}
+]
+keywords = ["sec", "filings", "ai", "finance", "investing", "10-K", "10-Q"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: Other/Proprietary License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial :: Investment",
+]
+dependencies = [
+    "openai>=1.0.0",
+    "openai-agents>=0.1.0",
+    "duckdb>=0.9.0",
+    "numpy>=1.24.0",
+    "sentence-transformers>=2.2.0",
+    "edgartools>=2.0.0",
+    "yfinance>=0.2.0",
+    "rich>=13.0.0",
+    "pyyaml>=6.0",
+    "markdown>=3.4.0",
+    "beautifulsoup4>=4.12.0",
+    "weasyprint>=60.0",
+    "openpyxl>=3.1.0",
+    "python-docx>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+]
+
+[project.scripts]
+tenk = "src.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/rallies-ai/tenk"
+Documentation = "https://github.com/rallies-ai/tenk#readme"
+Repository = "https://github.com/rallies-ai/tenk"
+Issues = "https://github.com/rallies-ai/tenk/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.setuptools.package-data]
+src = ["config.yaml"]

@@ -178,7 +178,6 @@ config.json
 .secrets
 api_keys.txt
 # Reference source code (not needed in repo)
-TENK_SOURCE/
 
 # Local database files
 *.db
