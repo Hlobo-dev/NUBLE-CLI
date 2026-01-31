@@ -1,0 +1,41 @@
+{
+  "model_name": "LSTM",
+  "train_period": [
+    "2019-01-01",
+    "2023-03-14"
+  ],
+  "test_period": [
+    "2024-02-07",
+    "2024-12-31"
+  ],
+  "n_train_samples": 1096,
+  "n_test_samples": 235,
+  "directional_accuracy": 0.32386363636363635,
+  "correlation": -0.5328704438203682,
+  "ic_mean": -0.4804704067861961,
+  "ic_std": 0.15496174113522884,
+  "ic_ir": -3.10057439511414,
+  "hit_rate": 0.32386363636363635,
+  "sharpe_ratio": -6.26136238228509,
+  "sortino_ratio": -8.66657537639933,
+  "max_drawdown": -0.9892889084929835,
+  "calmar_ratio": -6.329154535678795,
+  "win_rate": 0.32386363636363635,
+  "profit_factor": 0.3528065778543343,
+  "total_return": -0.9880232583898557,
+  "annualized_return": -0.9982277279728264,
+  "annualized_volatility": 0.9278487906520096,
+  "t_statistic": -5.217801985237576,
+  "p_value": 5.080038670656171e-07,
+  "is_significant": "False",
+  "sharpe_by_year": {
+    "2024": -6.26136238228509
+  },
+  "sharpe_by_regime": {
+    "high_vol": -6.375111725714591,
+    "low_vol": -5.74027704275599,
+    "trending": -6.03387969328146,
+    "mean_revert": 0
+  },
+  "validated_at": "2026-01-30T11:37:26.559680"
+}

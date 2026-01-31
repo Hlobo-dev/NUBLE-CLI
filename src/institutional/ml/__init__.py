@@ -3,29 +3,36 @@ Machine Learning & Deep Learning Module
 =======================================
 
 Institutional-grade ML/DL components for financial analysis:
-- Transformer-based market prediction
-- LSTM/GRU time series forecasting
-- Attention mechanisms for feature importance
-- Reinforcement learning for portfolio optimization
-- Ensemble methods for robust predictions
+- PyTorch-based Transformer market prediction
+- LSTM/GRU time series forecasting with attention
+- Neural ensemble for robust predictions
+- Market regime detection and change point analysis
+- Real data pipelines with Polygon integration
+
+Production Components (torch_models):
+- FinancialLSTM, AttentionLSTM
+- MarketTransformer, TemporalFusionTransformer  
+- EnsembleNetwork, NeuralRegimeClassifier
+- FinancialTrainer with walk-forward validation
 """
 
+# Legacy imports (NumPy-based, being deprecated)
 from .transformers import (
-    MarketTransformer,
-    TemporalFusionTransformer,
-    AttentionLayer,
-    PositionalEncoding,
+    MarketTransformer as LegacyMarketTransformer,
+    TemporalFusionTransformer as LegacyTemporalFusionTransformer,
+    AttentionLayer as LegacyAttentionLayer,
+    PositionalEncoding as LegacyPositionalEncoding,
 )
 
 from .lstm import (
     DeepLSTM,
     BidirectionalLSTM,
     StackedLSTM,
-    AttentionLSTM,
+    AttentionLSTM as LegacyAttentionLSTM,
 )
 
 from .ensemble import (
-    EnsemblePredictor,
+    EnsemblePredictor as LegacyEnsemblePredictor,
     StackingEnsemble,
     BoostingEnsemble,
     BaggingEnsemble,
@@ -39,7 +46,7 @@ from .regime import (
 
 from .features import (
     FeatureEngineer,
-    TechnicalFeatureExtractor,
+    TechnicalFeatureExtractor as LegacyTechnicalFeatureExtractor,
     FundamentalFeatureExtractor,
     SentimentFeatureExtractor,
 )
@@ -48,37 +55,119 @@ from .training import (
     ModelTrainer,
     CrossValidator,
     HyperparameterOptimizer,
+    WalkForwardValidator as LegacyWalkForwardValidator,
+)
+
+# Production PyTorch imports
+from .torch_models import (
+    # Base
+    ModelConfig,
+    TrainingMetrics,
+    PredictionResult,
+    BaseFinancialModel,
+    get_device,
+    # LSTM
+    FinancialLSTM,
+    AttentionLSTM,
+    # Transformer
+    MarketTransformer,
+    TemporalFusionTransformer,
+    # Ensemble
+    EnsembleNetwork,
+    EnsemblePrediction,
+    UncertaintyEstimator,
+    # Regime
+    NeuralRegimeClassifier,
+    NeuralHMM,
+    ChangepointDetector as ChangePointDetector,
+    VolatilityRegimeClassifier,
+    RegimeState as NeuralRegimeState,
+    RegimeDetection,
+    # Training
+    ModelTrainer as FinancialTrainer,
+    TrainingConfig,
     WalkForwardValidator,
+    PurgedKFold,
+    # Data
+    PolygonDataFetcher,
+    TechnicalFeatureExtractor,
+    FinancialDataset,
+    FeatureConfig,
+    OHLCVBar,
+)
+
+# Integration layer
+from .integration import (
+    MLPredictor,
+    MLIntegration,
+    PredictionOutput,
+    get_predictor,
+    predict,
 )
 
 __all__ = [
-    # Transformers
+    # Configuration
+    "ModelConfig",
+    "TrainingMetrics", 
+    "PredictionResult",
+    "FeatureConfig",
+    "TrainingConfig",
+    
+    # PyTorch Models (Production)
+    "BaseFinancialModel",
+    "FinancialLSTM",
+    "AttentionLSTM",
     "MarketTransformer",
     "TemporalFusionTransformer",
-    "AttentionLayer",
-    "PositionalEncoding",
-    # LSTM
+    "EnsembleNetwork",
+    "EnsemblePrediction",
+    "UncertaintyEstimator",
+    "NeuralRegimeClassifier",
+    "NeuralHMM",
+    "ChangePointDetector",
+    "VolatilityRegimeClassifier",
+    "NeuralRegimeState",
+    "RegimeDetection",
+    
+    # Training & Validation
+    "FinancialTrainer",
+    "WalkForwardValidator",
+    "PurgedKFold",
+    
+    # Data Pipeline
+    "PolygonDataFetcher",
+    "TechnicalFeatureExtractor",
+    "FinancialDataset",
+    "OHLCVBar",
+    
+    # Integration
+    "MLPredictor",
+    "MLIntegration",
+    "PredictionOutput",
+    "get_predictor",
+    "predict",
+    "get_device",
+    
+    # Legacy (NumPy-based)
     "DeepLSTM",
     "BidirectionalLSTM",
     "StackedLSTM",
-    "AttentionLSTM",
-    # Ensemble
-    "EnsemblePredictor",
+    "LegacyAttentionLSTM",
+    "LegacyMarketTransformer",
+    "LegacyTemporalFusionTransformer",
+    "LegacyEnsemblePredictor",
     "StackingEnsemble",
     "BoostingEnsemble",
     "BaggingEnsemble",
-    # Regime Detection
     "MarketRegimeDetector",
     "HMMRegimeModel",
     "RegimeState",
-    # Features
     "FeatureEngineer",
-    "TechnicalFeatureExtractor",
+    "LegacyTechnicalFeatureExtractor",
     "FundamentalFeatureExtractor",
     "SentimentFeatureExtractor",
-    # Training
     "ModelTrainer",
     "CrossValidator",
     "HyperparameterOptimizer",
-    "WalkForwardValidator",
+    "LegacyWalkForwardValidator",
 ]

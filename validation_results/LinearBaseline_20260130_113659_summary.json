@@ -1,0 +1,41 @@
+{
+  "model_name": "LinearBaseline",
+  "train_period": [
+    "2019-01-01",
+    "2023-03-14"
+  ],
+  "test_period": [
+    "2024-02-07",
+    "2024-12-31"
+  ],
+  "n_train_samples": 1096,
+  "n_test_samples": 235,
+  "directional_accuracy": 0.4772727272727273,
+  "correlation": 0.08155033607727045,
+  "ic_mean": 0.05851166377482167,
+  "ic_std": 0.24159463265339043,
+  "ic_ir": 0.2421894192441222,
+  "hit_rate": 0.4772727272727273,
+  "sharpe_ratio": 0.007848049722073109,
+  "sortino_ratio": 0.012841783457915227,
+  "max_drawdown": -0.6495993072993071,
+  "calmar_ratio": 0.012081370213741728,
+  "win_rate": 0.4659090909090909,
+  "profit_factor": 1.0012896360102614,
+  "total_return": -0.28866697655431717,
+  "annualized_return": -0.3859617991293005,
+  "annualized_volatility": 0.9929526131498747,
+  "t_statistic": 0.006540041435060924,
+  "p_value": 0.9947892884758174,
+  "is_significant": "False",
+  "sharpe_by_year": {
+    "2024": 0.007848049722073109
+  },
+  "sharpe_by_regime": {
+    "high_vol": 1.6060718125177196,
+    "low_vol": -1.292315536024616,
+    "trending": 0.3321905647012087,
+    "mean_revert": 0
+  },
+  "validated_at": "2026-01-30T11:36:59.977058"
+}

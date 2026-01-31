@@ -1,0 +1,41 @@
+{
+  "model_name": "MLP",
+  "train_period": [
+    "2019-01-01",
+    "2023-03-14"
+  ],
+  "test_period": [
+    "2024-02-07",
+    "2024-12-31"
+  ],
+  "n_train_samples": 1096,
+  "n_test_samples": 235,
+  "directional_accuracy": 0.4943181818181818,
+  "correlation": -0.07193181015924881,
+  "ic_mean": -0.02495662232504338,
+  "ic_std": 0.22171687458078773,
+  "ic_ir": -0.11256077090311793,
+  "hit_rate": 0.4943181818181818,
+  "sharpe_ratio": -0.107622278733903,
+  "sortino_ratio": -0.16339636778690922,
+  "max_drawdown": -0.7561378780072707,
+  "calmar_ratio": -0.14233155336369505,
+  "win_rate": 0.48863636363636365,
+  "profit_factor": 0.9824333975168431,
+  "total_return": -0.3465190789528648,
+  "annualized_return": -0.4561900810982954,
+  "annualized_volatility": 0.9939743261575736,
+  "t_statistic": -0.0896852322782525,
+  "p_value": 0.9286399123749911,
+  "is_significant": "False",
+  "sharpe_by_year": {
+    "2024": -0.107622278733903
+  },
+  "sharpe_by_regime": {
+    "high_vol": -0.10025421477290085,
+    "low_vol": -0.0031457393272033203,
+    "trending": -0.05728035680597274,
+    "mean_revert": 0
+  },
+  "validated_at": "2026-01-30T11:37:05.993909"
+}

@@ -74,37 +74,57 @@ from .analytics import (
     AnomalyDetector,
 )
 
-# Machine Learning modules
+# Machine Learning modules - Production PyTorch models
 from .ml import (
-    # Transformers
+    # Configuration
+    ModelConfig,
+    TrainingMetrics,
+    PredictionResult,
+    FeatureConfig,
+    
+    # Production PyTorch Models
+    BaseFinancialModel,
+    FinancialLSTM,
+    AttentionLSTM,
     MarketTransformer,
     TemporalFusionTransformer,
-    AttentionLayer,
-    PositionalEncoding,
-    # LSTM/GRU
+    EnsembleNetwork,
+    EnsemblePrediction,
+    NeuralRegimeClassifier,
+    ChangePointDetector,
+    
+    # Training & Validation
+    FinancialTrainer,
+    WalkForwardValidator,
+    
+    # Data Pipeline
+    PolygonDataFetcher,
+    TechnicalFeatureExtractor,
+    FinancialDataset,
+    
+    # Integration
+    MLPredictor,
+    MLIntegration,
+    get_predictor,
+    predict,
+    get_device,
+    
+    # Legacy (for backward compatibility)
     DeepLSTM,
     BidirectionalLSTM,
     StackedLSTM,
-    AttentionLSTM,
-    # Ensemble
-    EnsemblePredictor,
     StackingEnsemble,
     BoostingEnsemble,
     BaggingEnsemble,
-    # Regime Detection
     MarketRegimeDetector,
     HMMRegimeModel,
     RegimeState,
-    # Feature Engineering
     FeatureEngineer,
-    TechnicalFeatureExtractor,
     FundamentalFeatureExtractor,
     SentimentFeatureExtractor,
-    # Training
     ModelTrainer,
     CrossValidator,
     HyperparameterOptimizer,
-    WalkForwardValidator,
 )
 
 # MCP Integration
@@ -177,35 +197,55 @@ __all__ = [
     "SentimentAnalyzer",
     "PatternRecognizer",
     "AnomalyDetector",
-    # Machine Learning - Transformers
+    
+    # Machine Learning - Configuration
+    "ModelConfig",
+    "TrainingMetrics",
+    "PredictionResult",
+    "FeatureConfig",
+    
+    # Machine Learning - Production PyTorch Models
+    "BaseFinancialModel",
+    "FinancialLSTM",
+    "AttentionLSTM",
     "MarketTransformer",
     "TemporalFusionTransformer",
-    "AttentionLayer",
-    "PositionalEncoding",
-    # Machine Learning - LSTM/GRU
+    "EnsembleNetwork",
+    "EnsemblePrediction",
+    "NeuralRegimeClassifier",
+    "ChangePointDetector",
+    
+    # Machine Learning - Training & Data
+    "FinancialTrainer",
+    "WalkForwardValidator",
+    "PolygonDataFetcher",
+    "TechnicalFeatureExtractor",
+    "FinancialDataset",
+    
+    # Machine Learning - Integration
+    "MLPredictor",
+    "MLIntegration",
+    "get_predictor",
+    "predict",
+    "get_device",
+    
+    # Machine Learning - Legacy
     "DeepLSTM",
     "BidirectionalLSTM",
     "StackedLSTM",
-    "AttentionLSTM",
-    # Machine Learning - Ensemble
-    "EnsemblePredictor",
     "StackingEnsemble",
     "BoostingEnsemble",
     "BaggingEnsemble",
-    # Machine Learning - Regime
     "MarketRegimeDetector",
     "HMMRegimeModel",
     "RegimeState",
-    # Machine Learning - Features
     "FeatureEngineer",
-    "TechnicalFeatureExtractor",
     "FundamentalFeatureExtractor",
     "SentimentFeatureExtractor",
-    # Machine Learning - Training
     "ModelTrainer",
     "CrossValidator",
     "HyperparameterOptimizer",
-    "WalkForwardValidator",
+    
     # MCP
     "MassiveMCPClient",
     "MCPServerConfig",

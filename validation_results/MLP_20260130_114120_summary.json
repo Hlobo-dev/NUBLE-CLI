@@ -1,0 +1,41 @@
+{
+  "model_name": "MLP",
+  "train_period": [
+    "2019-01-01",
+    "2023-03-14"
+  ],
+  "test_period": [
+    "2024-02-07",
+    "2024-12-31"
+  ],
+  "n_train_samples": 1096,
+  "n_test_samples": 235,
+  "directional_accuracy": 0.5227272727272727,
+  "correlation": -0.03859963808722152,
+  "ic_mean": -0.046809331019857334,
+  "ic_std": 0.27531687272017175,
+  "ic_ir": -0.1700198413463518,
+  "hit_rate": 0.5227272727272727,
+  "sharpe_ratio": 0.13062090846559438,
+  "sortino_ratio": 0.19346613944666333,
+  "max_drawdown": -0.6770266803661598,
+  "calmar_ratio": 0.19293317716068445,
+  "win_rate": 0.5170454545454546,
+  "profit_factor": 1.0209659131517363,
+  "total_return": -0.23057267171537388,
+  "annualized_return": -0.31291145114073704,
+  "annualized_volatility": 0.9938101740966281,
+  "t_statistic": 0.10885075705466196,
+  "p_value": 0.9134455745869088,
+  "is_significant": "False",
+  "sharpe_by_year": {
+    "2024": 0.13062090846559438
+  },
+  "sharpe_by_regime": {
+    "high_vol": -2.1463516930981306,
+    "low_vol": 2.4523677585524117,
+    "trending": -0.030615150524178465,
+    "mean_revert": 0
+  },
+  "validated_at": "2026-01-30T11:41:20.575546"
+}
