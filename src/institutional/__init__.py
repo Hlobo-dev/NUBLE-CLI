@@ -169,6 +169,72 @@ from .filings import (
     ExportResult,
 )
 
+# ============================================================================
+# Phase 1+2: Lopez de Prado Institutional ML Components
+# ============================================================================
+
+# Triple Barrier Labeling (Phase 1.1)
+try:
+    from .labeling.triple_barrier import (
+        TripleBarrierLabeler,
+        TripleBarrierConfig,
+        BarrierResult,
+        BarrierType,
+    )
+except ImportError:
+    TripleBarrierLabeler = None
+    TripleBarrierConfig = None
+    BarrierResult = None
+    BarrierType = None
+
+# Fractional Differentiation (Phase 1.2)
+try:
+    from .features.frac_diff import (
+        FractionalDifferentiator,
+        FracDiffConfig,
+    )
+except ImportError:
+    FractionalDifferentiator = None
+    FracDiffConfig = None
+
+# HMM Regime Detection (Phase 2.2)
+try:
+    from .regime.hmm_detector import (
+        HMMRegimeDetector,
+        RegimeStatistics,
+    )
+except ImportError:
+    HMMRegimeDetector = None
+    RegimeStatistics = None
+
+# Meta-Labeling (Phase 2.1)
+try:
+    from .models.meta.meta_labeler import (
+        MetaLabeler,
+        MetaLabelConfig,
+        MetaLabelResult,
+        MetaLabelPipeline,
+    )
+except ImportError:
+    MetaLabeler = None
+    MetaLabelConfig = None
+    MetaLabelResult = None
+    MetaLabelPipeline = None
+
+# Complete ML Pipeline Integration
+try:
+    from .ml_pipeline import (
+        InstitutionalMLPipeline,
+        PipelineConfig,
+        PipelineResult,
+        create_institutional_pipeline,
+    )
+except ImportError:
+    InstitutionalMLPipeline = None
+    PipelineConfig = None
+    PipelineResult = None
+    create_institutional_pipeline = None
+
 __all__ = [
     # Version
     "__version__",
@@ -279,4 +345,27 @@ __all__ = [
     "AgentState",
     "FilingsExporter",
     "ExportResult",
+    
+    # Phase 1+2: Lopez de Prado Institutional ML
+    # Triple Barrier Labeling
+    "TripleBarrierLabeler",
+    "TripleBarrierConfig",
+    "BarrierResult",
+    "BarrierType",
+    # Fractional Differentiation
+    "FractionalDifferentiator",
+    "FracDiffConfig",
+    # HMM Regime Detection
+    "HMMRegimeDetector",
+    "RegimeStatistics",
+    # Meta-Labeling
+    "MetaLabeler",
+    "MetaLabelConfig",
+    "MetaLabelResult",
+    "MetaLabelPipeline",
+    # Complete Pipeline
+    "InstitutionalMLPipeline",
+    "PipelineConfig",
+    "PipelineResult",
+    "create_institutional_pipeline",
 ]

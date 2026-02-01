@@ -1,0 +1,1260 @@
+
+KYPERIAN ML TRADING SYSTEM
+Implementation Plan for Copilot
+10 High-Impact ML Enhancements
+Based on Lopez de Prado Methodology & 2024-2025 Research
+
+Version:
+1.0
+Date:
+January 30, 2026
+Project:
+Vibe Trading Platform
+Target:
+Sharpe 1.0-1.5 sustained
+
+Executive Summary
+This document provides a comprehensive, phase-by-phase implementation plan for upgrading the KYPERIAN ML trading system from its current validated state (SLV: 0.94 Sharpe, TSLA: 0.91 Sharpe) to institutional-grade quality targeting 1.0-1.5 sustained Sharpe ratio.
+Current System Status
+Walk-forward validated with real alpha. SLV and TSLA models achieving Grade B (0.75-1.0 Sharpe). Infrastructure complete: Unified CLI, Claude integration, AWS Bedrock multi-agent orchestration.
+
+Implementation Overview
+Phase
+Components
+Duration
+Impact
+Phase 1
+Triple Barrier + Fractional Diff
+5-7 days
++30-50%
+Phase 2
+Meta-Labeling + HMM Regime
+5-7 days
++0.3-0.5 Sharpe
+Phase 3
+FinBERT Sentiment + CPCV
+7-10 days
++15-25% alpha
+Phase 4
+TFT + RL Portfolio
+10-14 days
+State-of-art
+
+Phase 1: Foundation Layer
+Triple Barrier Labeling + Fractional Differentiation
+Duration: 5-7 days  |  Priority: CRITICAL  |  Impact: +30-50% signal quality
+
+Why This Phase First?
+Triple Barrier Labeling is the foundation for ALL other enhancements. It transforms your labels from simplistic up/down to realistic trade outcomes with profit targets and stop losses. Fractional Differentiation preserves memory in your features while achieving stationarity. Together, they fundamentally improve what your models learn from.
+1.1 Triple Barrier Labeling
+The Triple Barrier Method, introduced by Marcos López de Prado, labels trading data using three barriers: (1) Upper barrier for profit-taking, (2) Lower barrier for stop-loss, (3) Vertical barrier for time expiration. This simulates realistic trade conditions.
+Implementation Steps
+	•	Create new file: kyperian/labeling/triple_barrier.py
+	•	Define the TripleBarrierLabeler class with configurable parameters
+	•	Implement dynamic barrier calculation based on rolling volatility
+	•	Add vertical barrier (time expiration) logic
+	•	Create label assignment: +1 (profit), -1 (loss), 0 (timeout)
+	•	Integrate with existing feature pipeline
+	•	Write comprehensive unit tests
+	•	Validate on SLV/TSLA with walk-forward testing
+Code Architecture
+# kyperian/labeling/triple_barrier.py
+
+class TripleBarrierLabeler:
+    """
+    Triple Barrier Labeling per Lopez de Prado (2018).
+    
+    Parameters:
+    -----------
+    pt_sl : tuple (profit_take_mult, stop_loss_mult)
+        Multipliers for upper/lower barriers relative to volatility
+    max_holding_period : int
+        Maximum bars to hold position (vertical barrier)
+    volatility_lookback : int
+        Window for calculating rolling volatility
+    min_return : float
+        Minimum return to avoid 0 label
+    """
+    
+    def __init__(self, pt_sl=(1.0, 1.0), max_holding_period=10,
+                 volatility_lookback=20, min_return=0.0):
+        self.pt_mult, self.sl_mult = pt_sl
+        self.max_holding = max_holding_period
+        self.vol_lookback = volatility_lookback
+        self.min_return = min_return
+    
+    def get_daily_volatility(self, close: pd.Series) -> pd.Series:
+        """Calculate daily volatility for dynamic barriers."""
+        return close.pct_change().rolling(self.vol_lookback).std()
+    
+    def apply_barriers(self, close: pd.Series, 
+                       events: pd.DatetimeIndex) -> pd.DataFrame:
+        """
+        Apply triple barrier to each event.
+        
+        Returns DataFrame with columns:
+        - t1: first barrier touch timestamp
+        - ret: return at barrier touch
+        - label: +1 (profit), -1 (loss), 0 (timeout)
+        """
+        # Implementation details...
+        pass
+    
+    def get_labels(self, close: pd.Series, 
+                   events: pd.DatetimeIndex = None) -> pd.Series:
+        """Main entry point - return labels for training."""
+        pass
+Key Parameters to Tune
+Parameter
+Typical Range
+Description
+pt_mult
+1.0 - 3.0
+Profit target as multiple of daily volatility
+sl_mult
+1.0 - 2.0
+Stop loss as multiple of daily volatility
+max_holding
+5 - 20 days
+Vertical barrier (time expiration)
+vol_lookback
+10 - 50 days
+Window for volatility calculation
+1.2 Fractional Differentiation
+Standard differencing (d=1) removes too much memory from price series. Fractional differentiation uses d between 0 and 1 to achieve stationarity while preserving predictive information.
+Implementation Steps
+	•	Create new file: kyperian/features/frac_diff.py
+	•	Implement FFD (Fixed-width window Fracdiff) algorithm
+	•	Add ADF test integration to find minimum d for stationarity
+	•	Create auto-tuning function to find optimal d per feature
+	•	Integrate with feature engineering pipeline
+	•	Add memory preservation metrics
+	•	Write unit tests and validation
+Code Architecture
+# kyperian/features/frac_diff.py
+
+import numpy as np
+import pandas as pd
+from statsmodels.tsa.stattools import adfuller
+
+def get_weights_ffd(d: float, threshold: float = 1e-5) -> np.ndarray:
+    """
+    Get weights for Fixed-width window Fractional Differentiation.
+    
+    Uses the binomial expansion of (1-B)^d where B is backshift operator.
+    Weights decay geometrically, truncated at threshold.
+    """
+    w = [1.0]
+    k = 1
+    while abs(w[-1]) > threshold:
+        w.append(-w[-1] * (d - k + 1) / k)
+        k += 1
+    return np.array(w[::-1])
+
+def frac_diff_ffd(series: pd.Series, d: float, 
+                  threshold: float = 1e-5) -> pd.Series:
+    """
+    Apply Fixed-width window Fractional Differentiation.
+    
+    Parameters:
+    -----------
+    series : pd.Series
+        Time series to differentiate
+    d : float
+        Fractional differentiation order (0 < d < 1)
+    threshold : float
+        Weight cutoff threshold
+        
+    Returns:
+    --------
+    pd.Series : Fractionally differentiated series
+    """
+    weights = get_weights_ffd(d, threshold)
+    width = len(weights)
+    
+    result = pd.Series(index=series.index, dtype=float)
+    for i in range(width - 1, len(series)):
+        result.iloc[i] = np.dot(weights, series.iloc[i - width + 1:i + 1])
+    
+    return result.dropna()
+
+def find_min_ffd(series: pd.Series, d_range: tuple = (0, 1),
+                 threshold: float = 1e-5, 
+                 pvalue_threshold: float = 0.05) -> float:
+    """
+    Find minimum d that makes series stationary.
+    
+    Uses binary search to find smallest d where ADF test
+    rejects null hypothesis of unit root.
+    """
+    d_low, d_high = d_range
+    
+    while d_high - d_low > 0.01:
+        d_mid = (d_low + d_high) / 2
+        diff_series = frac_diff_ffd(series, d_mid, threshold)
+        
+        if len(diff_series) < 20:
+            d_low = d_mid
+            continue
+            
+        adf_stat, pvalue, *_ = adfuller(diff_series.dropna())
+        
+        if pvalue < pvalue_threshold:
+            d_high = d_mid  # Stationary, try lower d
+        else:
+            d_low = d_mid   # Not stationary, need higher d
+    
+    return d_high
+
+class FractionalDifferentiator:
+    """
+    Auto-tuning fractional differentiator for feature engineering.
+    """
+    
+    def __init__(self, pvalue_threshold: float = 0.05):
+        self.pvalue_threshold = pvalue_threshold
+        self.optimal_d = {}  # Cache optimal d per feature
+    
+    def fit_transform(self, df: pd.DataFrame, 
+                      columns: list = None) -> pd.DataFrame:
+        """Find optimal d and transform specified columns."""
+        if columns is None:
+            columns = df.columns.tolist()
+        
+        result = df.copy()
+        for col in columns:
+            if col not in self.optimal_d:
+                self.optimal_d[col] = find_min_ffd(
+                    df[col], 
+                    pvalue_threshold=self.pvalue_threshold
+                )
+            result[f"{col}_ffd"] = frac_diff_ffd(
+                df[col], 
+                self.optimal_d[col]
+            )
+        
+        return result
+Phase 1 Acceptance Criteria
+☐
+Triple Barrier Labeler produces valid labels for SLV and TSLA
+☐
+Label distribution is balanced (not >70% any single class)
+☐
+FFD finds optimal d for each feature (ADF test passes)
+☐
+Walk-forward Sharpe improves from 0.94 to >1.0 on SLV
+☐
+All unit tests pass (pytest coverage >80%)
+
+Phase 2: Signal Enhancement
+Meta-Labeling + HMM Regime Detection
+Duration: 5-7 days  |  Priority: HIGH  |  Impact: +0.3-0.5 Sharpe
+
+Why Phase 2?
+Meta-labeling learns WHEN to trade based on your primary signal. Instead of predicting direction, the meta-model predicts whether your directional signal will be profitable. HMM Regime Detection identifies bull/bear/sideways markets so you can avoid trading in unfavorable conditions.
+2.1 Meta-Labeling
+Meta-labeling is a two-model approach: (1) Primary model predicts direction (up/down), (2) Secondary model predicts whether to act on that signal. This dramatically improves precision and allows for position sizing based on confidence.
+Implementation Steps
+	•	Create new file: kyperian/models/meta_labeler.py
+	•	Implement MetaLabeler class wrapping primary model
+	•	Generate meta-labels from triple barrier outcomes
+	•	Train secondary classifier (RandomForest or XGBoost)
+	•	Implement confidence-based position sizing
+	•	Add ensemble support for multiple primary signals
+	•	Integrate with walk-forward validation
+	•	Write comprehensive tests
+Code Architecture
+# kyperian/models/meta_labeler.py
+
+from sklearn.ensemble import RandomForestClassifier
+import pandas as pd
+import numpy as np
+
+class MetaLabeler:
+    """
+    Meta-labeling system per Lopez de Prado (2018).
+    
+    Two-stage approach:
+    1. Primary model generates directional signals
+    2. Meta-model decides whether to act on each signal
+    
+    Parameters:
+    -----------
+    primary_model : BaseEstimator
+        Primary model that generates direction predictions
+    meta_model : BaseEstimator
+        Secondary model for bet sizing (default: RandomForest)
+    bet_size_method : str
+        'binary' (trade/no-trade) or 'probability' (scale by confidence)
+    """
+    
+    def __init__(self, primary_model, meta_model=None,
+                 bet_size_method='probability'):
+        self.primary_model = primary_model
+        self.meta_model = meta_model or RandomForestClassifier(
+            n_estimators=100,
+            max_depth=5,
+            class_weight='balanced',
+            random_state=42
+        )
+        self.bet_size_method = bet_size_method
+    
+    def generate_meta_labels(self, primary_predictions: pd.Series,
+                            barrier_labels: pd.Series) -> pd.Series:
+        """
+        Generate meta-labels from primary predictions and outcomes.
+        
+        Meta-label = 1 if:
+          - Primary predicted UP and barrier label = +1 (profit)
+          - Primary predicted DOWN and barrier label = -1 (profit)
+        Meta-label = 0 otherwise (wrong direction or timeout)
+        
+        Returns:
+        --------
+        pd.Series : Binary meta-labels (1 = good signal, 0 = bad signal)
+        """
+        # Align indices
+        common_idx = primary_predictions.index.intersection(
+            barrier_labels.index
+        )
+        
+        primary = primary_predictions.loc[common_idx]
+        barriers = barrier_labels.loc[common_idx]
+        
+        # Meta-label: did primary signal lead to profit?
+        meta_labels = pd.Series(0, index=common_idx)
+        
+        # Long prediction + profit = good signal
+        meta_labels[(primary == 1) & (barriers == 1)] = 1
+        
+        # Short prediction + loss-barrier = good signal (for short)
+        meta_labels[(primary == -1) & (barriers == -1)] = 1
+        
+        return meta_labels
+    
+    def fit(self, X: pd.DataFrame, primary_predictions: pd.Series,
+            barrier_labels: pd.Series):
+        """
+        Train the meta-model on historical data.
+        
+        Parameters:
+        -----------
+        X : pd.DataFrame
+            Features for meta-model (can include primary model features
+            plus additional features like volatility, regime, etc.)
+        primary_predictions : pd.Series
+            Predictions from primary model
+        barrier_labels : pd.Series
+            Triple barrier labels showing actual outcomes
+        """
+        meta_labels = self.generate_meta_labels(
+            primary_predictions, barrier_labels
+        )
+        
+        # Align features with meta-labels
+        common_idx = X.index.intersection(meta_labels.index)
+        X_train = X.loc[common_idx]
+        y_train = meta_labels.loc[common_idx]
+        
+        self.meta_model.fit(X_train, y_train)
+        return self
+    
+    def predict(self, X: pd.DataFrame) -> pd.DataFrame:
+        """
+        Generate predictions with bet sizing.
+        
+        Returns DataFrame with columns:
+        - direction: from primary model (-1, 0, +1)
+        - confidence: from meta-model (0 to 1)
+        - bet_size: final position size (direction * confidence)
+        """
+        # Get primary direction
+        direction = pd.Series(
+            self.primary_model.predict(X),
+            index=X.index
+        )
+        
+        # Get meta-model confidence
+        proba = self.meta_model.predict_proba(X)[:, 1]
+        confidence = pd.Series(proba, index=X.index)
+        
+        # Calculate bet size
+        if self.bet_size_method == 'binary':
+            # Trade full size if confidence > 0.5, else 0
+            bet_size = direction * (confidence > 0.5).astype(int)
+        else:
+            # Scale by probability
+            bet_size = direction * confidence
+        
+        return pd.DataFrame({
+            'direction': direction,
+            'confidence': confidence,
+            'bet_size': bet_size
+        })
+2.2 HMM Regime Detection
+Hidden Markov Models identify latent market regimes (bull, bear, sideways) from observable returns. This allows the system to avoid trading during high-volatility or range-bound regimes where trend-following fails.
+Implementation Steps
+	•	Create new file: kyperian/regime/hmm_detector.py
+	•	Implement HMMRegimeDetector using hmmlearn library
+	•	Train on historical returns with 2-3 states
+	•	Add regime probability output for each day
+	•	Create regime filter for meta-labeler
+	•	Implement online regime detection (no lookahead)
+	•	Add visualization utilities
+	•	Write comprehensive tests
+Code Architecture
+# kyperian/regime/hmm_detector.py
+
+from hmmlearn.hmm import GaussianHMM
+import numpy as np
+import pandas as pd
+
+class HMMRegimeDetector:
+    """
+    Hidden Markov Model for market regime detection.
+    
+    Identifies latent states (e.g., bull, bear, sideways) from
+    observable returns. Used to filter trades in unfavorable regimes.
+    
+    Parameters:
+    -----------
+    n_regimes : int
+        Number of hidden states (typically 2 or 3)
+    covariance_type : str
+        'full', 'tied', 'diag', or 'spherical'
+    n_iter : int
+        Maximum iterations for EM algorithm
+    """
+    
+    def __init__(self, n_regimes: int = 2, 
+                 covariance_type: str = 'full',
+                 n_iter: int = 100):
+        self.n_regimes = n_regimes
+        self.model = GaussianHMM(
+            n_components=n_regimes,
+            covariance_type=covariance_type,
+            n_iter=n_iter,
+            random_state=42
+        )
+        self.regime_stats = {}  # Mean/vol per regime
+    
+    def fit(self, returns: pd.Series):
+        """
+        Fit HMM on historical returns.
+        
+        Parameters:
+        -----------
+        returns : pd.Series
+            Daily returns series
+        """
+        X = returns.dropna().values.reshape(-1, 1)
+        self.model.fit(X)
+        
+        # Calculate regime statistics
+        states = self.model.predict(X)
+        for i in range(self.n_regimes):
+            regime_returns = returns.dropna().iloc[states == i]
+            self.regime_stats[i] = {
+                'mean': regime_returns.mean() * 252,  # Annualized
+                'volatility': regime_returns.std() * np.sqrt(252),
+                'sharpe': (regime_returns.mean() / regime_returns.std()) 
+                          * np.sqrt(252) if regime_returns.std() > 0 else 0
+            }
+        
+        # Sort regimes by Sharpe (best regime = 0)
+        self._reorder_by_sharpe()
+        return self
+    
+    def _reorder_by_sharpe(self):
+        """Reorder states so regime 0 = best, regime N-1 = worst."""
+        sharpes = [self.regime_stats[i]['sharpe'] 
+                   for i in range(self.n_regimes)]
+        self.regime_order = np.argsort(sharpes)[::-1]
+    
+    def predict(self, returns: pd.Series) -> pd.Series:
+        """
+        Predict regime for each observation.
+        
+        Returns:
+        --------
+        pd.Series : Regime labels (0 = best, N-1 = worst)
+        """
+        X = returns.dropna().values.reshape(-1, 1)
+        raw_states = self.model.predict(X)
+        
+        # Map to ordered states
+        ordered_states = np.array([
+            np.where(self.regime_order == s)[0][0] 
+            for s in raw_states
+        ])
+        
+        return pd.Series(ordered_states, index=returns.dropna().index)
+    
+    def predict_proba(self, returns: pd.Series) -> pd.DataFrame:
+        """
+        Get probability of each regime.
+        
+        Returns:
+        --------
+        pd.DataFrame : Columns for each regime probability
+        """
+        X = returns.dropna().values.reshape(-1, 1)
+        proba = self.model.predict_proba(X)
+        
+        # Reorder columns
+        proba_ordered = proba[:, self.regime_order]
+        
+        return pd.DataFrame(
+            proba_ordered,
+            index=returns.dropna().index,
+            columns=[f'regime_{i}_prob' for i in range(self.n_regimes)]
+        )
+    
+    def get_trading_filter(self, returns: pd.Series,
+                          allowed_regimes: list = [0]) -> pd.Series:
+        """
+        Create binary trading filter.
+        
+        Parameters:
+        -----------
+        returns : pd.Series
+            Returns series
+        allowed_regimes : list
+            Which regimes to allow trading (default: [0] = best only)
+            
+        Returns:
+        --------
+        pd.Series : 1 = trade allowed, 0 = no trade
+        """
+        regimes = self.predict(returns)
+        return regimes.isin(allowed_regimes).astype(int)
+Phase 2 Acceptance Criteria
+☐
+Meta-labeler improves precision by >15% on SLV/TSLA
+☐
+HMM correctly identifies 2008, 2020 crash periods as high-vol regime
+☐
+Regime filter reduces max drawdown by >20%
+☐
+Combined Sharpe improves to >1.2 on SLV
+☐
+No lookahead bias in regime detection (online prediction only)
+
+Phase 3: Alternative Data & Validation
+FinBERT Sentiment + CPCV Validation
+Duration: 7-10 days  |  Priority: HIGH  |  Impact: +15-25% alpha, Robust validation
+
+Why Phase 3?
+FinBERT adds sentiment alpha from financial news - a signal uncorrelated with price action. CPCV (Combinatorial Purged Cross-Validation) prevents overfitting by properly accounting for temporal dependencies. Together, they add new alpha sources while ensuring your results are statistically valid.
+3.1 FinBERT Sentiment Integration
+FinBERT is a pre-trained NLP model specifically fine-tuned for financial sentiment analysis. It understands domain-specific language and produces sentiment scores (positive, negative, neutral) for financial text.
+Implementation Steps
+	•	Create new file: kyperian/sentiment/finbert_analyzer.py
+	•	Set up Hugging Face transformers with FinBERT model
+	•	Implement news data fetching (Alpha Vantage, NewsAPI, or Tiingo)
+	•	Create sentiment aggregation at ticker-date level
+	•	Add rolling sentiment features (1d, 5d, 20d averages)
+	•	Implement sentiment momentum and divergence features
+	•	Integrate with feature pipeline
+	•	Write comprehensive tests
+Code Architecture
+# kyperian/sentiment/finbert_analyzer.py
+
+from transformers import BertTokenizer, BertForSequenceClassification
+import torch
+import pandas as pd
+import numpy as np
+
+class FinBERTSentimentAnalyzer:
+    """
+    Financial sentiment analysis using FinBERT.
+    
+    Pre-trained on financial texts, outputs three classes:
+    - Positive (bullish)
+    - Negative (bearish)  
+    - Neutral
+    
+    Parameters:
+    -----------
+    model_name : str
+        Hugging Face model identifier
+    device : str
+        'cuda' or 'cpu'
+    batch_size : int
+        Batch size for inference
+    """
+    
+    def __init__(self, model_name: str = 'ProsusAI/finbert',
+                 device: str = None, batch_size: int = 32):
+        self.device = device or ('cuda' if torch.cuda.is_available() 
+                                  else 'cpu')
+        self.batch_size = batch_size
+        
+        # Load pre-trained FinBERT
+        self.tokenizer = BertTokenizer.from_pretrained(model_name)
+        self.model = BertForSequenceClassification.from_pretrained(
+            model_name
+        ).to(self.device)
+        self.model.eval()
+        
+        # Label mapping
+        self.labels = ['positive', 'negative', 'neutral']
+    
+    def analyze(self, texts: list) -> pd.DataFrame:
+        """
+        Analyze sentiment of text list.
+        
+        Returns:
+        --------
+        pd.DataFrame with columns:
+        - positive_prob: probability of positive sentiment
+        - negative_prob: probability of negative sentiment
+        - neutral_prob: probability of neutral sentiment
+        - sentiment_score: positive_prob - negative_prob
+        """
+        results = []
+        
+        for i in range(0, len(texts), self.batch_size):
+            batch = texts[i:i + self.batch_size]
+            
+            inputs = self.tokenizer(
+                batch,
+                padding=True,
+                truncation=True,
+                max_length=512,
+                return_tensors='pt'
+            ).to(self.device)
+            
+            with torch.no_grad():
+                outputs = self.model(**inputs)
+                probs = torch.softmax(outputs.logits, dim=1)
+            
+            for prob in probs.cpu().numpy():
+                results.append({
+                    'positive_prob': prob[0],
+                    'negative_prob': prob[1],
+                    'neutral_prob': prob[2],
+                    'sentiment_score': prob[0] - prob[1]  # Net sentiment
+                })
+        
+        return pd.DataFrame(results)
+    
+    def aggregate_daily(self, news_df: pd.DataFrame,
+                       date_col: str = 'date',
+                       text_col: str = 'headline',
+                       ticker_col: str = 'ticker') -> pd.DataFrame:
+        """
+        Aggregate news sentiment at ticker-date level.
+        
+        Parameters:
+        -----------
+        news_df : pd.DataFrame
+            News data with date, text, and ticker columns
+        
+        Returns:
+        --------
+        pd.DataFrame with daily aggregated sentiment per ticker
+        """
+        # Get sentiment for each headline
+        sentiments = self.analyze(news_df[text_col].tolist())
+        news_df = news_df.copy()
+        news_df['sentiment_score'] = sentiments['sentiment_score'].values
+        
+        # Aggregate by ticker-date
+        daily = news_df.groupby([ticker_col, date_col]).agg({
+            'sentiment_score': ['mean', 'std', 'count'],
+        }).reset_index()
+        
+        daily.columns = [ticker_col, date_col, 'sentiment_mean', 
+                        'sentiment_std', 'news_count']
+        
+        return daily
+
+
+class SentimentFeatureGenerator:
+    """
+    Generate sentiment-based features for ML models.
+    """
+    
+    def __init__(self, analyzer: FinBERTSentimentAnalyzer = None):
+        self.analyzer = analyzer or FinBERTSentimentAnalyzer()
+    
+    def generate_features(self, daily_sentiment: pd.DataFrame,
+                         price_df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Generate sentiment features aligned with price data.
+        
+        Features generated:
+        - sentiment_mean: Daily average sentiment
+        - sentiment_momentum_5d: 5-day sentiment change
+        - sentiment_momentum_20d: 20-day sentiment change
+        - sentiment_vol_20d: 20-day sentiment volatility
+        - sentiment_price_divergence: Sentiment vs price direction
+        - news_volume_ratio: News count vs 20-day average
+        """
+        features = price_df[['close']].copy()
+        
+        # Merge sentiment
+        features = features.merge(
+            daily_sentiment, 
+            left_index=True, 
+            right_on='date',
+            how='left'
+        )
+        
+        # Fill missing days with neutral
+        features['sentiment_mean'] = features['sentiment_mean'].fillna(0)
+        features['news_count'] = features['news_count'].fillna(0)
+        
+        # Rolling features
+        features['sentiment_ma_5d'] = features['sentiment_mean'].rolling(5).mean()
+        features['sentiment_ma_20d'] = features['sentiment_mean'].rolling(20).mean()
+        features['sentiment_momentum_5d'] = (
+            features['sentiment_mean'] - features['sentiment_ma_5d']
+        )
+        features['sentiment_momentum_20d'] = (
+            features['sentiment_mean'] - features['sentiment_ma_20d']
+        )
+        features['sentiment_vol_20d'] = features['sentiment_mean'].rolling(20).std()
+        
+        # News volume ratio
+        features['news_volume_ratio'] = (
+            features['news_count'] / 
+            features['news_count'].rolling(20).mean().replace(0, 1)
+        )
+        
+        # Sentiment-price divergence
+        price_direction = np.sign(features['close'].pct_change())
+        features['sentiment_price_divergence'] = (
+            features['sentiment_mean'] * price_direction
+        )
+        
+        return features.drop(columns=['close'])
+3.2 Combinatorial Purged Cross-Validation (CPCV)
+CPCV addresses the backtest overfitting problem by: (1) Testing all possible train/test splits combinatorially, (2) Purging data around test boundaries to prevent leakage, (3) Computing the probability of backtest overfitting (PBO).
+Implementation Steps
+	•	Create new file: kyperian/validation/cpcv.py
+	•	Implement combinatorial split generator
+	•	Add temporal purging with configurable embargo
+	•	Implement PBO (Probability of Backtest Overfitting) calculation
+	•	Add Deflated Sharpe Ratio calculation
+	•	Create validation report generator
+	•	Integrate with model training pipeline
+	•	Write comprehensive tests
+Code Architecture
+# kyperian/validation/cpcv.py
+
+import numpy as np
+import pandas as pd
+from itertools import combinations
+from scipy.stats import norm
+from typing import Generator, Tuple
+
+class CombinatorialPurgedCV:
+    """
+    Combinatorial Purged Cross-Validation per Lopez de Prado (2018).
+    
+    Key innovations over standard CV:
+    1. Tests all N-choose-K train/test splits
+    2. Purges observations near test boundaries
+    3. Computes Probability of Backtest Overfitting (PBO)
+    
+    Parameters:
+    -----------
+    n_splits : int
+        Number of groups to split data into
+    n_test_groups : int
+        Number of groups to use for testing
+    purge_pct : float
+        Percentage of data to purge around test boundaries
+    embargo_pct : float
+        Percentage of test data to embargo from training
+    """
+    
+    def __init__(self, n_splits: int = 5, n_test_groups: int = 2,
+                 purge_pct: float = 0.01, embargo_pct: float = 0.01):
+        self.n_splits = n_splits
+        self.n_test_groups = n_test_groups
+        self.purge_pct = purge_pct
+        self.embargo_pct = embargo_pct
+    
+    def split(self, X: pd.DataFrame) -> Generator[Tuple, None, None]:
+        """
+        Generate train/test indices for each combinatorial split.
+        
+        Yields:
+        -------
+        tuple : (train_indices, test_indices) for each split
+        """
+        n_samples = len(X)
+        group_size = n_samples // self.n_splits
+        
+        # Create group boundaries
+        groups = []
+        for i in range(self.n_splits):
+            start = i * group_size
+            end = (i + 1) * group_size if i < self.n_splits - 1 else n_samples
+            groups.append(np.arange(start, end))
+        
+        # Calculate purge and embargo sizes
+        purge_size = int(n_samples * self.purge_pct)
+        embargo_size = int(group_size * self.embargo_pct)
+        
+        # Generate all combinations of test groups
+        for test_combo in combinations(range(self.n_splits), 
+                                        self.n_test_groups):
+            test_indices = np.concatenate([groups[i] for i in test_combo])
+            train_groups = [i for i in range(self.n_splits) 
+                           if i not in test_combo]
+            train_indices = np.concatenate([groups[i] for i in train_groups])
+            
+            # Purge observations near test boundaries
+            train_indices = self._purge(
+                train_indices, test_indices, purge_size, embargo_size
+            )
+            
+            yield train_indices, test_indices
+    
+    def _purge(self, train_idx, test_idx, purge_size, embargo_size):
+        """Remove training samples too close to test boundaries."""
+        test_start = test_idx.min()
+        test_end = test_idx.max()
+        
+        # Purge before test
+        purge_before = np.arange(max(0, test_start - purge_size), test_start)
+        
+        # Embargo after test
+        embargo_after = np.arange(test_end + 1, 
+                                  min(test_end + 1 + embargo_size, 
+                                      train_idx.max() + 1))
+        
+        exclude = np.concatenate([purge_before, test_idx, embargo_after])
+        return np.setdiff1d(train_idx, exclude)
+    
+    def get_n_splits(self) -> int:
+        """Return number of splits."""
+        from math import comb
+        return comb(self.n_splits, self.n_test_groups)
+
+
+def probability_of_backtest_overfitting(sharpes: np.ndarray,
+                                        n_trials: int) -> float:
+    """
+    Calculate Probability of Backtest Overfitting (PBO).
+    
+    PBO = probability that the best in-sample strategy
+    will underperform the median out-of-sample.
+    
+    Parameters:
+    -----------
+    sharpes : np.ndarray
+        Array of OOS Sharpe ratios from CPCV
+    n_trials : int
+        Number of strategies tested
+    
+    Returns:
+    --------
+    float : PBO (0 to 1, lower is better)
+    """
+    # Rank OOS performance
+    median_sharpe = np.median(sharpes)
+    n_below_median = np.sum(sharpes < median_sharpe)
+    
+    # PBO under null hypothesis of random selection
+    pbo = n_below_median / len(sharpes)
+    
+    return pbo
+
+
+def deflated_sharpe_ratio(sharpe: float, n_trials: int,
+                         var_sharpe: float, 
+                         skewness: float = 0,
+                         kurtosis: float = 3) -> float:
+    """
+    Calculate Deflated Sharpe Ratio accounting for multiple testing.
+    
+    Adjusts Sharpe ratio for:
+    - Number of trials/strategies tested
+    - Non-normality of returns (skewness, kurtosis)
+    
+    Parameters:
+    -----------
+    sharpe : float
+        Observed Sharpe ratio
+    n_trials : int
+        Number of strategies tested
+    var_sharpe : float
+        Variance of Sharpe ratio estimate
+    skewness : float
+        Return skewness
+    kurtosis : float
+        Return kurtosis
+    
+    Returns:
+    --------
+    float : Deflated Sharpe Ratio (p-value adjusted)
+    """
+    # Expected max Sharpe under null
+    e_max_sharpe = np.sqrt(var_sharpe) * (
+        (1 - np.euler_gamma) * norm.ppf(1 - 1/n_trials) +
+        np.euler_gamma * norm.ppf(1 - 1/(n_trials * np.e))
+    )
+    
+    # Adjusted for non-normality
+    sharpe_adj = sharpe * (1 - skewness * sharpe / 3 + 
+                           (kurtosis - 3) * sharpe**2 / 24)
+    
+    # Deflated Sharpe
+    psr = norm.cdf((sharpe_adj - e_max_sharpe) / np.sqrt(var_sharpe))
+    
+    return psr
+Phase 3 Acceptance Criteria
+☐
+FinBERT produces valid sentiment scores for financial headlines
+☐
+Sentiment features improve model accuracy by >5%
+☐
+CPCV generates all combinatorial splits with proper purging
+☐
+PBO < 0.5 (not overfit)
+☐
+Deflated Sharpe > 0 (statistically significant)
+
+Phase 4: Advanced Architecture
+Temporal Fusion Transformer + RL Portfolio Optimization
+Duration: 10-14 days  |  Priority: MEDIUM  |  Impact: State-of-art prediction & allocation
+
+Why Phase 4?
+TFT is the state-of-art for multi-horizon time series forecasting with built-in interpretability. RL Portfolio Optimization learns dynamic allocation policies that adapt to market conditions. Together, they represent the cutting edge of ML in finance.
+4.1 Temporal Fusion Transformer (TFT)
+TFT combines LSTM for local temporal patterns, self-attention for long-range dependencies, and variable selection networks for automatic feature importance. It provides interpretable multi-horizon forecasts with uncertainty quantification.
+Key TFT Components
+	•	Variable Selection Networks: Automatically identify important features
+	•	Gated Residual Networks (GRN): Non-linear processing with skip connections
+	•	Multi-head Attention: Learn long-range temporal dependencies
+	•	Quantile Outputs: Predict distribution, not just point estimates
+	•	Static Covariate Encoders: Handle time-invariant features (sector, market cap)
+Implementation Steps
+	•	Create new file: kyperian/models/tft_predictor.py
+	•	Use pytorch-forecasting library for TFT implementation
+	•	Define temporal data structure with known/unknown futures
+	•	Configure static, time-varying known, and time-varying unknown features
+	•	Implement training loop with early stopping
+	•	Add quantile output for uncertainty estimation
+	•	Create attention visualization for interpretability
+	•	Integrate with walk-forward validation framework
+4.2 RL Portfolio Optimization
+Reinforcement Learning optimizes portfolio allocation directly for risk-adjusted returns. The agent learns a policy that maps market state to optimal position sizes, adapting to changing regimes.
+Key RL Components
+	•	State Space: Features + current positions + account metrics
+	•	Action Space: Portfolio weights or position changes
+	•	Reward Function: Sharpe ratio or risk-adjusted PnL
+	•	Algorithm: PPO or A2C (stable, handles continuous actions)
+Implementation Steps
+	•	Create new file: kyperian/portfolio/rl_optimizer.py
+	•	Use stable-baselines3 for PPO/A2C implementation
+	•	Design custom Gym environment for trading
+	•	Implement realistic reward function (Sharpe or Sortino)
+	•	Add transaction cost modeling in environment
+	•	Create ensemble strategy (PPO + A2C + DDPG)
+	•	Implement validation with rolling window backtests
+	•	Add model selection based on validation Sharpe
+Phase 4 Acceptance Criteria
+☐
+TFT trains successfully on SLV/TSLA data
+☐
+TFT attention weights are interpretable and reasonable
+☐
+RL agent outperforms equal-weight benchmark
+☐
+Ensemble strategy achieves highest Sharpe
+☐
+Full system Sharpe >1.3 sustained over 3+ years OOS
+
+Dependencies & Environment Setup
+Required Python Packages
+# requirements_ml_enhancement.txt
+
+# Core ML
+numpy>=1.21.0
+pandas>=1.3.0
+scikit-learn>=1.0.0
+scipy>=1.7.0
+
+# Deep Learning
+torch>=2.0.0
+pytorch-forecasting>=0.10.0  # For TFT
+pytorch-lightning>=2.0.0
+
+# NLP/Sentiment
+transformers>=4.30.0  # For FinBERT
+sentencepiece>=0.1.99
+
+# RL
+stable-baselines3>=2.0.0
+gymnasium>=0.28.0
+
+# HMM
+hmmlearn>=0.2.8
+
+# Statistics
+statsmodels>=0.13.0  # For ADF tests
+
+# Validation
+mlfinlab>=1.5.0  # Lopez de Prado implementations (optional)
+
+# Data
+yfinance>=0.2.0
+alpha-vantage>=2.3.0
+
+# Utilities
+tqdm>=4.65.0
+joblib>=1.2.0
+pytest>=7.0.0
+Directory Structure
+kyperian/
+├── __init__.py
+├── labeling/
+│   ├── __init__.py
+│   └── triple_barrier.py      # Phase 1
+├── features/
+│   ├── __init__.py
+│   ├── technical.py           # Existing
+│   └── frac_diff.py           # Phase 1
+├── models/
+│   ├── __init__.py
+│   ├── base.py                # Existing
+│   ├── meta_labeler.py        # Phase 2
+│   └── tft_predictor.py       # Phase 4
+├── regime/
+│   ├── __init__.py
+│   └── hmm_detector.py        # Phase 2
+├── sentiment/
+│   ├── __init__.py
+│   └── finbert_analyzer.py    # Phase 3
+├── validation/
+│   ├── __init__.py
+│   ├── walk_forward.py        # Existing
+│   └── cpcv.py                # Phase 3
+├── portfolio/
+│   ├── __init__.py
+│   └── rl_optimizer.py        # Phase 4
+└── tests/
+    ├── test_triple_barrier.py
+    ├── test_frac_diff.py
+    ├── test_meta_labeler.py
+    ├── test_hmm.py
+    ├── test_finbert.py
+    ├── test_cpcv.py
+    └── test_rl_portfolio.py
+
+Implementation Timeline
+Week
+Phase
+Focus
+Deliverable
+Week 1
+Phase 1
+Triple Barrier implementation
+Working labeler + tests
+Week 2
+Phase 1
+Fractional Diff + integration
+Improved baseline Sharpe
+Week 3
+Phase 2
+Meta-labeling implementation
+Working meta-model
+Week 4
+Phase 2
+HMM regime detection
+Regime filter integrated
+Week 5
+Phase 3
+FinBERT setup + news pipeline
+Sentiment features
+Week 6
+Phase 3
+CPCV implementation
+Validated system (PBO<0.5)
+Week 7-8
+Phase 4
+TFT implementation
+Working TFT predictor
+Week 9-10
+Phase 4
+RL portfolio + final integration
+Complete enhanced system
+
+Instructions for GitHub Copilot
+Use these prompts to guide Copilot through implementation. Copy-paste each section when starting that phase.
+Phase 1 Copilot Prompt
+"""
+TASK: Implement Triple Barrier Labeling for KYPERIAN trading system.
+
+CONTEXT:
+- This is for a quantitative trading system based on Lopez de Prado (2018)
+- Triple Barrier labels trades using profit target, stop loss, and time expiration
+- Labels are +1 (profit), -1 (loss), 0 (timeout)
+
+REQUIREMENTS:
+1. Create class TripleBarrierLabeler with:
+   - Configurable profit/stop multipliers relative to volatility
+   - Rolling volatility calculation
+   - Vertical barrier (time expiration)
+   - Dynamic barriers that adjust to market conditions
+   
+2. Methods needed:
+   - get_daily_volatility(close) -> Series of rolling vol
+   - apply_barriers(close, events) -> DataFrame with t1, ret, label
+   - get_labels(close, events=None) -> Series of labels
+   
+3. Must handle:
+   - Missing data gracefully
+   - Edge cases (start/end of series)
+   - Vectorized operations (no slow loops)
+
+4. Write unit tests for:
+   - Basic label generation
+   - Volatility calculation
+   - Edge cases
+   - Integration with existing pipeline
+
+OUTPUT: Complete Python module with docstrings and type hints.
+"""
+Phase 2 Copilot Prompt
+"""
+TASK: Implement Meta-Labeling and HMM Regime Detection.
+
+CONTEXT:
+- Meta-labeling is a two-model approach from Lopez de Prado
+- Primary model predicts direction, secondary predicts bet size
+- HMM detects market regimes (bull/bear/sideways)
+
+META-LABELING REQUIREMENTS:
+1. Create class MetaLabeler with:
+   - Wrapper for any primary model
+   - Secondary RandomForest classifier
+   - Bet sizing based on confidence
+   
+2. Methods:
+   - generate_meta_labels(primary_preds, barrier_labels)
+   - fit(X, primary_predictions, barrier_labels)
+   - predict(X) -> DataFrame with direction, confidence, bet_size
+
+HMM REQUIREMENTS:
+1. Create class HMMRegimeDetector with:
+   - Configurable number of states
+   - Online prediction (no lookahead)
+   - Regime statistics calculation
+   
+2. Methods:
+   - fit(returns)
+   - predict(returns) -> regime labels
+   - predict_proba(returns) -> regime probabilities
+   - get_trading_filter(returns, allowed_regimes)
+
+OUTPUT: Complete Python modules with integration tests.
+"""
+Phase 3 Copilot Prompt
+"""
+TASK: Implement FinBERT Sentiment and CPCV Validation.
+
+FINBERT REQUIREMENTS:
+1. Create class FinBERTSentimentAnalyzer with:
+   - Pre-trained ProsusAI/finbert model
+   - Batch inference for efficiency
+   - Sentiment score calculation
+   
+2. Create class SentimentFeatureGenerator with:
+   - Daily aggregation by ticker
+   - Rolling sentiment features
+   - Sentiment-price divergence features
+
+CPCV REQUIREMENTS:
+1. Create class CombinatorialPurgedCV with:
+   - Combinatorial split generation
+   - Temporal purging with embargo
+   - Generator interface for sklearn compatibility
+   
+2. Implement functions:
+   - probability_of_backtest_overfitting(sharpes, n_trials)
+   - deflated_sharpe_ratio(sharpe, n_trials, var_sharpe)
+
+OUTPUT: Complete modules with comprehensive validation tests.
+"""
+Phase 4 Copilot Prompt
+"""
+TASK: Implement Temporal Fusion Transformer and RL Portfolio.
+
+TFT REQUIREMENTS:
+1. Create TFTPredictor class using pytorch-forecasting
+2. Configure for financial time series:
+   - Known futures: day of week, month, holidays
+   - Unknown futures: prices, returns, volume
+   - Static: sector, market cap
+3. Add quantile outputs for uncertainty
+4. Implement attention visualization
+
+RL PORTFOLIO REQUIREMENTS:
+1. Create custom Gym environment TradingEnv with:
+   - State: features + positions + account
+   - Action: portfolio weights (-1 to 1)
+   - Reward: Sharpe ratio over episode
+   - Transaction costs
+   
+2. Train ensemble of PPO, A2C, DDPG
+3. Model selection by validation Sharpe
+4. Rolling window retraining
+
+OUTPUT: Complete modules with integration into main pipeline.
+"""
+
+Risk Mitigation & Best Practices
+Common Pitfalls to Avoid
+Pitfall
+Mitigation
+Lookahead bias in labels
+Use only past data for volatility calculation. Strict train/test separation.
+Overfitting to specific regime
+Test across multiple market regimes (2008, 2020, 2022).
+Transaction costs ignored
+Include realistic costs (0.1% round trip) in all backtests.
+Data snooping in feature selection
+Use CPCV and deflated Sharpe. Never tune on test data.
+Survivorship bias
+Include delisted stocks in backtest. Use point-in-time data.
+Testing Checklist
+	•	Unit tests for each new class (pytest coverage >80%)
+	•	Integration tests with existing pipeline
+	•	Walk-forward validation on at least 3 years OOS
+	•	Test on multiple assets (not just SLV/TSLA)
+	•	Stress test on crisis periods (2008, 2020, 2022)
+	•	Verify no lookahead bias (features only use past data)
+	•	Check for NaN/inf values in all outputs
+	•	Profile performance (must be fast enough for production)
+
+Final Notes
+Remember
+This plan transforms KYPERIAN from a good research platform (0.94 Sharpe) to an institutional-grade system (1.0-1.5 Sharpe). Work phase by phase, validate thoroughly, and don't skip the testing. The goal is robust alpha, not impressive backtests that fail in production.
+
+Success Metrics
+Metric
+Current
+Target (Post-Phase 4)
+Walk-Forward Sharpe
+0.94
+1.0 - 1.5
+Directional Accuracy
+50.6%
+53% - 56%
+Max Drawdown
+~25%
+<20%
+PBO (Overfit Probability)
+Not measured
+< 0.5
+
+This document was prepared based on comprehensive research of 2024-2025 quantitative finance papers and Lopez de Prado methodology. Each phase has been designed to build on the previous, creating a robust, production-ready ML trading system.
+
+— End of Document —

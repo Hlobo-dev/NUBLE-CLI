@@ -1,0 +1,61 @@
+Data: 772 rows, 2023-01-03 to 2026-01-30
+
+Signal Analysis with BULL regime:
+--------------------------------------------------------------------------------
+
+Signal Distribution:
+  BUY:      377 (53.7%)
+  NEUTRAL:  140 (19.9%)
+  SELL:     185 (26.4%)
+
+Sample signals at key points:
+
+Date: 2023-05-26
+  Direction: 1, Strength: BUY
+  Short Mom: 0.031
+  Medium Mom: 0.288
+  Long Mom: 0.994
+  Mean Rev Short: -0.685
+  Mean Rev Med: -0.639
+  Confidence: 0.578
+
+Date: 2023-10-19
+  Direction: -1, Strength: STRONG_SELL
+  Short Mom: -1.000
+  Medium Mom: 0.103
+  Long Mom: -0.457
+  Mean Rev Short: 0.554
+  Mean Rev Med: 0.016
+  Confidence: 0.144
+
+Date: 2024-03-14
+  Direction: 0, Strength: NEUTRAL
+  Short Mom: 0.525
+  Medium Mom: -0.606
+  Long Mom: -0.694
+  Mean Rev Short: -0.361
+  Mean Rev Med: 0.387
+  Confidence: 0.083
+
+Date: 2024-08-07
+  Direction: -1, Strength: SELL
+  Short Mom: -0.516
+  Medium Mom: -0.650
+  Long Mom: 0.543
+  Mean Rev Short: 0.268
+  Mean Rev Med: 0.769
+  Confidence: 0.349
+
+Date: 2024-12-30
+  Direction: 1, Strength: BUY
+  Short Mom: -0.182
+  Medium Mom: 0.683
+  Long Mom: 0.706
+  Mean Rev Short: 0.715
+  Mean Rev Med: -0.264
+  Confidence: 0.220
+
+Actual price performance:
+  Start: $165.21
+  End:   $259.48
+  Total Return: +57.1%

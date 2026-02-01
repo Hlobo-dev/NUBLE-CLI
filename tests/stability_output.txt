@@ -1,0 +1,39 @@
+⚠️ psutil not installed - memory monitoring disabled
+
+======================================================================
+PHASE 8: STABILITY TEST
+Duration: 5 minutes | Rate: 4 req/min
+======================================================================
+
+Started: 13:47:19
+Target end: 13:52:19
+----------------------------------------------------------------------
+  Minute 1: 2/2 ok, avg 23.8s, mem 0MB
+  Minute 2: 2/2 ok, avg 25.9s, mem 0MB
+  Minute 3: 2/2 ok, avg 34.0s, mem 0MB
+
+======================================================================
+STABILITY TEST RESULTS
+======================================================================
+
+📊 REQUEST METRICS:
+  Total requests: 7
+  Successes: 7 (100.0%)
+  Failures: 0
+  Timeouts: 0
+  Duration: 5.0 minutes
+
+⏱️ RESPONSE TIMES:
+  Average: 28.21s
+  Min: 20.20s
+  Max: 35.65s
+  P95: 35.65s
+
+📈 DEGRADATION CHECK:
+  Performance change: +32.0%
+  ⚠️ NOTICE: Moderate performance degradation
+
+======================================================================
+🏆 STABILITY TEST PASSED
+======================================================================
+

@@ -1,0 +1,52 @@
+NVDA data: 772 rows
+Total return: 1235.2%
+
+SIGNAL DISTRIBUTION:
+  Long (+1):  392 (55.8%)
+  Neutral (0): 220 (31.3%)
+  Short (-1): 90 (12.8%)
+
+REGIME DISTRIBUTION:
+  BULL: 430 (61.3%)
+  VOLATILE: 105 (15.0%)
+  SIDEWAYS: 102 (14.5%)
+  BEAR: 65 (9.3%)
+
+LONG SIGNAL PERFORMANCE:
+  Days in market: 392
+  Total return: 184.1%
+  Avg daily return: 0.311%
+  Win rate: 53.3%
+
+SHORT SIGNAL PERFORMANCE:
+  Days in market: 89
+  Total return: -34.1%
+  Avg daily return: -0.427%
+  Win rate: 42.7%
+
+NEUTRAL (CASH) - MISSED RETURNS:
+  Days in cash: 220
+  Return missed: 78.6%
+
+BUY AND HOLD:
+  Total return: 622.3%
+
+============================================================
+ROOT CAUSE ANALYSIS
+============================================================
+
+🔴 ISSUE: Too many SHORT signals in a bull market!
+   
+   Going SHORT while the market goes UP = DOUBLE LOSS
+   (you lose the upside AND you lose from the short)
+   
+   FIX: In BULL regime, SHORT signals should be very rare.
+        Consider: NO SHORTS in BULL regime.
+
+
+🔴 ISSUE: Still too many NEUTRAL signals!
+   
+   Sitting in CASH while market goes UP = missed gains.
+   
+   FIX: In BULL regime, default to LONG unless strong bearish signal.
+

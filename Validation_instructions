@@ -1,0 +1,1457 @@
+# KYPERIAN ML SYSTEM: RIGOROUS VALIDATION & BUG HUNTING
+
+## 🚨 CRITICAL CONTEXT - READ THIS FIRST
+
+**Current situation:** Phase 1+2 implementation is reporting Sharpe ratios of 4.3-5.1. These numbers are NOT realistic and indicate bugs, lookahead bias, or methodological errors.
+
+**Benchmark reality check:**
+- Renaissance Medallion (best fund ever): Sharpe 2.0-3.0
+- Top-tier quant funds: Sharpe 1.5-2.5
+- Very good strategies: Sharpe 1.0-1.5
+- **Our current claims: Sharpe 4.3-5.1** ← This is a RED FLAG
+
+**Your mission:** Find and fix the bugs. This system must produce REALISTIC results that will survive production deployment. A genuine Sharpe of 1.0-1.5 is the target, not a fake 5.0.
+
+---
+
+## TASK 1: ACQUIRE PROPER HISTORICAL DATA
+
+### Data Requirements
+- **Training period:** 2015-01-01 to 2022-12-31 (8 years)
+- **Test period:** 2023-01-01 to 2025-01-30 (2+ years, NEVER TOUCHED during development)
+- **Symbols:** SLV, TSLA, SPY, QQQ, GLD, TLT, XLF, XLE, AAPL, NVDA, AMD, MSFT, GOOGL, AMZN, META, JPM, BAC, XOM, CVX, PFE
+- **Data fields:** Date, Open, High, Low, Close, Volume, Adjusted Close
+
+### Option A: Yahoo Finance (Free, Good for Daily Data)
+```python
+"""
+Download historical data from Yahoo Finance.
+This is free and reliable for daily OHLCV data going back to 2015.
+"""
+
+import yfinance as yf
+import pandas as pd
+from pathlib import Path
+from datetime import datetime
+import time
+
+def download_historical_data(
+    symbols: list,
+    start_date: str = "2015-01-01",
+    end_date: str = "2025-01-31",
+    output_dir: str = "data/historical"
+) -> dict:
+    """
+    Download historical OHLCV data for multiple symbols.
+    
+    IMPORTANT: This data will be split into:
+    - Training: 2015-2022 (for model development)
+    - Testing: 2023-2025 (NEVER touch until final validation)
+    
+    Parameters:
+    -----------
+    symbols : list
+        List of ticker symbols
+    start_date : str
+        Start date in YYYY-MM-DD format
+    end_date : str
+        End date in YYYY-MM-DD format
+    output_dir : str
+        Directory to save CSV files
+        
+    Returns:
+    --------
+    dict : Symbol -> DataFrame mapping
+    """
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+    
+    data = {}
+    failed = []
+    
+    for symbol in symbols:
+        print(f"Downloading {symbol}...")
+        try:
+            ticker = yf.Ticker(symbol)
+            df = ticker.history(start=start_date, end=end_date, auto_adjust=False)
+            
+            if len(df) < 100:
+                print(f"  WARNING: {symbol} has only {len(df)} rows")
+                failed.append(symbol)
+                continue
+            
+            # Standardize column names
+            df = df.rename(columns={
+                'Open': 'open',
+                'High': 'high', 
+                'Low': 'low',
+                'Close': 'close',
+                'Adj Close': 'adj_close',
+                'Volume': 'volume'
+            })
+            
+            # Save to CSV
+            filepath = Path(output_dir) / f"{symbol}.csv"
+            df.to_csv(filepath)
+            
+            data[symbol] = df
+            print(f"  ✓ {symbol}: {len(df)} rows from {df.index[0].date()} to {df.index[-1].date()}")
+            
+            time.sleep(0.5)  # Rate limiting
+            
+        except Exception as e:
+            print(f"  ✗ {symbol} failed: {e}")
+            failed.append(symbol)
+    
+    print(f"\nDownloaded: {len(data)} symbols")
+    print(f"Failed: {failed}")
+    
+    return data
+
+
+def split_train_test(
+    data: dict,
+    train_end: str = "2022-12-31",
+    test_start: str = "2023-01-01"
+) -> tuple:
+    """
+    Split data into training and test sets.
+    
+    CRITICAL: Test data must NEVER be used during model development.
+    This includes feature engineering, hyperparameter tuning, etc.
+    
+    Returns:
+    --------
+    tuple : (train_data dict, test_data dict)
+    """
+    train_data = {}
+    test_data = {}
+    
+    train_end_dt = pd.Timestamp(train_end)
+    test_start_dt = pd.Timestamp(test_start)
+    
+    for symbol, df in data.items():
+        train_data[symbol] = df[df.index <= train_end_dt].copy()
+        test_data[symbol] = df[df.index >= test_start_dt].copy()
+        
+        print(f"{symbol}: Train={len(train_data[symbol])} rows, Test={len(test_data[symbol])} rows")
+    
+    return train_data, test_data
+
+
+# Execute data download
+if __name__ == "__main__":
+    SYMBOLS = [
+        # Core test symbols
+        "SLV", "TSLA", 
+        # Broad market
+        "SPY", "QQQ",
+        # Commodities
+        "GLD", "USO",
+        # Bonds
+        "TLT", "IEF",
+        # Sectors
+        "XLF", "XLE", "XLK", "XLV",
+        # Large caps
+        "AAPL", "NVDA", "AMD", "MSFT", "GOOGL", "AMZN", "META",
+        # Financials
+        "JPM", "BAC", "GS",
+        # Energy
+        "XOM", "CVX"
+    ]
+    
+    data = download_historical_data(SYMBOLS)
+    train_data, test_data = split_train_test(data)
+    
+    # Save split data
+    for symbol, df in train_data.items():
+        df.to_csv(f"data/train/{symbol}.csv")
+    for symbol, df in test_data.items():
+        df.to_csv(f"data/test/{symbol}.csv")
+    
+    print("\n✓ Data download complete. Test data saved separately - DO NOT TOUCH until final validation!")
+```
+
+### Option B: Polygon.io (Professional, Requires API Key)
+```python
+"""
+Download historical data from Polygon.io.
+Better data quality, but requires paid API key for full history.
+
+Get API key at: https://polygon.io/ (free tier has limitations)
+"""
+
+import requests
+import pandas as pd
+from datetime import datetime, timedelta
+from pathlib import Path
+import time
+
+class PolygonDataDownloader:
+    """
+    Professional data downloader using Polygon.io API.
+    
+    Free tier: 5 API calls/minute, 2 years history
+    Basic tier ($29/mo): Unlimited calls, full history
+    """
+    
+    def __init__(self, api_key: str):
+        self.api_key = api_key
+        self.base_url = "https://api.polygon.io"
+    
+    def get_daily_bars(
+        self,
+        symbol: str,
+        start_date: str,
+        end_date: str
+    ) -> pd.DataFrame:
+        """
+        Fetch daily OHLCV bars for a symbol.
+        
+        Parameters:
+        -----------
+        symbol : str
+            Ticker symbol (e.g., "AAPL")
+        start_date : str
+            Start date YYYY-MM-DD
+        end_date : str
+            End date YYYY-MM-DD
+            
+        Returns:
+        --------
+        pd.DataFrame with columns: open, high, low, close, volume, vwap
+        """
+        url = f"{self.base_url}/v2/aggs/ticker/{symbol}/range/1/day/{start_date}/{end_date}"
+        params = {
+            "apiKey": self.api_key,
+            "adjusted": "true",
+            "sort": "asc",
+            "limit": 50000
+        }
+        
+        response = requests.get(url, params=params)
+        data = response.json()
+        
+        if data.get("status") != "OK" or "results" not in data:
+            raise ValueError(f"API error for {symbol}: {data.get('message', 'Unknown error')}")
+        
+        df = pd.DataFrame(data["results"])
+        df["date"] = pd.to_datetime(df["t"], unit="ms")
+        df = df.set_index("date")
+        df = df.rename(columns={
+            "o": "open",
+            "h": "high",
+            "l": "low",
+            "c": "close",
+            "v": "volume",
+            "vw": "vwap"
+        })
+        
+        return df[["open", "high", "low", "close", "volume", "vwap"]]
+    
+    def download_multiple(
+        self,
+        symbols: list,
+        start_date: str,
+        end_date: str,
+        output_dir: str = "data/polygon"
+    ) -> dict:
+        """Download data for multiple symbols with rate limiting."""
+        Path(output_dir).mkdir(parents=True, exist_ok=True)
+        
+        data = {}
+        for i, symbol in enumerate(symbols):
+            print(f"[{i+1}/{len(symbols)}] Downloading {symbol}...")
+            try:
+                df = self.get_daily_bars(symbol, start_date, end_date)
+                df.to_csv(f"{output_dir}/{symbol}.csv")
+                data[symbol] = df
+                print(f"  ✓ {len(df)} rows")
+            except Exception as e:
+                print(f"  ✗ Failed: {e}")
+            
+            time.sleep(12)  # Free tier: 5 calls/minute
+        
+        return data
+
+
+# Usage
+if __name__ == "__main__":
+    # Get your API key from https://polygon.io/
+    API_KEY = "YOUR_POLYGON_API_KEY"  # Replace with actual key
+    
+    downloader = PolygonDataDownloader(API_KEY)
+    
+    SYMBOLS = ["SLV", "TSLA", "SPY", "QQQ", "GLD", "TLT", "AAPL", "NVDA"]
+    
+    data = downloader.download_multiple(
+        SYMBOLS,
+        start_date="2015-01-01",
+        end_date="2025-01-31"
+    )
+```
+
+---
+
+## TASK 2: AUDIT PHASE 1+2 FOR LOOKAHEAD BIAS
+
+### Checklist for Triple Barrier Labeler
+```python
+"""
+AUDIT: Triple Barrier Labeler for Lookahead Bias
+
+Common bugs that cause inflated Sharpe:
+1. Using future volatility to set barriers
+2. Using future prices in label calculation
+3. Not properly handling the vertical barrier timing
+"""
+
+def audit_triple_barrier_labeler(labeler, close_prices: pd.Series):
+    """
+    Audit the Triple Barrier Labeler for lookahead bias.
+    
+    CRITICAL CHECKS:
+    1. Volatility calculation uses ONLY past data
+    2. Barrier levels set at trade entry, not adjusted later
+    3. Labels determined by first barrier touch, not best outcome
+    """
+    
+    print("=" * 60)
+    print("AUDIT: Triple Barrier Labeler")
+    print("=" * 60)
+    
+    issues = []
+    
+    # Check 1: Volatility calculation
+    print("\n[1] Checking volatility calculation...")
+    vol = labeler.get_daily_volatility(close_prices)
+    
+    # The volatility at time t should only use data up to t-1
+    # Check if vol[t] correlates with future returns (it shouldn't)
+    future_returns = close_prices.pct_change().shift(-5)  # 5-day future return
+    correlation = vol.corr(future_returns)
+    
+    if abs(correlation) > 0.1:
+        issues.append(f"CRITICAL: Volatility correlates with future returns (r={correlation:.3f})")
+        print(f"  ✗ FAIL: Volatility correlates with future returns (r={correlation:.3f})")
+    else:
+        print(f"  ✓ PASS: Volatility uncorrelated with future returns (r={correlation:.3f})")
+    
+    # Check 2: Label timing
+    print("\n[2] Checking label calculation timing...")
+    
+    # Get labels and check if they're available at trade entry
+    # Labels should be NaN until the vertical barrier is reached
+    labels = labeler.get_labels(close_prices)
+    
+    # Check for labels on days where vertical barrier hasn't been reached
+    # This is implementation-specific - adjust based on your code
+    
+    # Check 3: No future information in features
+    print("\n[3] Checking for future information leakage...")
+    
+    # Generate features at time t
+    # Check if any feature uses data from t+1 or later
+    
+    print("\n" + "=" * 60)
+    if issues:
+        print("AUDIT FAILED - Issues found:")
+        for issue in issues:
+            print(f"  - {issue}")
+    else:
+        print("AUDIT PASSED - No obvious lookahead bias detected")
+    print("=" * 60)
+    
+    return len(issues) == 0
+
+
+def audit_meta_labeler(meta_labeler, X_train, X_test, y_train, y_test):
+    """
+    Audit the Meta-Labeler for information leakage.
+    
+    CRITICAL CHECKS:
+    1. Training data doesn't overlap with test data
+    2. Cross-validation folds are properly purged
+    3. Features don't contain future information
+    """
+    
+    print("=" * 60)
+    print("AUDIT: Meta-Labeler")
+    print("=" * 60)
+    
+    issues = []
+    
+    # Check 1: Index overlap
+    print("\n[1] Checking for train/test overlap...")
+    train_idx = set(X_train.index)
+    test_idx = set(X_test.index)
+    overlap = train_idx.intersection(test_idx)
+    
+    if overlap:
+        issues.append(f"CRITICAL: {len(overlap)} overlapping indices between train and test")
+        print(f"  ✗ FAIL: {len(overlap)} overlapping indices")
+    else:
+        print("  ✓ PASS: No index overlap")
+    
+    # Check 2: Temporal ordering
+    print("\n[2] Checking temporal ordering...")
+    max_train = X_train.index.max()
+    min_test = X_test.index.min()
+    
+    if max_train >= min_test:
+        issues.append(f"CRITICAL: Train data ({max_train}) overlaps with test ({min_test})")
+        print(f"  ✗ FAIL: Train ends {max_train}, test starts {min_test}")
+    else:
+        print(f"  ✓ PASS: Train ends {max_train}, test starts {min_test}")
+    
+    # Check 3: Feature leakage
+    print("\n[3] Checking for feature leakage...")
+    
+    # Check if any test features were computed using training data
+    # This requires examining the feature engineering pipeline
+    
+    print("\n" + "=" * 60)
+    if issues:
+        print("AUDIT FAILED - Issues found:")
+        for issue in issues:
+            print(f"  - {issue}")
+    else:
+        print("AUDIT PASSED - No obvious information leakage detected")
+    print("=" * 60)
+    
+    return len(issues) == 0
+```
+
+---
+
+## TASK 3: IMPLEMENT PROPER WALK-FORWARD VALIDATION WITH PURGING
+
+```python
+"""
+RIGOROUS WALK-FORWARD VALIDATION
+
+This is the GOLD STANDARD for validating trading strategies.
+It simulates real-world deployment where you:
+1. Train on historical data
+2. Make predictions on future data
+3. Roll forward and repeat
+
+CRITICAL: Includes purging and embargo to prevent information leakage.
+"""
+
+import numpy as np
+import pandas as pd
+from typing import Generator, Tuple, List
+from dataclasses import dataclass
+from scipy import stats
+
+@dataclass
+class WalkForwardConfig:
+    """Configuration for walk-forward validation."""
+    train_size: int = 252 * 3  # 3 years of trading days
+    test_size: int = 63        # 3 months (1 quarter)
+    step_size: int = 63        # Step forward by 1 quarter
+    purge_size: int = 5        # Days to purge between train/test
+    embargo_size: int = 5      # Days to embargo after test
+
+
+class PurgedWalkForwardCV:
+    """
+    Walk-forward cross-validation with purging and embargo.
+    
+    Purging: Remove samples near the train/test boundary to prevent leakage
+    Embargo: Skip samples immediately after test to prevent reverse leakage
+    
+    This follows Lopez de Prado's AFML methodology for proper backtest validation.
+    """
+    
+    def __init__(self, config: WalkForwardConfig = None):
+        self.config = config or WalkForwardConfig()
+    
+    def split(self, X: pd.DataFrame) -> Generator[Tuple[np.ndarray, np.ndarray], None, None]:
+        """
+        Generate train/test splits with purging and embargo.
+        
+        Yields:
+        -------
+        tuple : (train_indices, test_indices)
+        """
+        n_samples = len(X)
+        indices = np.arange(n_samples)
+        
+        train_start = 0
+        
+        while True:
+            train_end = train_start + self.config.train_size
+            test_start = train_end + self.config.purge_size
+            test_end = test_start + self.config.test_size
+            
+            if test_end > n_samples:
+                break
+            
+            # Training indices (with purge removed from end)
+            train_idx = indices[train_start:train_end - self.config.purge_size]
+            
+            # Test indices (with embargo removed from start)
+            test_idx = indices[test_start + self.config.embargo_size:test_end]
+            
+            if len(train_idx) > 0 and len(test_idx) > 0:
+                yield train_idx, test_idx
+            
+            train_start += self.config.step_size
+    
+    def get_n_splits(self, X: pd.DataFrame) -> int:
+        """Count number of splits."""
+        return sum(1 for _ in self.split(X))
+
+
+class WalkForwardValidator:
+    """
+    Complete walk-forward validation framework.
+    
+    Features:
+    - Purged train/test splits
+    - Per-fold metrics tracking
+    - Statistical significance testing
+    - Realistic transaction cost modeling
+    """
+    
+    def __init__(
+        self,
+        config: WalkForwardConfig = None,
+        transaction_cost: float = 0.001  # 0.1% round-trip (10 bps)
+    ):
+        self.config = config or WalkForwardConfig()
+        self.cv = PurgedWalkForwardCV(self.config)
+        self.transaction_cost = transaction_cost
+        self.fold_results = []
+    
+    def validate(
+        self,
+        model,
+        X: pd.DataFrame,
+        y: pd.Series,
+        prices: pd.Series
+    ) -> dict:
+        """
+        Run full walk-forward validation.
+        
+        Parameters:
+        -----------
+        model : sklearn-compatible model
+            Must have fit() and predict() methods
+        X : pd.DataFrame
+            Features
+        y : pd.Series
+            Labels (from triple barrier)
+        prices : pd.Series
+            Close prices for PnL calculation
+            
+        Returns:
+        --------
+        dict : Comprehensive validation results
+        """
+        self.fold_results = []
+        all_predictions = []
+        all_actuals = []
+        all_returns = []
+        
+        print("=" * 70)
+        print("WALK-FORWARD VALIDATION")
+        print(f"Train size: {self.config.train_size} | Test size: {self.config.test_size}")
+        print(f"Purge: {self.config.purge_size} | Embargo: {self.config.embargo_size}")
+        print(f"Transaction cost: {self.transaction_cost * 100:.2f}%")
+        print("=" * 70)
+        
+        for fold_num, (train_idx, test_idx) in enumerate(self.cv.split(X)):
+            
+            # Split data
+            X_train = X.iloc[train_idx]
+            X_test = X.iloc[test_idx]
+            y_train = y.iloc[train_idx]
+            y_test = y.iloc[test_idx]
+            
+            # Get dates for reporting
+            train_start = X.index[train_idx[0]]
+            train_end = X.index[train_idx[-1]]
+            test_start = X.index[test_idx[0]]
+            test_end = X.index[test_idx[-1]]
+            
+            # Train model (fresh each fold - no information leakage)
+            model_copy = clone_model(model)
+            model_copy.fit(X_train, y_train)
+            
+            # Predict on test set
+            predictions = model_copy.predict(X_test)
+            
+            # Calculate returns with transaction costs
+            test_prices = prices.iloc[test_idx]
+            returns = self._calculate_returns(predictions, test_prices)
+            
+            # Calculate fold metrics
+            fold_metrics = self._calculate_fold_metrics(
+                predictions, y_test.values, returns
+            )
+            fold_metrics['fold'] = fold_num
+            fold_metrics['train_period'] = f"{train_start.date()} to {train_end.date()}"
+            fold_metrics['test_period'] = f"{test_start.date()} to {test_end.date()}"
+            
+            self.fold_results.append(fold_metrics)
+            
+            # Accumulate for aggregate metrics
+            all_predictions.extend(predictions)
+            all_actuals.extend(y_test.values)
+            all_returns.extend(returns)
+            
+            # Print fold results
+            print(f"\nFold {fold_num + 1}: Test {test_start.date()} to {test_end.date()}")
+            print(f"  Sharpe: {fold_metrics['sharpe']:.3f} | "
+                  f"Accuracy: {fold_metrics['accuracy']:.1%} | "
+                  f"Win Rate: {fold_metrics['win_rate']:.1%} | "
+                  f"Trades: {fold_metrics['n_trades']}")
+        
+        # Aggregate metrics
+        aggregate = self._calculate_aggregate_metrics(
+            all_predictions, all_actuals, all_returns
+        )
+        
+        # Statistical significance
+        significance = self._test_significance(all_returns)
+        
+        # Print summary
+        self._print_summary(aggregate, significance)
+        
+        return {
+            'fold_results': self.fold_results,
+            'aggregate': aggregate,
+            'significance': significance,
+            'all_returns': all_returns
+        }
+    
+    def _calculate_returns(
+        self,
+        predictions: np.ndarray,
+        prices: pd.Series
+    ) -> list:
+        """
+        Calculate strategy returns with transaction costs.
+        
+        CRITICAL: This must simulate realistic execution:
+        - Enter at next day's open (not today's close)
+        - Exit when signal changes
+        - Deduct transaction costs on every trade
+        """
+        returns = []
+        position = 0
+        entry_price = None
+        
+        price_returns = prices.pct_change().fillna(0).values
+        
+        for i, pred in enumerate(predictions):
+            # Determine target position
+            target_position = 1 if pred == 1 else (-1 if pred == -1 else 0)
+            
+            # Calculate return if holding position
+            if position != 0:
+                daily_return = position * price_returns[i]
+            else:
+                daily_return = 0
+            
+            # Transaction cost on position change
+            if target_position != position:
+                # Cost of closing old position + opening new
+                cost = abs(target_position - position) * self.transaction_cost / 2
+                daily_return -= cost
+            
+            returns.append(daily_return)
+            position = target_position
+        
+        return returns
+    
+    def _calculate_fold_metrics(
+        self,
+        predictions: np.ndarray,
+        actuals: np.ndarray,
+        returns: list
+    ) -> dict:
+        """Calculate metrics for a single fold."""
+        returns_arr = np.array(returns)
+        
+        # Sharpe ratio (annualized)
+        if returns_arr.std() > 0:
+            sharpe = np.sqrt(252) * returns_arr.mean() / returns_arr.std()
+        else:
+            sharpe = 0
+        
+        # Accuracy (correct direction)
+        accuracy = np.mean(predictions == actuals)
+        
+        # Win rate (positive returns)
+        n_trades = np.sum(predictions != 0)
+        if n_trades > 0:
+            trade_returns = returns_arr[predictions != 0]
+            win_rate = np.mean(trade_returns > 0)
+        else:
+            win_rate = 0
+        
+        # Max drawdown
+        cumulative = np.cumprod(1 + returns_arr)
+        running_max = np.maximum.accumulate(cumulative)
+        drawdown = (cumulative - running_max) / running_max
+        max_drawdown = drawdown.min()
+        
+        return {
+            'sharpe': sharpe,
+            'accuracy': accuracy,
+            'win_rate': win_rate,
+            'n_trades': n_trades,
+            'total_return': np.prod(1 + returns_arr) - 1,
+            'max_drawdown': max_drawdown,
+            'volatility': returns_arr.std() * np.sqrt(252)
+        }
+    
+    def _calculate_aggregate_metrics(
+        self,
+        predictions: list,
+        actuals: list,
+        returns: list
+    ) -> dict:
+        """Calculate aggregate metrics across all folds."""
+        predictions = np.array(predictions)
+        actuals = np.array(actuals)
+        returns_arr = np.array(returns)
+        
+        metrics = self._calculate_fold_metrics(predictions, actuals, returns)
+        
+        # Add per-fold Sharpe statistics
+        fold_sharpes = [f['sharpe'] for f in self.fold_results]
+        metrics['sharpe_mean'] = np.mean(fold_sharpes)
+        metrics['sharpe_std'] = np.std(fold_sharpes)
+        metrics['sharpe_min'] = np.min(fold_sharpes)
+        metrics['sharpe_max'] = np.max(fold_sharpes)
+        
+        # Consistency: % of folds with positive Sharpe
+        metrics['consistency'] = np.mean(np.array(fold_sharpes) > 0)
+        
+        return metrics
+    
+    def _test_significance(self, returns: list) -> dict:
+        """
+        Test statistical significance of strategy returns.
+        
+        H0: Strategy returns = 0 (no alpha)
+        H1: Strategy returns > 0 (positive alpha)
+        """
+        returns_arr = np.array(returns)
+        
+        # T-test against zero
+        t_stat, p_value = stats.ttest_1samp(returns_arr, 0)
+        p_value_onesided = p_value / 2 if t_stat > 0 else 1 - p_value / 2
+        
+        # Bootstrap confidence interval for Sharpe
+        bootstrap_sharpes = []
+        for _ in range(1000):
+            sample = np.random.choice(returns_arr, size=len(returns_arr), replace=True)
+            if sample.std() > 0:
+                bootstrap_sharpes.append(np.sqrt(252) * sample.mean() / sample.std())
+        
+        sharpe_ci = np.percentile(bootstrap_sharpes, [2.5, 97.5])
+        
+        return {
+            't_statistic': t_stat,
+            'p_value': p_value_onesided,
+            'significant_at_5pct': p_value_onesided < 0.05,
+            'significant_at_1pct': p_value_onesided < 0.01,
+            'sharpe_ci_95': sharpe_ci,
+            'sharpe_ci_lower': sharpe_ci[0],
+            'sharpe_ci_upper': sharpe_ci[1]
+        }
+    
+    def _print_summary(self, aggregate: dict, significance: dict):
+        """Print comprehensive validation summary."""
+        print("\n" + "=" * 70)
+        print("VALIDATION SUMMARY")
+        print("=" * 70)
+        
+        print(f"\n📊 AGGREGATE METRICS (across {len(self.fold_results)} folds)")
+        print(f"   Sharpe Ratio:    {aggregate['sharpe']:.3f}")
+        print(f"   Sharpe Mean±Std: {aggregate['sharpe_mean']:.3f} ± {aggregate['sharpe_std']:.3f}")
+        print(f"   Sharpe Range:    [{aggregate['sharpe_min']:.3f}, {aggregate['sharpe_max']:.3f}]")
+        print(f"   Consistency:     {aggregate['consistency']:.1%} folds profitable")
+        print(f"   Total Return:    {aggregate['total_return']:.2%}")
+        print(f"   Max Drawdown:    {aggregate['max_drawdown']:.2%}")
+        print(f"   Win Rate:        {aggregate['win_rate']:.1%}")
+        print(f"   # Trades:        {aggregate['n_trades']}")
+        
+        print(f"\n📈 STATISTICAL SIGNIFICANCE")
+        print(f"   T-statistic:     {significance['t_statistic']:.3f}")
+        print(f"   P-value:         {significance['p_value']:.4f}")
+        print(f"   95% CI Sharpe:   [{significance['sharpe_ci_lower']:.3f}, {significance['sharpe_ci_upper']:.3f}]")
+        
+        if significance['significant_at_1pct']:
+            print("   ✓ SIGNIFICANT at 1% level")
+        elif significance['significant_at_5pct']:
+            print("   ✓ SIGNIFICANT at 5% level")
+        else:
+            print("   ✗ NOT SIGNIFICANT - Results may be due to chance")
+        
+        print("\n" + "=" * 70)
+        
+        # Reality check
+        print("\n🎯 REALITY CHECK")
+        if aggregate['sharpe'] > 3.0:
+            print("   ⚠️  WARNING: Sharpe > 3.0 is unrealistic. Check for bugs.")
+        elif aggregate['sharpe'] > 2.0:
+            print("   ⚠️  CAUTION: Sharpe > 2.0 is very high. Verify methodology.")
+        elif aggregate['sharpe'] > 1.0:
+            print("   ✓ GOOD: Sharpe between 1.0-2.0 is achievable.")
+        elif aggregate['sharpe'] > 0.5:
+            print("   ✓ OKAY: Sharpe between 0.5-1.0 is reasonable.")
+        else:
+            print("   ✗ WEAK: Sharpe < 0.5 suggests no meaningful alpha.")
+        
+        if aggregate['consistency'] < 0.5:
+            print("   ⚠️  WARNING: Less than 50% of folds profitable. Strategy is inconsistent.")
+        
+        if significance['sharpe_ci_lower'] < 0:
+            print("   ⚠️  WARNING: 95% CI includes negative Sharpe. Strategy may not be profitable.")
+
+
+def clone_model(model):
+    """Create a fresh copy of a model for each fold."""
+    from sklearn.base import clone
+    try:
+        return clone(model)
+    except:
+        # Fallback for non-sklearn models
+        return type(model)(**model.get_params())
+```
+
+---
+
+## TASK 4: IMPLEMENT COMBINATORIAL PURGED CROSS-VALIDATION (CPCV)
+
+```python
+"""
+COMBINATORIAL PURGED CROSS-VALIDATION (CPCV)
+
+This is the most rigorous validation method from Lopez de Prado's AFML.
+It tests ALL possible train/test combinations while properly purging.
+
+Key outputs:
+- Probability of Backtest Overfitting (PBO)
+- Deflated Sharpe Ratio
+"""
+
+from itertools import combinations
+from scipy.stats import norm
+import numpy as np
+import pandas as pd
+
+class CombinatorialPurgedCV:
+    """
+    Combinatorial Purged Cross-Validation.
+    
+    Tests all C(N,K) combinations of train/test splits.
+    Properly purges data near test boundaries.
+    
+    Parameters:
+    -----------
+    n_splits : int
+        Number of groups to divide data into
+    n_test_groups : int
+        Number of groups to use for testing in each split
+    purge_pct : float
+        Percentage of data to purge near boundaries
+    embargo_pct : float
+        Percentage to embargo after test period
+    """
+    
+    def __init__(
+        self,
+        n_splits: int = 6,
+        n_test_groups: int = 2,
+        purge_pct: float = 0.01,
+        embargo_pct: float = 0.01
+    ):
+        self.n_splits = n_splits
+        self.n_test_groups = n_test_groups
+        self.purge_pct = purge_pct
+        self.embargo_pct = embargo_pct
+    
+    def split(self, X: pd.DataFrame):
+        """Generate all combinatorial splits with purging."""
+        n_samples = len(X)
+        indices = np.arange(n_samples)
+        group_size = n_samples // self.n_splits
+        
+        # Create groups
+        groups = []
+        for i in range(self.n_splits):
+            start = i * group_size
+            end = start + group_size if i < self.n_splits - 1 else n_samples
+            groups.append(indices[start:end])
+        
+        # Calculate purge/embargo sizes
+        purge_size = max(1, int(n_samples * self.purge_pct))
+        embargo_size = max(1, int(group_size * self.embargo_pct))
+        
+        # Generate all combinations of test groups
+        for test_combo in combinations(range(self.n_splits), self.n_test_groups):
+            test_indices = np.concatenate([groups[i] for i in test_combo])
+            train_groups = [i for i in range(self.n_splits) if i not in test_combo]
+            train_indices = np.concatenate([groups[i] for i in train_groups])
+            
+            # Apply purging
+            train_indices = self._purge(
+                train_indices, test_indices, purge_size, embargo_size
+            )
+            
+            yield train_indices, test_indices
+    
+    def _purge(self, train_idx, test_idx, purge_size, embargo_size):
+        """Remove training samples near test boundaries."""
+        test_start = test_idx.min()
+        test_end = test_idx.max()
+        
+        # Purge before test
+        purge_mask = (train_idx < test_start - purge_size) | (train_idx > test_end + embargo_size)
+        
+        return train_idx[purge_mask]
+    
+    def get_n_splits(self) -> int:
+        """Return number of combinatorial splits."""
+        from math import comb
+        return comb(self.n_splits, self.n_test_groups)
+
+
+def probability_of_backtest_overfitting(
+    is_sharpes: np.ndarray,
+    oos_sharpes: np.ndarray
+) -> float:
+    """
+    Calculate Probability of Backtest Overfitting (PBO).
+    
+    PBO = probability that the best in-sample strategy
+    will underperform the median out-of-sample.
+    
+    A PBO > 0.5 indicates overfitting.
+    A PBO < 0.3 suggests the strategy is robust.
+    
+    Parameters:
+    -----------
+    is_sharpes : np.ndarray
+        In-sample Sharpe ratios for each combination
+    oos_sharpes : np.ndarray
+        Out-of-sample Sharpe ratios for each combination
+        
+    Returns:
+    --------
+    float : PBO (0 to 1)
+    """
+    # For each combination, check if IS rank matches OOS performance
+    n = len(is_sharpes)
+    
+    # Rank by in-sample performance
+    is_ranks = np.argsort(np.argsort(is_sharpes))[::-1]  # Higher = better rank
+    
+    # For combinations where IS rank was best, check OOS
+    best_is_idx = np.argmax(is_sharpes)
+    oos_sharpe_of_best = oos_sharpes[best_is_idx]
+    
+    # PBO = fraction of OOS Sharpes that beat the "best" IS strategy
+    pbo = np.mean(oos_sharpes > oos_sharpe_of_best)
+    
+    return pbo
+
+
+def deflated_sharpe_ratio(
+    observed_sharpe: float,
+    n_trials: int,
+    variance_sharpe: float,
+    skewness: float = 0,
+    kurtosis: float = 3,
+    T: int = None
+) -> dict:
+    """
+    Calculate Deflated Sharpe Ratio.
+    
+    Adjusts the Sharpe ratio for:
+    - Multiple testing (number of trials)
+    - Non-normality of returns
+    
+    Parameters:
+    -----------
+    observed_sharpe : float
+        The Sharpe ratio you observed
+    n_trials : int
+        Number of strategies/parameter combinations tested
+    variance_sharpe : float
+        Variance of the Sharpe ratio estimate
+    skewness : float
+        Skewness of returns
+    kurtosis : float
+        Kurtosis of returns (3 = normal)
+    T : int
+        Number of observations (optional, for variance calculation)
+        
+    Returns:
+    --------
+    dict : Contains deflated_sharpe, p_value, expected_max_sharpe
+    """
+    if T is not None:
+        # Estimate variance of Sharpe ratio
+        variance_sharpe = (1 + 0.5 * observed_sharpe**2) / T
+    
+    std_sharpe = np.sqrt(variance_sharpe)
+    
+    # Expected maximum Sharpe under null hypothesis (multiple testing)
+    # Using approximation from Bailey & Lopez de Prado
+    euler_gamma = 0.5772156649
+    
+    if n_trials > 1:
+        expected_max_sharpe = std_sharpe * (
+            (1 - euler_gamma) * norm.ppf(1 - 1/n_trials) +
+            euler_gamma * norm.ppf(1 - 1/(n_trials * np.e))
+        )
+    else:
+        expected_max_sharpe = 0
+    
+    # Adjust for non-normality
+    sharpe_adjusted = observed_sharpe * (
+        1 - skewness * observed_sharpe / 3 +
+        (kurtosis - 3) * observed_sharpe**2 / 24
+    )
+    
+    # Probabilistic Sharpe Ratio (deflated)
+    if std_sharpe > 0:
+        psr = norm.cdf((sharpe_adjusted - expected_max_sharpe) / std_sharpe)
+    else:
+        psr = 0.5
+    
+    return {
+        'deflated_sharpe': sharpe_adjusted - expected_max_sharpe,
+        'p_value': 1 - psr,
+        'expected_max_sharpe': expected_max_sharpe,
+        'significant': psr > 0.95,
+        'observed_sharpe': observed_sharpe,
+        'n_trials': n_trials
+    }
+
+
+class CPCVValidator:
+    """
+    Complete CPCV validation with PBO and Deflated Sharpe.
+    """
+    
+    def __init__(self, n_splits: int = 6, n_test_groups: int = 2):
+        self.cv = CombinatorialPurgedCV(n_splits, n_test_groups)
+        self.results = []
+    
+    def validate(self, model, X, y, prices) -> dict:
+        """
+        Run full CPCV validation.
+        
+        Returns comprehensive results including PBO and Deflated Sharpe.
+        """
+        is_sharpes = []
+        oos_sharpes = []
+        
+        n_splits = self.cv.get_n_splits()
+        print(f"Running CPCV with {n_splits} combinatorial splits...")
+        
+        for i, (train_idx, test_idx) in enumerate(self.cv.split(X)):
+            # Train
+            X_train = X.iloc[train_idx]
+            y_train = y.iloc[train_idx]
+            prices_train = prices.iloc[train_idx]
+            
+            # Test
+            X_test = X.iloc[test_idx]
+            y_test = y.iloc[test_idx]
+            prices_test = prices.iloc[test_idx]
+            
+            # Fit model
+            model_copy = clone_model(model)
+            model_copy.fit(X_train, y_train)
+            
+            # In-sample metrics
+            is_pred = model_copy.predict(X_train)
+            is_returns = self._calculate_returns(is_pred, prices_train)
+            is_sharpe = self._calculate_sharpe(is_returns)
+            is_sharpes.append(is_sharpe)
+            
+            # Out-of-sample metrics
+            oos_pred = model_copy.predict(X_test)
+            oos_returns = self._calculate_returns(oos_pred, prices_test)
+            oos_sharpe = self._calculate_sharpe(oos_returns)
+            oos_sharpes.append(oos_sharpe)
+            
+            if (i + 1) % 5 == 0:
+                print(f"  Completed {i + 1}/{n_splits} splits")
+        
+        # Calculate PBO
+        is_sharpes = np.array(is_sharpes)
+        oos_sharpes = np.array(oos_sharpes)
+        
+        pbo = probability_of_backtest_overfitting(is_sharpes, oos_sharpes)
+        
+        # Calculate Deflated Sharpe
+        deflated = deflated_sharpe_ratio(
+            observed_sharpe=np.mean(oos_sharpes),
+            n_trials=n_splits,
+            variance_sharpe=np.var(oos_sharpes),
+            T=len(X)
+        )
+        
+        # Print results
+        print("\n" + "=" * 60)
+        print("CPCV VALIDATION RESULTS")
+        print("=" * 60)
+        print(f"\n📊 SHARPE RATIO ANALYSIS")
+        print(f"   In-Sample Mean:  {np.mean(is_sharpes):.3f} ± {np.std(is_sharpes):.3f}")
+        print(f"   Out-of-Sample:   {np.mean(oos_sharpes):.3f} ± {np.std(oos_sharpes):.3f}")
+        print(f"   IS/OOS Gap:      {np.mean(is_sharpes) - np.mean(oos_sharpes):.3f}")
+        
+        print(f"\n🎯 OVERFITTING ANALYSIS")
+        print(f"   PBO:             {pbo:.3f}")
+        if pbo < 0.3:
+            print("   ✓ LOW risk of overfitting (PBO < 0.3)")
+        elif pbo < 0.5:
+            print("   ⚠️  MODERATE risk of overfitting (0.3 < PBO < 0.5)")
+        else:
+            print("   ✗ HIGH risk of overfitting (PBO > 0.5)")
+        
+        print(f"\n📈 DEFLATED SHARPE RATIO")
+        print(f"   Observed Sharpe: {deflated['observed_sharpe']:.3f}")
+        print(f"   Expected Max:    {deflated['expected_max_sharpe']:.3f}")
+        print(f"   Deflated Sharpe: {deflated['deflated_sharpe']:.3f}")
+        print(f"   P-value:         {deflated['p_value']:.4f}")
+        
+        if deflated['significant']:
+            print("   ✓ SIGNIFICANT after multiple testing adjustment")
+        else:
+            print("   ✗ NOT SIGNIFICANT after multiple testing adjustment")
+        
+        print("=" * 60)
+        
+        return {
+            'is_sharpes': is_sharpes,
+            'oos_sharpes': oos_sharpes,
+            'pbo': pbo,
+            'deflated_sharpe': deflated,
+            'mean_oos_sharpe': np.mean(oos_sharpes),
+            'std_oos_sharpe': np.std(oos_sharpes)
+        }
+    
+    def _calculate_returns(self, predictions, prices, cost=0.001):
+        """Calculate returns with transaction costs."""
+        returns = []
+        position = 0
+        price_returns = prices.pct_change().fillna(0).values
+        
+        for i, pred in enumerate(predictions):
+            target = 1 if pred == 1 else (-1 if pred == -1 else 0)
+            
+            daily_return = position * price_returns[i] if position != 0 else 0
+            
+            if target != position:
+                daily_return -= abs(target - position) * cost / 2
+            
+            returns.append(daily_return)
+            position = target
+        
+        return returns
+    
+    def _calculate_sharpe(self, returns):
+        """Calculate annualized Sharpe ratio."""
+        returns = np.array(returns)
+        if returns.std() > 0:
+            return np.sqrt(252) * returns.mean() / returns.std()
+        return 0
+```
+
+---
+
+## TASK 5: FULL VALIDATION SCRIPT
+
+```python
+"""
+COMPLETE VALIDATION SCRIPT
+
+Run this to perform rigorous validation of the Phase 1+2 implementation.
+This will reveal if the reported Sharpe of 4.3-5.1 is real or a bug.
+"""
+
+import pandas as pd
+import numpy as np
+from pathlib import Path
+
+# Import your implementations
+from kyperian.labeling.triple_barrier import TripleBarrierLabeler
+from kyperian.features.frac_diff import FractionalDifferentiator
+from kyperian.regime.hmm_detector import HMMRegimeDetector
+from kyperian.models.meta_labeler import MetaLabeler
+
+# Import validation framework (from above)
+from validation import (
+    WalkForwardValidator, WalkForwardConfig,
+    CPCVValidator,
+    audit_triple_barrier_labeler,
+    audit_meta_labeler
+)
+
+
+def run_full_validation(
+    symbols: list = ["SLV", "TSLA"],
+    train_end: str = "2022-12-31",
+    test_start: str = "2023-01-01"
+):
+    """
+    Run complete validation pipeline.
+    
+    1. Load and split data
+    2. Audit for lookahead bias
+    3. Walk-forward validation with purging
+    4. CPCV with PBO and Deflated Sharpe
+    5. Multi-asset testing
+    """
+    
+    print("=" * 70)
+    print("KYPERIAN ML SYSTEM - RIGOROUS VALIDATION")
+    print("=" * 70)
+    
+    all_results = {}
+    
+    for symbol in symbols:
+        print(f"\n{'=' * 70}")
+        print(f"VALIDATING: {symbol}")
+        print("=" * 70)
+        
+        # Load data
+        data = pd.read_csv(f"data/historical/{symbol}.csv", index_col=0, parse_dates=True)
+        
+        # Split STRICTLY
+        train_data = data[data.index <= train_end]
+        test_data = data[data.index >= test_start]
+        
+        print(f"Train: {train_data.index[0].date()} to {train_data.index[-1].date()} ({len(train_data)} rows)")
+        print(f"Test:  {test_data.index[0].date()} to {test_data.index[-1].date()} ({len(test_data)} rows)")
+        
+        # Initialize components
+        labeler = TripleBarrierLabeler(
+            pt_sl=(1.5, 1.5),
+            max_holding_period=10,
+            volatility_lookback=20
+        )
+        
+        frac_diff = FractionalDifferentiator()
+        hmm = HMMRegimeDetector(n_regimes=2)
+        
+        # AUDIT: Check for lookahead bias
+        print("\n[AUDIT] Checking for lookahead bias...")
+        audit_passed = audit_triple_barrier_labeler(labeler, train_data['close'])
+        
+        if not audit_passed:
+            print("⚠️  AUDIT FAILED - Fix issues before proceeding")
+            continue
+        
+        # Generate features on TRAINING DATA ONLY
+        print("\n[FEATURES] Engineering features...")
+        
+        # Calculate returns
+        train_data = train_data.copy()
+        train_data['returns'] = train_data['close'].pct_change()
+        
+        # Fractional differentiation
+        train_data = frac_diff.fit_transform(train_data, columns=['close'])
+        
+        # Technical features (ensure no lookahead)
+        train_data['rsi_14'] = calculate_rsi(train_data['close'], 14)
+        train_data['sma_20'] = train_data['close'].rolling(20).mean()
+        train_data['sma_50'] = train_data['close'].rolling(50).mean()
+        train_data['volatility_20'] = train_data['returns'].rolling(20).std()
+        
+        # HMM regime
+        hmm.fit(train_data['returns'].dropna())
+        train_data['regime'] = hmm.predict(train_data['returns'])
+        
+        # Generate labels
+        train_data['label'] = labeler.get_labels(train_data['close'])
+        
+        # Clean data
+        train_clean = train_data.dropna()
+        
+        # Define features
+        feature_cols = ['close_ffd', 'rsi_14', 'sma_20', 'sma_50', 
+                       'volatility_20', 'regime', 'returns']
+        
+        X = train_clean[feature_cols]
+        y = train_clean['label']
+        prices = train_clean['close']
+        
+        # VALIDATION 1: Walk-Forward
+        print("\n[VALIDATION 1] Walk-Forward with Purging...")
+        
+        wf_config = WalkForwardConfig(
+            train_size=252 * 2,  # 2 years
+            test_size=63,        # 3 months
+            step_size=63,        # Step by quarter
+            purge_size=5,
+            embargo_size=5
+        )
+        
+        wf_validator = WalkForwardValidator(config=wf_config, transaction_cost=0.001)
+        
+        # Use your primary model
+        from sklearn.ensemble import RandomForestClassifier
+        model = RandomForestClassifier(n_estimators=100, max_depth=5, random_state=42)
+        
+        wf_results = wf_validator.validate(model, X, y, prices)
+        
+        # VALIDATION 2: CPCV
+        print("\n[VALIDATION 2] Combinatorial Purged Cross-Validation...")
+        
+        cpcv_validator = CPCVValidator(n_splits=6, n_test_groups=2)
+        cpcv_results = cpcv_validator.validate(model, X, y, prices)
+        
+        # Store results
+        all_results[symbol] = {
+            'walk_forward': wf_results,
+            'cpcv': cpcv_results
+        }
+        
+        # FINAL OUT-OF-SAMPLE TEST (only after all development is done)
+        print("\n[FINAL TEST] True Out-of-Sample (2023-2025)...")
+        
+        # Apply same transformations to test data
+        test_data = test_data.copy()
+        test_data['returns'] = test_data['close'].pct_change()
+        
+        # Use parameters learned from training
+        test_data = frac_diff.transform(test_data, columns=['close'])
+        test_data['rsi_14'] = calculate_rsi(test_data['close'], 14)
+        test_data['sma_20'] = test_data['close'].rolling(20).mean()
+        test_data['sma_50'] = test_data['close'].rolling(50).mean()
+        test_data['volatility_20'] = test_data['returns'].rolling(20).std()
+        test_data['regime'] = hmm.predict(test_data['returns'])
+        
+        test_clean = test_data.dropna()
+        
+        X_test_final = test_clean[feature_cols]
+        prices_test_final = test_clean['close']
+        
+        # Train final model on ALL training data
+        final_model = RandomForestClassifier(n_estimators=100, max_depth=5, random_state=42)
+        final_model.fit(X, y)
+        
+        # Predict on truly unseen test data
+        final_predictions = final_model.predict(X_test_final)
+        final_returns = calculate_strategy_returns(final_predictions, prices_test_final)
+        final_sharpe = calculate_sharpe(final_returns)
+        
+        print(f"\n🎯 FINAL OUT-OF-SAMPLE SHARPE: {final_sharpe:.3f}")
+        
+        all_results[symbol]['final_oos_sharpe'] = final_sharpe
+    
+    # Summary
+    print("\n" + "=" * 70)
+    print("VALIDATION COMPLETE - SUMMARY")
+    print("=" * 70)
+    
+    for symbol, results in all_results.items():
+        print(f"\n{symbol}:")
+        print(f"  Walk-Forward Sharpe: {results['walk_forward']['aggregate']['sharpe']:.3f}")
+        print(f"  CPCV OOS Sharpe:     {results['cpcv']['mean_oos_sharpe']:.3f}")
+        print(f"  PBO:                 {results['cpcv']['pbo']:.3f}")
+        print(f"  Final OOS Sharpe:    {results.get('final_oos_sharpe', 'N/A')}")
+        
+        # Reality check
+        if results['cpcv']['pbo'] > 0.5:
+            print(f"  ⚠️  HIGH OVERFITTING RISK")
+        if results['cpcv']['mean_oos_sharpe'] > 2.0:
+            print(f"  ⚠️  SHARPE TOO HIGH - CHECK FOR BUGS")
+    
+    return all_results
+
+
+def calculate_rsi(prices, period=14):
+    """Calculate RSI indicator."""
+    delta = prices.diff()
+    gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
+    rs = gain / loss
+    return 100 - (100 / (1 + rs))
+
+
+def calculate_strategy_returns(predictions, prices, cost=0.001):
+    """Calculate returns with transaction costs."""
+    returns = []
+    position = 0
+    price_returns = prices.pct_change().fillna(0).values
+    
+    for i, pred in enumerate(predictions):
+        target = 1 if pred == 1 else (-1 if pred == -1 else 0)
+        daily_return = position * price_returns[i] if position != 0 else 0
+        
+        if target != position:
+            daily_return -= abs(target - position) * cost / 2
+        
+        returns.append(daily_return)
+        position = target
+    
+    return returns
+
+
+def calculate_sharpe(returns):
+    """Calculate annualized Sharpe ratio."""
+    returns = np.array(returns)
+    if returns.std() > 0:
+        return np.sqrt(252) * returns.mean() / returns.std()
+    return 0
+
+
+if __name__ == "__main__":
+    results = run_full_validation(
+        symbols=["SLV", "TSLA", "SPY", "QQQ", "GLD"],
+        train_end="2022-12-31",
+        test_start="2023-01-01"
+    )
+```
+
+---
+
+## EXPECTED REALISTIC RESULTS
+
+After running this rigorous validation, you should see:
+
+| Metric | Expected Range | If Outside Range |
+|--------|----------------|------------------|
+| Walk-Forward Sharpe | 0.5 - 1.5 | Bug if > 2.0 |
+| CPCV OOS Sharpe | 0.4 - 1.2 | Bug if > 2.0 |
+| PBO | < 0.5 | Overfit if > 0.5 |
+| Deflated Sharpe | > 0 | Not significant if < 0 |
+| Win Rate | 51% - 57% | Lucky if > 60% |
+| Consistency | > 60% | Unstable if < 50% |
+
+**If your results still show Sharpe > 3.0:**
+1. There is a bug in the implementation
+2. There is lookahead bias
+3. There is information leakage
+4. Transaction costs are not being applied
+
+**A genuine, production-ready strategy will have:**
+- Walk-Forward Sharpe: 0.8 - 1.5
+- PBO < 0.3
+- Deflated Sharpe > 0
+- Consistent across multiple assets
+- Survives regime changes (2020, 2022)
+
+---
+
+## REMEMBER
+
+> "A backtest is a simulation, not a guarantee. The only real validation is live trading with real money."
+
+> — Marcos Lopez de Prado, "Advances in Financial Machine Learning"
+
+**Your goal:** Find a strategy with genuine Sharpe 1.0-1.5 that survives all validation checks. That's worth more than a fake Sharpe 5.0 that collapses in production.

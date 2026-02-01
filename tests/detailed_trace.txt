@@ -1,0 +1,298 @@
+================================================================================
+DETAILED SIGNAL TRACE: NVDA
+================================================================================
+Timestamp: 2026-02-01 14:23:55.491607
+================================================================================
+
+Loaded 772 rows
+Date range: 2023-01-03 to 2026-01-30
+Total return: 1235.2%
+
+================================================================================
+SIGNAL ANALYSIS AT DIFFERENT POINTS
+================================================================================
+
+============================================================
+DATE: 2023-05-26
+============================================================
+  Price: $38.95
+  Window return (100 days): +172.1%
+  Future return (20 days):  +7.5%
+  Detected regime: VOLATILE
+  Mean daily return: 1.8485%
+  Volatility: 5.758%
+
+  SIGNAL COMPONENTS:
+    Short-term momentum:  +0.500
+    Medium-term momentum: +0.784
+    Long-term momentum:   +1.000
+    Short-term mean rev:  -0.602
+    Medium-term mean rev: -1.000
+
+  SIGNAL CALCULATION:
+    Regime: VOLATILE
+    Momentum weight: 0.4
+    Mean rev weight: 0.3
+    Combined momentum:  +0.685
+    Combined mean rev:  -0.761
+    Raw signal:         +0.046
+
+  FINAL SIGNAL:
+    Direction: 0 (NEUTRAL)
+    Strength: NEUTRAL
+    Confidence: 0.35
+    ⚠️  NEUTRAL (missed +7.5% move)
+
+    🚨 PROBLEM: Raw signal (+0.046) is between -0.2 and +0.2
+       This causes NEUTRAL direction regardless of trend!
+       Cause: Momentum (+0.685) and Mean Reversion (-0.761) are FIGHTING
+
+============================================================
+DATE: 2023-10-19
+============================================================
+  Price: $42.10
+  Window return (100 days): +8.1%
+  Future return (20 days):  +17.5%
+  Detected regime: VOLATILE
+  Mean daily return: 0.1539%
+  Volatility: 2.203%
+
+  SIGNAL COMPONENTS:
+    Short-term momentum:  -0.888
+    Medium-term momentum: +0.134
+    Long-term momentum:   -0.187
+    Short-term mean rev:  +0.508
+    Medium-term mean rev: +0.587
+
+  SIGNAL CALCULATION:
+    Regime: VOLATILE
+    Momentum weight: 0.4
+    Mean rev weight: 0.3
+    Combined momentum:  -0.441
+    Combined mean rev:  +0.539
+    Raw signal:         -0.015
+
+  FINAL SIGNAL:
+    Direction: 0 (NEUTRAL)
+    Strength: NEUTRAL
+    Confidence: 0.08
+    ⚠️  NEUTRAL (missed +17.5% move)
+
+    🚨 PROBLEM: Raw signal (-0.015) is between -0.2 and +0.2
+       This causes NEUTRAL direction regardless of trend!
+
+============================================================
+DATE: 2024-03-14
+============================================================
+  Price: $87.94
+  Window return (100 days): +108.9%
+  Future return (20 days):  +0.3%
+  Detected regime: VOLATILE
+  Mean daily return: 0.9785%
+  Volatility: 4.829%
+
+  SIGNAL COMPONENTS:
+    Short-term momentum:  -0.236
+    Medium-term momentum: +0.440
+    Long-term momentum:   +1.000
+    Short-term mean rev:  +0.171
+    Medium-term mean rev: -0.423
+
+  SIGNAL CALCULATION:
+    Regime: VOLATILE
+    Momentum weight: 0.4
+    Mean rev weight: 0.3
+    Combined momentum:  +0.214
+    Combined mean rev:  -0.066
+    Raw signal:         +0.066
+
+  FINAL SIGNAL:
+    Direction: 0 (NEUTRAL)
+    Strength: NEUTRAL
+    Confidence: 0.17
+    ⚠️  NEUTRAL (missed +0.3% move)
+
+    🚨 PROBLEM: Raw signal (+0.066) is between -0.2 and +0.2
+       This causes NEUTRAL direction regardless of trend!
+       Cause: Momentum (+0.214) and Mean Reversion (-0.066) are FIGHTING
+
+============================================================
+DATE: 2024-08-07
+============================================================
+  Price: $98.91
+  Window return (100 days): +12.5%
+  Future return (20 days):  +8.4%
+  Detected regime: VOLATILE
+  Mean daily return: -1.4246%
+  Volatility: 4.974%
+
+  SIGNAL COMPONENTS:
+    Short-term momentum:  -0.791
+    Medium-term momentum: -0.600
+    Long-term momentum:   +0.162
+    Short-term mean rev:  +0.584
+    Medium-term mean rev: +0.872
+
+  SIGNAL CALCULATION:
+    Regime: VOLATILE
+    Momentum weight: 0.4
+    Mean rev weight: 0.3
+    Combined momentum:  -0.543
+    Combined mean rev:  +0.700
+    Raw signal:         -0.007
+
+  FINAL SIGNAL:
+    Direction: 0 (NEUTRAL)
+    Strength: NEUTRAL
+    Confidence: 0.23
+    ⚠️  NEUTRAL (missed +8.4% move)
+
+    🚨 PROBLEM: Raw signal (-0.007) is between -0.2 and +0.2
+       This causes NEUTRAL direction regardless of trend!
+
+============================================================
+DATE: 2024-12-30
+============================================================
+  Price: $137.49
+  Window return (100 days): +39.0%
+  Future return (20 days):  -9.3%
+  Detected regime: VOLATILE
+  Mean daily return: -0.0070%
+  Volatility: 2.087%
+
+  SIGNAL COMPONENTS:
+    Short-term momentum:  +0.222
+    Medium-term momentum: -0.029
+    Long-term momentum:   +0.335
+    Short-term mean rev:  +0.459
+    Medium-term mean rev: -0.014
+
+  SIGNAL CALCULATION:
+    Regime: VOLATILE
+    Momentum weight: 0.4
+    Mean rev weight: 0.3
+    Combined momentum:  +0.169
+    Combined mean rev:  +0.270
+    Raw signal:         +0.149
+
+  FINAL SIGNAL:
+    Direction: 0 (NEUTRAL)
+    Strength: NEUTRAL
+    Confidence: 0.26
+    ⚠️  NEUTRAL (missed -9.3% move)
+
+    🚨 PROBLEM: Raw signal (+0.149) is between -0.2 and +0.2
+       This causes NEUTRAL direction regardless of trend!
+
+============================================================
+DATE: 2025-05-27
+============================================================
+  Price: $135.50
+  Window return (100 days): -1.4%
+  Future return (20 days):  +13.9%
+  Detected regime: VOLATILE
+  Mean daily return: 1.1295%
+  Volatility: 2.219%
+
+  SIGNAL COMPONENTS:
+    Short-term momentum:  -0.006
+    Medium-term momentum: +1.000
+    Long-term momentum:   +0.129
+    Short-term mean rev:  -0.664
+    Medium-term mean rev: -0.550
+
+  SIGNAL CALCULATION:
+    Regime: VOLATILE
+    Momentum weight: 0.4
+    Mean rev weight: 0.3
+    Combined momentum:  +0.323
+    Combined mean rev:  -0.619
+    Raw signal:         -0.056
+
+  FINAL SIGNAL:
+    Direction: 0 (NEUTRAL)
+    Strength: NEUTRAL
+    Confidence: 0.22
+    ⚠️  NEUTRAL (missed +13.9% move)
+
+    🚨 PROBLEM: Raw signal (-0.056) is between -0.2 and +0.2
+       This causes NEUTRAL direction regardless of trend!
+       Cause: Momentum (+0.323) and Mean Reversion (-0.619) are FIGHTING
+
+============================================================
+DATE: 2025-10-17
+============================================================
+  Price: $183.22
+  Window return (100 days): +35.2%
+  Future return (20 days):  +3.8%
+  Detected regime: VOLATILE
+  Mean daily return: 0.2070%
+  Volatility: 2.274%
+
+  SIGNAL COMPONENTS:
+    Short-term momentum:  +0.003
+    Medium-term momentum: +0.182
+    Long-term momentum:   +0.186
+    Short-term mean rev:  -0.083
+    Medium-term mean rev: +0.064
+
+  SIGNAL CALCULATION:
+    Regime: VOLATILE
+    Momentum weight: 0.4
+    Mean rev weight: 0.3
+    Combined momentum:  +0.093
+    Combined mean rev:  -0.025
+    Raw signal:         +0.030
+
+  FINAL SIGNAL:
+    Direction: 0 (NEUTRAL)
+    Strength: NEUTRAL
+    Confidence: 0.42
+    ⚠️  NEUTRAL (missed +3.8% move)
+
+    🚨 PROBLEM: Raw signal (+0.030) is between -0.2 and +0.2
+       This causes NEUTRAL direction regardless of trend!
+       Cause: Momentum (+0.093) and Mean Reversion (-0.025) are FIGHTING
+
+================================================================================
+SUMMARY
+================================================================================
+
+  Signal distribution:
+    Long:    0/7 (0%)
+    Short:   0/7 (0%)
+    Neutral: 7/7 (100%)
+
+  Regime distribution:
+    VOLATILE: 7/7
+
+================================================================================
+ROOT CAUSE ANALYSIS
+================================================================================
+
+    🔴 ISSUE 1: Too many NEUTRAL signals (100%)
+    
+       The signal generator outputs 0 when raw_signal is between -0.2 and +0.2.
+       
+       In a trending market like NVDA (+1235%), we should NOT be sitting in cash!
+       
+       FIX: Reduce the neutral threshold from 0.2 to 0.1, or add a regime bias
+            that pushes signals in the direction of the trend.
+        
+
+    🔴 ISSUE 2: Too many VOLATILE regime detections
+    
+       The simple regime detector (vol > 0.02) is too aggressive.
+       Tech stocks like NVDA naturally have higher volatility.
+       
+       FIX: Use HMM regime detector instead of simple threshold.
+             Or adjust the volatility threshold based on asset class.
+        
+
+    🔴 ISSUE 3: Not detecting BULL regime enough
+    
+       NVDA went up 1235% but we're not seeing BULL regime consistently.
+       
+       FIX: The mean_ret > 0.001 threshold is too strict.
+             Daily returns are noisy; use rolling average or HMM.
+        

@@ -1,0 +1,23 @@
+Data: 772 rows, 2023-01-03 to 2026-01-30
+
+Regime Distribution:
+  BULL: 469 (66.8%)
+  BEAR: 172 (24.5%)
+  SIDEWAYS: 33 (4.7%)
+  VOLATILE: 28 (4.0%)
+
+Overall Win Rate: 54.1% (240/444)
+
+BULL:
+  Days: 469
+  Win Rate: 55.3% (242/438)
+  Strategy Return: 53.5%
+  Buy-Hold Return: 53.5%
+  Signals: BUY 439 (93.6%), SELL 0 (0.0%), NEUTRAL 30 (6.4%)
+
+SIDEWAYS:
+  Days: 33
+  Win Rate: 50.0% (3/6)
+  Strategy Return: -0.9%
+  Buy-Hold Return: 7.7%
+  Signals: BUY 3 (9.1%), SELL 4 (12.1%), NEUTRAL 26 (78.8%)

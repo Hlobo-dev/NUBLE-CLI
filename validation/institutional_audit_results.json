@@ -1,0 +1,264 @@
+{
+  "risk_manager": {
+    "tests": {
+      "normal_trade": true,
+      "position_limit": true,
+      "sector_limit": true,
+      "drawdown_states": true,
+      "kill_switch": true,
+      "risk_scaling": true
+    },
+    "passed": 6,
+    "failed": 0
+  },
+  "transaction_costs": {
+    "by_symbol": {
+      "AAPL": {
+        "tier": "MEGA_CAP",
+        "spread_bps": 0.5,
+        "impact_bps": 0.125450397563261,
+        "total_bps": 80.84020967953767
+      },
+      "MSFT": {
+        "tier": "MEGA_CAP",
+        "spread_bps": 0.5,
+        "impact_bps": 0.1413813705171227,
+        "total_bps": 75.98187111817585
+      },
+      "NVDA": {
+        "tier": "MEGA_CAP",
+        "spread_bps": 0.5,
+        "impact_bps": 0.11453870741375308,
+        "total_bps": 157.26649618526363
+      },
+      "JPM": {
+        "tier": "MEGA_CAP",
+        "spread_bps": 0.5,
+        "impact_bps": 0.25411574700688433,
+        "total_bps": 73.98017948301393
+      },
+      "SPY": {
+        "tier": "MEGA_CAP",
+        "spread_bps": 0.5,
+        "impact_bps": 0.04122275657060753,
+        "total_bps": 48.6361508185454
+      }
+    },
+    "gross_vs_net": {
+      "gross_sharpe": 0.41084429379837006,
+      "net_sharpe": 0.41022846854614264,
+      "degradation": 0.001498926141906326,
+      "turnover": 0.07003891050583658,
+      "n_trades": 54
+    }
+  },
+  "alpha_attribution": {
+    "capm": {
+      "alpha": 0.1381032902489977,
+      "t_stat": 3.206906318269832,
+      "beta": 1.2021638515456092,
+      "r_squared": 0.856935636261787,
+      "has_alpha": true
+    },
+    "contribution": {
+      "top_contributor": "NVDA",
+      "top_pct": 0.17914804717282526,
+      "concentration_risk": false
+    },
+    "regime": {
+      "bull": 0.5144767223892113,
+      "bear": -0.2650168200874936,
+      "sideways": 0.18919993926997192
+    },
+    "verdict": "ALPHA"
+  },
+  "universe_coverage": {
+    "symbols": {
+      "AAPL": {
+        "available": true,
+        "n_bars": 772,
+        "sharpe": 1.063233071118878,
+        "viable": true,
+        "sector": "Technology"
+      },
+      "MSFT": {
+        "available": true,
+        "n_bars": 772,
+        "sharpe": 0.919824769969462,
+        "viable": true,
+        "sector": "Technology"
+      },
+      "NVDA": {
+        "available": true,
+        "n_bars": 772,
+        "sharpe": 1.950441493683457,
+        "viable": true,
+        "sector": "Technology"
+      },
+      "AMD": {
+        "available": true,
+        "n_bars": 772,
+        "sharpe": 1.0755778481518248,
+        "viable": true,
+        "sector": "Technology"
+      },
+      "INTC": {
+        "available": false,
+        "sector": "Technology"
+      },
+      "GOOGL": {
+        "available": true,
+        "n_bars": 772,
+        "sharpe": 1.6020559686058566,
+        "viable": true,
+        "sector": "Technology"
+      },
+      "META": {
+        "available": true,
+        "n_bars": 772,
+        "sharpe": 1.6738073016955137,
+        "viable": true,
+        "sector": "Technology"
+      },
+      "AMZN": {
+        "available": true,
+        "n_bars": 772,
+        "sharpe": 1.2118083523013814,
+        "viable": true,
+        "sector": "Consumer"
+      },
+      "TSLA": {
+        "available": true,
+        "n_bars": 772,
+        "sharpe": 1.0524471039137662,
+        "viable": true,
+        "sector": "Consumer"
+      },
+      "JPM": {
+        "available": true,
+        "n_bars": 772,
+        "sharpe": 1.2653543989261078,
+        "viable": true,
+        "sector": "Financials"
+      },
+      "BAC": {
+        "available": true,
+        "n_bars": 772,
+        "sharpe": 0.7208581497018276,
+        "viable": true,
+        "sector": "Financials"
+      },
+      "GS": {
+        "available": false,
+        "sector": "Financials"
+      },
+      "JNJ": {
+        "available": false,
+        "sector": "Healthcare"
+      },
+      "PFE": {
+        "available": false,
+        "sector": "Healthcare"
+      },
+      "UNH": {
+        "available": false,
+        "sector": "Healthcare"
+      },
+      "XOM": {
+        "available": true,
+        "n_bars": 772,
+        "sharpe": 0.5191817491877821,
+        "viable": true,
+        "sector": "Energy"
+      },
+      "CVX": {
+        "available": true,
+        "n_bars": 772,
+        "sharpe": 0.13762101893608475,
+        "viable": true,
+        "sector": "Energy"
+      },
+      "SPY": {
+        "available": true,
+        "n_bars": 772,
+        "sharpe": 1.3546714075536312,
+        "viable": true,
+        "sector": "Index"
+      },
+      "QQQ": {
+        "available": true,
+        "n_bars": 772,
+        "sharpe": 1.5081803325375376,
+        "viable": true,
+        "sector": "Index"
+      },
+      "IWM": {
+        "available": false,
+        "sector": "Index"
+      },
+      "DIA": {
+        "available": false,
+        "sector": "Index"
+      },
+      "GLD": {
+        "available": true,
+        "n_bars": 772,
+        "sharpe": 1.8558616715659353,
+        "viable": true,
+        "sector": "Commodities"
+      }
+    },
+    "sectors": {
+      "Consumer": {
+        "total": 2,
+        "available": 2,
+        "viable": 2
+      },
+      "Healthcare": {
+        "total": 3,
+        "available": 0,
+        "viable": 0
+      },
+      "Index": {
+        "total": 4,
+        "available": 2,
+        "viable": 2
+      },
+      "Technology": {
+        "total": 7,
+        "available": 6,
+        "viable": 6
+      },
+      "Financials": {
+        "total": 3,
+        "available": 2,
+        "viable": 2
+      },
+      "Commodities": {
+        "total": 1,
+        "available": 1,
+        "viable": 1
+      },
+      "Energy": {
+        "total": 2,
+        "available": 2,
+        "viable": 2
+      }
+    },
+    "summary": {
+      "total_symbols": 22,
+      "available": 15,
+      "viable": 15,
+      "coverage_pct": 0.6818181818181818,
+      "viability_pct": 1.0
+    }
+  },
+  "pbo": {
+    "pbo": 0.25,
+    "n_strategies": 16,
+    "best_is_sharpe": 1.0922202140613138,
+    "best_is_oos_sharpe": 0.7914004045957095,
+    "rank_correlation": 0.6205882352941177,
+    "degradation": 0.28662406699276033
+  }
+}

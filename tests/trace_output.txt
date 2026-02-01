@@ -1,0 +1,226 @@
+INFO:institutional.regime.hmm_detector:HMMRegimeDetector initialized: 2 regimes, covariance=full
+Traceback (most recent call last):
+  File "/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI/tests/trace_signal_pipeline.py", line 67, in trace_full_pipeline
+    regime = detector.detect_regime(returns)
+             ^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'HMMRegimeDetector' object has no attribute 'detect_regime'
+INFO:institutional.features.frac_diff:FractionalDifferentiator initialized: pvalue=0.05, threshold=1e-05
+Traceback (most recent call last):
+  File "/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI/tests/trace_signal_pipeline.py", line 120, in trace_full_pipeline
+    frac_series = frac_diff.fit_transform(close_series, d=optimal_d)
+TypeError: FractionalDifferentiator.fit_transform() got an unexpected keyword argument 'd'. Did you mean 'df'?
+INFO:institutional.labeling.triple_barrier:TripleBarrierLabeler initialized: pt_sl=(1.0, 1.0), max_hold=10, vol_lookback=20
+Traceback (most recent call last):
+  File "/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI/tests/trace_signal_pipeline.py", line 162, in trace_full_pipeline
+    labels = labeler.get_labels(window)
+  File "/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI/src/institutional/labeling/triple_barrier.py", line 676, in get_labels
+    barrier_results = self.apply_barriers(close, events, side)
+  File "/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI/src/institutional/labeling/triple_barrier.py", line 567, in apply_barriers
+    events = close.index[valid_mask]
+             ~~~~~~~~~~~^^^^^^^^^^^^
+  File "/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI/.venv/lib/python3.14/site-packages/pandas/core/indexes/base.py", line 5425, in __getitem__
+    result = getitem(key)
+  File "/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI/.venv/lib/python3.14/site-packages/pandas/core/arrays/datetimelike.py", line 393, in __getitem__
+    result = cast(Union[Self, DTScalarOrNaT], super().__getitem__(key))
+                                              ~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI/.venv/lib/python3.14/site-packages/pandas/core/arrays/_mixins.py", line 304, in __getitem__
+    key = check_array_indexer(self, key)
+  File "/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI/.venv/lib/python3.14/site-packages/pandas/core/indexers/utils.py", line 556, in check_array_indexer
+    indexer = pd_array(indexer)
+  File "/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI/.venv/lib/python3.14/site-packages/pandas/core/construction.py", line 306, in array
+    raise TypeError("Cannot pass DataFrame to 'pandas.array'")
+TypeError: Cannot pass DataFrame to 'pandas.array'
+Traceback (most recent call last):
+  File "/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI/tests/trace_signal_pipeline.py", line 222, in trace_full_pipeline
+    signal = gen.generate_signal('NVDA', window, regime='BULL')
+  File "/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI/src/institutional/signals/enhanced_signals.py", line 246, in generate_signal
+    raise ValueError(f"Insufficient data: {len(prices)} rows (need {self.long_period + 10})")
+ValueError: Insufficient data: 60 rows (need 70)
+
+================================================================================
+INSTITUTIONAL COMPONENTS INVENTORY
+================================================================================
+   ✅ HMMRegimeDetector: Available
+      Methods: fit, get_diagnostics, get_expected_regime_duration, get_regime_statistics, get_trading_filter...
+   ✅ FractionalDifferentiator: Available
+      Methods: fit, fit_transform, get_diagnostics, transform...
+   ✅ TripleBarrierLabeler: Available
+      Methods: apply_barriers, get_diagnostics, get_labels, get_sample_weights, get_volatility...
+   ✅ EnhancedSignalGenerator: Available
+      Methods: generate_signal, generate_signals_batch...
+   ✅ MetaLabeler: Available
+      Methods: backtest_filter, compute_position_size, create_meta_labels, decide, engineer_features...
+   ✅ ProperPBO: Available
+      Methods: calculate...
+================================================================================
+KYPERIAN SIGNAL PIPELINE DEEP TRACE
+================================================================================
+Timestamp: 2026-02-01 14:21:46.726662
+================================================================================
+
+📊 DATA LOADED:
+   Symbol: NVDA
+   Rows: 772
+   Date range: 2023-01-03 to 2026-01-30
+   Price range: $14.27 to $207.04
+   Total return: 1235.2%
+
+📊 ANALYSIS WINDOW:
+   Window: 2025-08-11 to 2025-11-03
+   Window return: 13.6%
+   Future return: -7.6%
+
+================================================================================
+COMPONENT 1: HMM REGIME DETECTION
+================================================================================
+
+   Detector methods: ['config', 'fit', 'get_diagnostics', 'get_expected_regime_duration', 'get_regime_statistics', 'get_trading_filter', 'get_transition_probabilities', 'is_fitted', 'model', 'predict', 'predict_proba', 'regime_names', 'regime_order', 'regime_stats', 'transition_matrix']
+   ❌ REGIME DETECTION FAILED: 'HMMRegimeDetector' object has no attribute 'detect_regime'
+
+================================================================================
+COMPONENT 2: FRACTIONAL DIFFERENTIATION
+================================================================================
+
+   FracDiff methods: ['d_range', 'fit', 'fit_transform', 'get_diagnostics', 'is_fitted', 'optimal_d', 'pvalue_threshold', 'search_method', 'stationarity_results', 'threshold', 'transform', 'verbose']
+   Using default d: 0.4
+   ❌ FRACTIONAL DIFF FAILED: FractionalDifferentiator.fit_transform() got an unexpected keyword argument 'd'. Did you mean 'df'?
+
+================================================================================
+COMPONENT 3: TRIPLE BARRIER LABELING
+================================================================================
+
+   Labeler methods: ['apply_barriers', 'config', 'get_diagnostics', 'get_labels', 'get_sample_weights', 'get_volatility', 'plot_barriers']
+   ❌ TRIPLE BARRIER FAILED: Cannot pass DataFrame to 'pandas.array'
+
+================================================================================
+COMPONENT 4: ENHANCED SIGNAL GENERATOR
+================================================================================
+
+   Generator methods: ['cross_asset_weight', 'generate_signal', 'generate_signals_batch', 'long_period', 'max_position', 'medium_period', 'sentiment_weight', 'short_period', 'stop_loss_atr_mult', 'take_profit_atr_mult']
+
+   Generator attributes:
+      cross_asset_weight: 0.1
+      long_period: 60
+      max_position: 0.1
+      medium_period: 20
+      sentiment_weight: 0.2
+      short_period: 5
+      stop_loss_atr_mult: 2.0
+      take_profit_atr_mult: 3.0
+   ❌ SIGNAL GENERATOR FAILED: Insufficient data: 60 rows (need 70)
+
+================================================================================
+COMPONENT 5: SIGNAL GENERATOR INTERNALS
+================================================================================
+
+   Checking internal signal components...
+
+   Signal pattern over last 20 windows:
+   Error at window 0: Insufficient data: 60 rows (need 70)
+   Error at window 1: Insufficient data: 60 rows (need 70)
+   Error at window 2: Insufficient data: 60 rows (need 70)
+   Error at window 3: Insufficient data: 60 rows (need 70)
+   Error at window 4: Insufficient data: 60 rows (need 70)
+   Error at window 5: Insufficient data: 60 rows (need 70)
+   Error at window 6: Insufficient data: 60 rows (need 70)
+   Error at window 7: Insufficient data: 60 rows (need 70)
+   Error at window 8: Insufficient data: 60 rows (need 70)
+   Error at window 9: Insufficient data: 60 rows (need 70)
+   Error at window 10: Insufficient data: 60 rows (need 70)
+   Error at window 11: Insufficient data: 60 rows (need 70)
+   Error at window 12: Insufficient data: 60 rows (need 70)
+   Error at window 13: Insufficient data: 60 rows (need 70)
+   Error at window 14: Insufficient data: 60 rows (need 70)
+   Error at window 15: Insufficient data: 60 rows (need 70)
+   Error at window 16: Insufficient data: 60 rows (need 70)
+   Error at window 17: Insufficient data: 60 rows (need 70)
+   Error at window 18: Insufficient data: 60 rows (need 70)
+   Error at window 19: Insufficient data: 60 rows (need 70)
+
+================================================================================
+ROOT CAUSE ANALYSIS
+================================================================================
+
+   Found 0 issues:
+
+
+================================================================================
+RECOMMENDED FIXES
+================================================================================
+
+    Based on the analysis, here are the specific fixes needed:
+
+    1. REGIME DETECTION
+       - The HMM may be miscalibrated
+       - Check if regime 0/1 mapping to BULL/BEAR is correct
+       - Verify training data includes bull market periods
+
+    2. SIGNAL WEIGHTS
+       - In BULL regime, trend-following weight should be HIGH (>60%)
+       - Mean reversion should be LOW (<20%) in trending markets
+       - Add a "regime bias" that pushes towards long in bull markets
+
+    3. SIGNAL COMBINATION
+       - Check if signals are being inverted somewhere
+       - Verify the final direction calculation
+       - Ensure confidence doesn't suppress correct signals
+
+    4. TRIPLE BARRIER PARAMETERS
+       - If profit targets are too tight, labels will be mostly negative
+       - Adjust barriers based on actual volatility
+       - Check if vertical barrier (time) is too short
+
+    5. MODEL TRAINING
+       - Verify models were trained on data that includes bull markets
+       - Check if there's look-ahead bias in features
+       - Ensure out-of-sample validation was done correctly
+    
+
+================================================================================
+INSPECTING SIGNAL GENERATOR CODE
+================================================================================
+
+   File length: 27248 characters, 825 lines
+
+   Found 9 lines with 'direction':
+      Line 197: if signal.direction != 0:
+      Line 314: direction, strength = self._classify_signal(raw_signal)
+      Line 332: direction=direction,
+      Line 390: key=lambda s: s.confidence * abs(s.direction),
+      Line 773: dir_str = {1: "🟢 LONG", -1: "🔴 SHORT", 0: "⚪ HOLD"}[signal.direction]
+      Line 784: if signals and signals[0].direction != 0:
+      Line 809: n_long = sum(1 for s in signals if s.direction > 0)
+      Line 810: n_short = sum(1 for s in signals if s.direction < 0)
+      Line 811: n_hold = sum(1 for s in signals if s.direction == 0)
+
+   ✅ Regime handling found in code
+
+   'bear' mentions: 8
+   'bull' mentions: 9
+
+   ⚠️  Found mean reversion logic - this can fight trends
+
+   Found 16 weight configurations:
+      Line 144: momentum_weight=0.6,
+      Line 145: mean_reversion_weight=0.2,
+      Line 146: sentiment_weight=0.2,
+      Line 151: momentum_weight=0.3,
+      Line 152: mean_reversion_weight=0.4,
+      Line 153: sentiment_weight=0.3,
+      Line 158: momentum_weight=0.2,
+      Line 159: mean_reversion_weight=0.6,
+      Line 160: sentiment_weight=0.2,
+      Line 165: momentum_weight=0.4,
+
+================================================================================
+NEXT STEPS
+================================================================================
+
+    Based on the diagnostic results above:
+    
+    1. Identify the EXACT component that's broken
+    2. Fix that specific component
+    3. Re-test to verify the fix
+    
+    DO NOT create new components - FIX the existing ones.
+    

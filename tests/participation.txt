@@ -1,0 +1,24 @@
+AAPL:
+  Days in market: 702/702 (100.0%)
+  BUY days: 702
+  SELL days: 0
+  NEUTRAL days: 0
+
+MSFT:
+  Days in market: 702/702 (100.0%)
+  BUY days: 701
+  SELL days: 1
+  NEUTRAL days: 0
+
+NVDA:
+  Days in market: 702/702 (100.0%)
+  BUY days: 702
+  SELL days: 0
+  NEUTRAL days: 0
+
+SPY:
+  Days in market: 702/702 (100.0%)
+  BUY days: 702
+  SELL days: 0
+  NEUTRAL days: 0
+

@@ -1,0 +1,187 @@
+======================================================================
+KYPERIAN vs BUY-AND-HOLD: REAL DATA, REAL STRATEGY
+======================================================================
+Date: 2026-02-01 14:48:02
+Using: EnhancedSignalGenerator from src/institutional/signals/
+Data: Real market data from data/test/
+======================================================================
+
+============================================================
+TESTING: AAPL
+============================================================
+  Loaded AAPL: 772 rows, 2023-01-03 to 2026-01-30
+  Running ML strategy...
+  Generating signals for 702 days...
+
+  AAPL Buy-and-Hold:
+    Total Return:  +107.5%
+    Annual Return: +26.9%
+    Volatility:    25.5%
+    Sharpe Ratio:  1.06
+    Sortino Ratio: 1.51
+    Max Drawdown:  -33.4%
+    Win Rate:      54.6%
+    Trading Days:  771
+
+  AAPL KYPERIAN ML:
+    Total Return:  +4.3%
+    Annual Return: +1.4%
+    Volatility:    21.6%
+    Sharpe Ratio:  0.06
+    Sortino Ratio: 0.07
+    Max Drawdown:  -25.7%
+    Win Rate:      35.7%
+    Trading Days:  771
+
+  COMPARISON:
+    Alpha (excess return): -103.2%
+    Sharpe difference:     -0.99
+    ❌ KYPERIAN UNDERPERFORMS by 103.2%
+
+============================================================
+TESTING: MSFT
+============================================================
+  Loaded MSFT: 772 rows, 2023-01-03 to 2026-01-30
+  Running ML strategy...
+  Generating signals for 702 days...
+
+  MSFT Buy-and-Hold:
+    Total Return:  +79.6%
+    Annual Return: +21.1%
+    Volatility:    23.9%
+    Sharpe Ratio:  0.88
+    Sortino Ratio: 1.25
+    Max Drawdown:  -24.2%
+    Win Rate:      54.0%
+    Trading Days:  771
+
+  MSFT KYPERIAN ML:
+    Total Return:  +38.4%
+    Annual Return: +11.2%
+    Volatility:    18.9%
+    Sharpe Ratio:  0.59
+    Sortino Ratio: 0.62
+    Max Drawdown:  -15.8%
+    Win Rate:      34.6%
+    Trading Days:  771
+
+  COMPARISON:
+    Alpha (excess return): -41.2%
+    Sharpe difference:     -0.29
+    ❌ KYPERIAN UNDERPERFORMS by 41.2%
+
+============================================================
+TESTING: NVDA
+============================================================
+  Loaded NVDA: 772 rows, 2023-01-03 to 2026-01-30
+  Running ML strategy...
+  Generating signals for 702 days...
+
+  NVDA Buy-and-Hold:
+    Total Return:  +1235.2%
+    Annual Return: +133.3%
+    Volatility:    49.7%
+    Sharpe Ratio:  2.68
+    Sortino Ratio: 4.26
+    Max Drawdown:  -36.9%
+    Win Rate:      55.4%
+    Trading Days:  771
+
+  NVDA KYPERIAN ML:
+    Total Return:  +29.4%
+    Annual Return: +8.8%
+    Volatility:    40.4%
+    Sharpe Ratio:  0.22
+    Sortino Ratio: 0.25
+    Max Drawdown:  -67.7%
+    Win Rate:      33.5%
+    Trading Days:  771
+
+  COMPARISON:
+    Alpha (excess return): -1205.8%
+    Sharpe difference:     -2.46
+    ❌ KYPERIAN UNDERPERFORMS by 1205.8%
+
+======================================================================
+PORTFOLIO TEST: KYPERIAN vs SPY
+======================================================================
+  Loaded SPY: 772 rows, 2023-01-03 to 2026-01-30
+  Loaded AAPL: 772 rows, 2023-01-03 to 2026-01-30
+  Generating signals for 702 days...
+  ✓ AAPL: 771 days
+  Loaded MSFT: 772 rows, 2023-01-03 to 2026-01-30
+  Generating signals for 702 days...
+  ✓ MSFT: 771 days
+  Loaded NVDA: 772 rows, 2023-01-03 to 2026-01-30
+  Generating signals for 702 days...
+  ✓ NVDA: 771 days
+  Loaded GOOGL: 772 rows, 2023-01-03 to 2026-01-30
+  Generating signals for 702 days...
+  ✓ GOOGL: 771 days
+  Loaded META: 772 rows, 2023-01-03 to 2026-01-30
+  Generating signals for 702 days...
+  ✓ META: 771 days
+  Loaded TSLA: 772 rows, 2023-01-03 to 2026-01-30
+  Generating signals for 702 days...
+  ✓ TSLA: 771 days
+  Loaded AMZN: 772 rows, 2023-01-03 to 2026-01-30
+  Generating signals for 702 days...
+  ✓ AMZN: 771 days
+
+  SPY Buy-and-Hold:
+    Total Return:  +81.7%
+    Annual Return: +21.6%
+    Volatility:    15.3%
+    Sharpe Ratio:  1.41
+    Sortino Ratio: 1.89
+    Max Drawdown:  -19.0%
+    Win Rate:      57.2%
+    Trading Days:  771
+
+  KYPERIAN Portfolio:
+    Total Return:  +13.6%
+    Annual Return: +4.3%
+    Volatility:    18.2%
+    Sharpe Ratio:  0.23
+    Sortino Ratio: 0.25
+    Max Drawdown:  -28.5%
+    Win Rate:      47.7%
+    Trading Days:  771
+
+  PORTFOLIO vs SPY:
+    Alpha:       -68.1%
+    Sharpe diff: -1.18
+
+    ❌ KYPERIAN PORTFOLIO LOSES TO SPY by 68.1%
+
+======================================================================
+FINAL SUMMARY
+======================================================================
+
+Individual Symbols (3/3 tested):
+  Outperformed: 0/3
+
+Symbol   |      Alpha |   Sharpe Δ | Status
+--------------------------------------------------
+AAPL     |   -103.2% |      -0.99 | ❌ UNDERPERFORM
+MSFT     |    -41.2% |      -0.29 | ❌ UNDERPERFORM
+NVDA     |  -1205.8% |      -2.46 | ❌ UNDERPERFORM
+
+Portfolio vs SPY:
+  KYPERIAN Return: +13.6%
+  SPY Return:      +81.7%
+  Alpha:           -68.1%
+  Sharpe diff:     -1.18
+
+======================================================================
+FINAL VERDICT
+======================================================================
+
+Portfolio Alpha: -68.1%
+Portfolio Sharpe: 0.23
+Sharpe vs SPY: -1.18
+
+❌ VERDICT: KYPERIAN DOES NOT BEAT BUY-AND-HOLD
+   Strategy underperformed passive investing
+
+======================================================================
