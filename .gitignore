@@ -189,3 +189,5 @@ test_filings_db/
 .vscode/
 *.swp
 
+.env
+infrastructure/aws/.env

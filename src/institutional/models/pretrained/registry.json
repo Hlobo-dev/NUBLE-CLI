@@ -8,14 +8,7 @@
       "timeframe": "1d",
       "trained_at": "2026-01-30T16:41:47.345900",
       "training_samples": 717,
-      "features": [
-        "returns_1d",
-        "returns_5d",
-        "rsi_14",
-        "macd",
-        "bb_position",
-        "volume_ratio"
-      ],
+      "features": ["returns_1d", "returns_5d", "rsi_14", "macd", "bb_position", "volume_ratio"],
       "validation_sharpe": 1.1361391610474483,
       "validation_return": 0.49072465115976427,
       "directional_accuracy": 0.5062761506276151,
@@ -23,13 +16,11 @@
       "wf_sharpe": 0.94,
       "wf_return": 0.38,
       "wf_periods": 12,
-      "hidden_dims": [
-        64
-      ],
+      "hidden_dims": [64],
       "learning_rate": 0.001,
       "epochs_trained": 204,
       "grade": "B",
-      "confidence": 0.8
+      "confidence": 0.80
     },
     "TSLA": {
       "symbol": "TSLA",
@@ -37,14 +28,7 @@
       "timeframe": "1d",
       "trained_at": "2026-01-30T16:42:23.982463",
       "training_samples": 717,
-      "features": [
-        "returns_1d",
-        "returns_5d",
-        "rsi_14",
-        "macd",
-        "bb_position",
-        "volume_ratio"
-      ],
+      "features": ["returns_1d", "returns_5d", "rsi_14", "macd", "bb_position", "volume_ratio"],
       "validation_sharpe": 0.3697599915336454,
       "validation_return": 0.03632259232106039,
       "directional_accuracy": 0.5188284518828452,
@@ -52,13 +36,11 @@
       "wf_sharpe": 0.91,
       "wf_return": 0.35,
       "wf_periods": 12,
-      "hidden_dims": [
-        64
-      ],
+      "hidden_dims": [64],
       "learning_rate": 0.001,
       "epochs_trained": 174,
       "grade": "B",
-      "confidence": 0.8
+      "confidence": 0.80
     }
   }
 }

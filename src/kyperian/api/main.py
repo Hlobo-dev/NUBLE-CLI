@@ -31,6 +31,8 @@ except ImportError:
 
 from ..agents import OrchestratorAgent, OrchestratorConfig
 from ..memory import MemoryManager, UserProfile
+from .luxalgo_api import add_luxalgo_routes
+from .mtf_api import add_mtf_routes
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -409,6 +411,12 @@ def create_app(
         
         return {'status': 'success'}
     
+    # Add LuxAlgo signal routes
+    add_luxalgo_routes(app)
+    
+    # Add Multi-Timeframe routes
+    add_mtf_routes(app)
+    
     return app
 
 
@@ -416,6 +424,29 @@ def create_app(
 app = None
 if HAS_FASTAPI:
     app = create_app()
+
+
+# ============ LuxAlgo Integration ============
+
+def add_luxalgo_routes(app: 'FastAPI'):
+    """Add LuxAlgo webhook and signal routes to the app."""
+    try:
+        from .luxalgo_api import create_luxalgo_router, create_fusion_router
+        
+        # Add LuxAlgo webhook routes
+        luxalgo_router = create_luxalgo_router()
+        app.include_router(luxalgo_router)
+        
+        # Add signal fusion routes
+        fusion_router = create_fusion_router()
+        app.include_router(fusion_router)
+        
+        logger.info("LuxAlgo webhook and fusion routes enabled")
+        
+    except ImportError as e:
+        logger.warning(f"Could not add LuxAlgo routes: {e}")
+    except Exception as e:
+        logger.warning(f"Failed to add LuxAlgo routes: {e}")
 
 
 # ============ CLI Runner ============

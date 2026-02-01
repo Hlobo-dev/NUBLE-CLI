@@ -1,0 +1,445 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'KYPERIAN ELITE - CloudWatch Dashboards and Comprehensive Monitoring'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+  
+  ECSStackName:
+    Type: String
+    Description: Name of the ECS CloudFormation stack
+  
+  LambdaStackName:
+    Type: String
+    Description: Name of the Lambda CloudFormation stack
+  
+  CacheStackName:
+    Type: String
+    Description: Name of the ElastiCache CloudFormation stack
+  
+  AlertEmail:
+    Type: String
+    Description: Email address for alerts
+    Default: ''
+
+Conditions:
+  HasAlertEmail: !Not [!Equals [!Ref AlertEmail, '']]
+
+Resources:
+  # ============ SNS Topic for Alerts ============
+  AlertTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub kyperian-${Environment}-alerts
+      DisplayName: KYPERIAN Elite Alerts
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  AlertEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Condition: HasAlertEmail
+    Properties:
+      TopicArn: !Ref AlertTopic
+      Protocol: email
+      Endpoint: !Ref AlertEmail
+
+  # ============ Main Dashboard ============
+  MainDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: !Sub KYPERIAN-${Environment}-Main
+      DashboardBody: !Sub |
+        {
+          "widgets": [
+            {
+              "type": "text",
+              "x": 0,
+              "y": 0,
+              "width": 24,
+              "height": 1,
+              "properties": {
+                "markdown": "# 🚀 KYPERIAN ELITE - Real-Time Trading System Dashboard"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 1,
+              "width": 8,
+              "height": 6,
+              "properties": {
+                "title": "📊 Signals Processed",
+                "metrics": [
+                  ["kyperian-signal-validator", "SignalsProcessed", {"stat": "Sum", "period": 300}]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 8,
+              "y": 1,
+              "width": 8,
+              "height": 6,
+              "properties": {
+                "title": "⚡ Lambda Latency (ms)",
+                "metrics": [
+                  ["AWS/Lambda", "Duration", "FunctionName", "kyperian-${Environment}-signal-validator", {"stat": "Average"}],
+                  ["...", {"stat": "p99"}],
+                  ["...", {"stat": "Maximum"}]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "annotations": {
+                  "horizontal": [
+                    {"value": 10, "label": "Target <10ms", "color": "#2ca02c"},
+                    {"value": 50, "label": "Warning", "color": "#ff7f0e"},
+                    {"value": 100, "label": "Critical", "color": "#d62728"}
+                  ]
+                }
+              }
+            },
+            {
+              "type": "metric",
+              "x": 16,
+              "y": 1,
+              "width": 8,
+              "height": 6,
+              "properties": {
+                "title": "❌ Errors",
+                "metrics": [
+                  ["kyperian-signal-validator", "ValidationErrors", {"stat": "Sum", "period": 300}],
+                  [".", "UnexpectedErrors", {"stat": "Sum", "period": 300}],
+                  ["AWS/Lambda", "Errors", "FunctionName", "kyperian-${Environment}-signal-validator", {"stat": "Sum"}]
+                ],
+                "view": "timeSeries",
+                "stacked": true,
+                "region": "${AWS::Region}"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 7,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "🖥️ ECS Service Health",
+                "metrics": [
+                  ["AWS/ECS", "CPUUtilization", "ServiceName", "kyperian-${Environment}-service", "ClusterName", "kyperian-${Environment}"],
+                  [".", "MemoryUtilization", ".", ".", ".", "."]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "annotations": {
+                  "horizontal": [
+                    {"value": 70, "label": "Scale Up Threshold", "color": "#ff7f0e"}
+                  ]
+                }
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 7,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "🔄 ECS Running Tasks",
+                "metrics": [
+                  ["AWS/ECS", "RunningTaskCount", "ServiceName", "kyperian-${Environment}-service", "ClusterName", "kyperian-${Environment}"],
+                  [".", "DesiredTaskCount", ".", ".", ".", "."]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 13,
+              "width": 8,
+              "height": 6,
+              "properties": {
+                "title": "🗄️ Redis Cache Performance",
+                "metrics": [
+                  ["AWS/ElastiCache", "CacheHitRate", "CacheClusterId", "kyperian-${Environment}-redis-001"],
+                  [".", "CacheMisses", ".", "."]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 8,
+              "y": 13,
+              "width": 8,
+              "height": 6,
+              "properties": {
+                "title": "💾 Redis Memory",
+                "metrics": [
+                  ["AWS/ElastiCache", "DatabaseMemoryUsagePercentage", "CacheClusterId", "kyperian-${Environment}-redis-001"],
+                  [".", "BytesUsedForCache", ".", "."]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 16,
+              "y": 13,
+              "width": 8,
+              "height": 6,
+              "properties": {
+                "title": "🌐 API Gateway",
+                "metrics": [
+                  ["AWS/ApiGateway", "Count", "ApiId", "kyperian-${Environment}-api", {"stat": "Sum"}],
+                  [".", "4XXError", ".", ".", {"stat": "Sum"}],
+                  [".", "5XXError", ".", ".", {"stat": "Sum"}]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 19,
+              "width": 24,
+              "height": 6,
+              "properties": {
+                "title": "📈 End-to-End Latency (Signal → Decision)",
+                "metrics": [
+                  ["kyperian-signal-validator", "TotalProcessingTime", {"stat": "Average"}],
+                  ["...", {"stat": "p99"}],
+                  ["AWS/ApplicationELB", "TargetResponseTime", "LoadBalancer", "app/kyperian-${Environment}-alb", {"stat": "Average"}]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}",
+                "annotations": {
+                  "horizontal": [
+                    {"value": 100, "label": "Target <100ms", "color": "#2ca02c"}
+                  ]
+                }
+              }
+            }
+          ]
+        }
+
+  # ============ Trading Dashboard ============
+  TradingDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: !Sub KYPERIAN-${Environment}-Trading
+      DashboardBody: !Sub |
+        {
+          "widgets": [
+            {
+              "type": "text",
+              "x": 0,
+              "y": 0,
+              "width": 24,
+              "height": 1,
+              "properties": {
+                "markdown": "# 📈 KYPERIAN ELITE - Trading Metrics Dashboard"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 1,
+              "width": 8,
+              "height": 6,
+              "properties": {
+                "title": "🎯 Signals by Action",
+                "metrics": [
+                  ["kyperian", "SignalAction", "Action", "BUY", {"stat": "Sum"}],
+                  ["...", "SELL", {"stat": "Sum"}],
+                  ["...", "STRONG_BUY", {"stat": "Sum"}],
+                  ["...", "STRONG_SELL", {"stat": "Sum"}],
+                  ["...", "NEUTRAL", {"stat": "Sum"}]
+                ],
+                "view": "pie",
+                "region": "${AWS::Region}"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 8,
+              "y": 1,
+              "width": 8,
+              "height": 6,
+              "properties": {
+                "title": "⏰ Signals by Timeframe",
+                "metrics": [
+                  ["kyperian", "SignalTimeframe", "Timeframe", "1W", {"stat": "Sum"}],
+                  ["...", "1D", {"stat": "Sum"}],
+                  ["...", "4h", {"stat": "Sum"}],
+                  ["...", "1h", {"stat": "Sum"}]
+                ],
+                "view": "bar",
+                "region": "${AWS::Region}"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 16,
+              "y": 1,
+              "width": 8,
+              "height": 6,
+              "properties": {
+                "title": "🚫 Veto Rate",
+                "metrics": [
+                  ["kyperian", "DecisionVetoed", {"stat": "Sum"}],
+                  [".", "DecisionApproved", {"stat": "Sum"}]
+                ],
+                "view": "pie",
+                "region": "${AWS::Region}"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 7,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "📊 Signal Confidence Distribution",
+                "metrics": [
+                  ["kyperian", "SignalConfidence", {"stat": "Average"}],
+                  ["...", {"stat": "p90"}],
+                  ["...", {"stat": "p10"}]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 7,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "💰 Position Size Recommendations",
+                "metrics": [
+                  ["kyperian", "PositionSize", {"stat": "Average"}],
+                  ["...", {"stat": "Maximum"}]
+                ],
+                "view": "timeSeries",
+                "stacked": false,
+                "region": "${AWS::Region}"
+              }
+            }
+          ]
+        }
+
+  # ============ Critical Alarms ============
+  HighLatencyAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub kyperian-${Environment}-high-latency
+      AlarmDescription: Lambda processing time exceeds 100ms
+      MetricName: Duration
+      Namespace: AWS/Lambda
+      Dimensions:
+        - Name: FunctionName
+          Value: !Sub kyperian-${Environment}-signal-validator
+      Statistic: p99
+      Period: 60
+      EvaluationPeriods: 3
+      Threshold: 100
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+        - !Ref AlertTopic
+      OKActions:
+        - !Ref AlertTopic
+      TreatMissingData: notBreaching
+
+  HighErrorRateAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub kyperian-${Environment}-high-error-rate
+      AlarmDescription: Error rate exceeds 5%
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Dimensions:
+        - Name: FunctionName
+          Value: !Sub kyperian-${Environment}-signal-validator
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 10
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+        - !Ref AlertTopic
+      TreatMissingData: notBreaching
+
+  ECSUnhealthyAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub kyperian-${Environment}-ecs-unhealthy
+      AlarmDescription: ECS tasks are unhealthy
+      MetricName: RunningTaskCount
+      Namespace: AWS/ECS
+      Dimensions:
+        - Name: ServiceName
+          Value: !Sub kyperian-${Environment}-service
+        - Name: ClusterName
+          Value: !Sub kyperian-${Environment}
+      Statistic: Average
+      Period: 60
+      EvaluationPeriods: 2
+      Threshold: 1
+      ComparisonOperator: LessThanThreshold
+      AlarmActions:
+        - !Ref AlertTopic
+      TreatMissingData: breaching
+
+  RedisHighMemoryAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub kyperian-${Environment}-redis-high-memory
+      AlarmDescription: Redis memory usage exceeds 90%
+      MetricName: DatabaseMemoryUsagePercentage
+      Namespace: AWS/ElastiCache
+      Dimensions:
+        - Name: CacheClusterId
+          Value: !Sub kyperian-${Environment}-redis-001
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 90
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+        - !Ref AlertTopic
+      TreatMissingData: notBreaching
+
+Outputs:
+  AlertTopicArn:
+    Description: SNS Topic for alerts
+    Value: !Ref AlertTopic
+    Export:
+      Name: !Sub ${AWS::StackName}-AlertTopicArn
+
+  MainDashboardURL:
+    Description: Main Dashboard URL
+    Value: !Sub https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=KYPERIAN-${Environment}-Main
+
+  TradingDashboardURL:
+    Description: Trading Dashboard URL
+    Value: !Sub https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=KYPERIAN-${Environment}-Trading
