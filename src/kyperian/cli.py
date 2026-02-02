@@ -12,6 +12,14 @@ try:
 except ImportError:
     SERVICES_AVAILABLE = False
 
+# Check if Lambda client is available
+try:
+    from kyperian.lambda_client import get_lambda_client, KYPERIAN_API_BASE
+    LAMBDA_AVAILABLE = True
+except ImportError:
+    LAMBDA_AVAILABLE = False
+    KYPERIAN_API_BASE = None
+
 def display_application_banner():
     banner_text = """
 ██╗  ██╗██╗   ██╗██████╗ ███████╗██████╗ ██╗ █████╗ ███╗   ██╗
@@ -74,12 +82,24 @@ def show_system_status():
         console.print(table)
         console.print()
         
+        # Show Lambda status
+        if LAMBDA_AVAILABLE:
+            try:
+                client = get_lambda_client()
+                console.print("[bold bright_cyan]🌐 Lambda Decision Engine:[/bold bright_cyan]")
+                console.print(f"  [green]Connected[/green] → {KYPERIAN_API_BASE}")
+                console.print("  [dim]Real-time: StockNews (24), CryptoNews (17), Polygon[/dim]")
+                console.print()
+            except:
+                console.print("[yellow]Lambda: Not connected[/yellow]\n")
+        
         # Show capabilities
         console.print("[bold bright_cyan]Available Commands:[/bold bright_cyan]")
         console.print("  [white]AAPL[/white]          - Quick quote")
         console.print("  [white]predict TSLA[/white]  - ML prediction")
         console.print("  [white]RSI for AMD[/white]   - Technical analysis")
         console.print("  [white]NVDA 10-K[/white]     - SEC filings")
+        console.print("  [white]/lambda BTC[/white]   - Direct Lambda API test")
         console.print("  [white]/status[/white]       - System status")
         console.print("  [white]/help[/white]         - Help")
         console.print()
@@ -104,9 +124,13 @@ def handle_quick_command(cmd: str, manager: Manager) -> bool:
         sys.exit(0)
     
     if cmd_lower == '/version':
-        console.print("[bright_cyan]KYPERIAN[/bright_cyan] v2.0.0 - Unified Edition")
+        console.print("[bright_cyan]KYPERIAN[/bright_cyan] v6.0.0 - APEX PREDATOR Edition")
         console.print("[dim]ML Models: MLP, LSTM, Transformer, N-BEATS, Ensemble[/dim]")
-        console.print("[dim]Data Sources: Polygon.io, SEC EDGAR[/dim]")
+        console.print("[dim]Data Sources: Polygon.io, SEC EDGAR, StockNews API (24 endpoints), CryptoNews API (17 endpoints)[/dim]")
+        if LAMBDA_AVAILABLE:
+            console.print(f"[dim]Lambda API: [green]Connected[/green] → {KYPERIAN_API_BASE}[/dim]")
+        else:
+            console.print("[dim]Lambda API: [yellow]Not connected[/yellow][/dim]")
         return True
     
     if cmd_lower == '/clear':
@@ -114,18 +138,74 @@ def handle_quick_command(cmd: str, manager: Manager) -> bool:
         display_application_banner()
         return True
     
+    # Lambda status/test command
+    if cmd_lower.startswith('/lambda'):
+        if not LAMBDA_AVAILABLE:
+            console.print("[red]Lambda client not available[/red]")
+            return True
+        
+        parts = cmd_lower.split()
+        if len(parts) > 1:
+            symbol = parts[1].upper()
+            console.print(f"[dim]Fetching real-time data for {symbol} from Lambda...[/dim]")
+            try:
+                client = get_lambda_client()
+                analysis = client.get_analysis(symbol)
+                
+                console.print(f"\n[bold bright_cyan]KYPERIAN Decision Engine: {symbol}[/bold bright_cyan]")
+                console.print(f"[bold]Action: {analysis.action}[/bold] | Score: {analysis.score}/100 | Confidence: {analysis.confidence}")
+                
+                if analysis.current_price > 0:
+                    change_color = "green" if analysis.change_percent >= 0 else "red"
+                    console.print(f"Price: ${analysis.current_price:.2f} [{change_color}]{analysis.change_percent:+.2f}%[/{change_color}]")
+                
+                if analysis.rsi > 0:
+                    console.print(f"RSI: {analysis.rsi:.1f} | MACD: {analysis.macd:.4f} | VIX: {analysis.vix:.1f}")
+                
+                if analysis.stocknews_summary:
+                    console.print(f"\n[bold]StockNews:[/bold] {analysis.stocknews_summary[:200]}...")
+                
+                if analysis.cryptonews_summary:
+                    console.print(f"\n[bold]CryptoNews:[/bold] {analysis.cryptonews_summary[:200]}...")
+                
+                console.print()
+            except Exception as e:
+                console.print(f"[red]Lambda error: {e}[/red]")
+        else:
+            # Just show Lambda status
+            try:
+                client = get_lambda_client()
+                health = client.health_check()
+                console.print(f"[green]Lambda API: Connected[/green]")
+                console.print(f"[dim]Endpoint: {KYPERIAN_API_BASE}[/dim]")
+                console.print(f"[dim]Status: {health.get('status', 'unknown')}[/dim]")
+            except Exception as e:
+                console.print(f"[red]Lambda API error: {e}[/red]")
+        return True
+
     return False  # Not a quick command
 
 def interactive_shell():
     display_application_banner()
     
+    # Show Lambda connection status
+    if LAMBDA_AVAILABLE:
+        try:
+            client = get_lambda_client()
+            console.print("\n[green]✓ Lambda Decision Engine Connected[/green]")
+            console.print("[dim]  Real-time data: StockNews, CryptoNews, Polygon.io[/dim]")
+        except:
+            console.print("\n[yellow]⚠ Lambda Decision Engine not responding[/yellow]")
+    
     # Tips section for user guidance
     console.print("\n[dim white]Tips for getting started:[/dim white]")
     console.print("[white]1. Quick: [/white][bright_cyan]AAPL[/bright_cyan][white] → instant quote[/white]")
-    console.print("[white]2. ML: [/white][bright_cyan]predict TSLA[/bright_cyan][white] → AI prediction[/white]")
-    console.print("[white]3. Technical: [/white][bright_cyan]RSI for AMD[/bright_cyan][white] → indicators[/white]")
-    console.print("[white]4. Research: [/white][bright_cyan]Should I buy NVDA?[/bright_cyan][white] → deep analysis[/white]")
-    console.print("[white]5. Commands: [/white][bright_cyan]/status[/bright_cyan][white], [/white][bright_cyan]/help[/bright_cyan][white], [/white][bright_cyan]/clear[/bright_cyan]\n")
+    console.print("[white]2. Crypto: [/white][bright_cyan]Why is BTC down?[/bright_cyan][white] → real-time crypto analysis[/white]")
+    console.print("[white]3. ML: [/white][bright_cyan]predict TSLA[/bright_cyan][white] → AI prediction[/white]")
+    console.print("[white]4. Technical: [/white][bright_cyan]RSI for AMD[/bright_cyan][white] → indicators[/white]")
+    console.print("[white]5. Research: [/white][bright_cyan]Should I buy NVDA?[/bright_cyan][white] → deep analysis[/white]")
+    console.print("[white]6. Lambda: [/white][bright_cyan]/lambda BTC[/bright_cyan][white] → direct API test[/white]")
+    console.print("[white]7. Commands: [/white][bright_cyan]/status[/bright_cyan][white], [/white][bright_cyan]/version[/bright_cyan][white], [/white][bright_cyan]/clear[/bright_cyan]\n")
     
     # Use free agent by default
     selected_agent = Manager()

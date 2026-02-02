@@ -9,10 +9,11 @@ This is the core of the multi-agent system.
 
 Architecture:
 1. Intent Understanding - Parse user query
-2. Task Planning - Decompose into agent tasks  
-3. Parallel Execution - Run agents concurrently
-4. Result Synthesis - Combine outputs
-5. Response Generation - Create final response
+2. Lambda API Data Fetch - Get real-time market intelligence
+3. Task Planning - Decompose into agent tasks  
+4. Parallel Execution - Run agents concurrently
+5. Result Synthesis - Combine outputs
+6. Response Generation - Create final response
 """
 
 import asyncio
@@ -32,6 +33,24 @@ from .base import (
     TaskPriority,
     _get_anthropic
 )
+
+# Import Lambda client for real-time data
+try:
+    from ..lambda_client import (
+        get_lambda_client,
+        analyze_symbol,
+        format_analysis_for_context,
+        extract_symbols as extract_symbols_from_text,
+        is_crypto,
+        LambdaAnalysis
+    )
+    LAMBDA_AVAILABLE = True
+except ImportError:
+    LAMBDA_AVAILABLE = False
+    get_lambda_client = None
+    analyze_symbol = None
+    format_analysis_for_context = None
+    extract_symbols_from_text = None
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -120,6 +139,15 @@ class OrchestratorAgent:
         if anthropic and self.api_key:
             self.client = anthropic.Anthropic(api_key=self.api_key)
         
+        # Initialize Lambda client for real-time market intelligence
+        self._lambda_client = None
+        if LAMBDA_AVAILABLE:
+            try:
+                self._lambda_client = get_lambda_client()
+                logger.info("Lambda Decision Engine connected")
+            except Exception as e:
+                logger.warning(f"Lambda client init failed: {e}")
+        
         # Model selection
         self.orchestrator_model = CLAUDE_OPUS_MODEL if self.config.use_opus else CLAUDE_SONNET_MODEL
         
@@ -134,6 +162,26 @@ class OrchestratorAgent:
         self._cache: Dict[str, Any] = {}
         
         logger.info(f"OrchestratorAgent initialized with model: {self.orchestrator_model}")
+    
+    def get_lambda_analysis(self, symbols: List[str]) -> str:
+        """
+        Fetch real-time analysis from Lambda for given symbols.
+        Returns formatted context for LLM prompts.
+        """
+        if not self._lambda_client or not LAMBDA_AVAILABLE:
+            return ""
+        
+        analyses = []
+        for symbol in symbols[:3]:  # Limit to 3 symbols
+            try:
+                analysis = self._lambda_client.get_analysis(symbol)
+                if analysis.action != 'ERROR':
+                    analyses.append(format_analysis_for_context(analysis))
+                    logger.info(f"Lambda: {symbol} -> {analysis.action} (score: {analysis.score})")
+            except Exception as e:
+                logger.warning(f"Lambda analysis failed for {symbol}: {e}")
+        
+        return "\n\n---\n\n".join(analyses) if analyses else ""
     
     def _initialize_agents(self):
         """Initialize all specialized agents (lazy loading)."""
@@ -209,11 +257,12 @@ class OrchestratorAgent:
         This is the main entry point.
         
         Pipeline:
-        1. Intent Understanding (Claude Opus)
-        2. Task Planning (decompose into agent tasks)
-        3. Parallel Execution (run agents concurrently)
-        4. Result Synthesis (combine agent outputs)
-        5. Response Generation (Claude Opus)
+        1. Extract symbols & fetch Lambda data (real-time intelligence)
+        2. Intent Understanding (Claude Opus)
+        3. Task Planning (decompose into agent tasks)
+        4. Parallel Execution (run agents concurrently)
+        5. Result Synthesis (combine agent outputs)
+        6. Response Generation (Claude Opus)
         
         Args:
             user_message: The user's query
@@ -240,6 +289,16 @@ class OrchestratorAgent:
         
         logger.info(f"Processing: '{user_message[:50]}...' | Symbols: {symbols}")
         
+        # STEP 0: Fetch real-time data from Lambda Decision Engine
+        lambda_context = ""
+        if symbols and LAMBDA_AVAILABLE:
+            try:
+                lambda_context = self.get_lambda_analysis(symbols)
+                if lambda_context:
+                    logger.info(f"Lambda data fetched for {len(symbols)} symbol(s)")
+            except Exception as e:
+                logger.warning(f"Lambda fetch failed: {e}")
+        
         # STEP 1: Intent Understanding & Task Planning
         planning_result = await self._plan_execution(user_message, context)
         
@@ -253,6 +312,10 @@ class OrchestratorAgent:
             agent_results,
             context
         )
+        
+        # Add Lambda data to synthesis for response generation
+        if lambda_context:
+            synthesis['lambda_intelligence'] = lambda_context
         
         # STEP 4: Generate Final Response
         response = await self._generate_response(
@@ -689,9 +752,24 @@ Respond with ONLY the JSON plan, no other text.
         portfolio = context.user_profile.get('portfolio', {})
         agent_outputs = json.dumps(synthesis['agent_outputs'], indent=2, default=str)
         
+        # Get Lambda real-time intelligence if available
+        lambda_intel = synthesis.get('lambda_intelligence', '')
+        lambda_section = ""
+        if lambda_intel:
+            lambda_section = f"""
+
+REAL-TIME MARKET INTELLIGENCE (from KYPERIAN Decision Engine):
+{lambda_intel}
+
+This includes live data from:
+- StockNews API: sentiment, analyst ratings, earnings, SEC filings, events, price targets
+- CryptoNews API: sentiment, whale activity, institutional flows, regulatory, staking
+- Polygon.io: prices, volume, technicals (RSI, MACD, SMA, ATR, VIX)
+"""
+
         return f"""You are KYPERIAN, the world's most intelligent financial advisor.
 
-You have access to comprehensive analysis from multiple specialized agents.
+You have access to comprehensive analysis from multiple specialized agents AND real-time market intelligence.
 Your job is to synthesize this into an excellent, actionable response.
 
 USER QUESTION: "{user_message}"
@@ -699,7 +777,7 @@ USER QUESTION: "{user_message}"
 USER PROFILE:
 - Risk Tolerance: {risk_tolerance}
 - Portfolio: {json.dumps(portfolio, indent=2) if portfolio else 'Not provided'}
-
+{lambda_section}
 AGENT ANALYSIS:
 {agent_outputs}
 
@@ -710,11 +788,11 @@ OVERALL CONFIDENCE: {synthesis['overall_confidence']:.1%}
 Generate a response that:
 
 1. DIRECTLY answers the user's question first
-2. Provides specific, actionable insights
-3. Uses the data from the agents to support your points
-4. Acknowledges uncertainty where appropriate
+2. Uses the REAL-TIME data from the Lambda Decision Engine - you HAVE access to current market data
+3. Provides specific, actionable insights with actual numbers from the data
+4. Includes current prices, sentiment scores, analyst actions from the real-time feed
 5. Is personalized to the user's risk tolerance and portfolio (if known)
-6. Includes specific numbers, prices, percentages where relevant
+6. Includes specific numbers, prices, percentages from the data
 7. Suggests next steps or follow-up questions
 
 IMPORTANT GUIDELINES:
@@ -738,11 +816,18 @@ Format your response in Markdown for best readability.
         
         agent_outputs = synthesis.get('agent_outputs', {})
         symbols = synthesis.get('symbols', [])
+        lambda_intel = synthesis.get('lambda_intelligence', '')
         
         # Build response from agent data
         parts = []
         
         parts.append(f"## Analysis for: {', '.join(symbols) if symbols else 'Your Query'}\n")
+        
+        # Include Lambda intelligence first (most valuable)
+        if lambda_intel:
+            parts.append("\n### Real-Time Market Intelligence\n")
+            parts.append(lambda_intel)
+            parts.append("\n")
         
         for agent, data in agent_outputs.items():
             parts.append(f"\n### {agent.replace('_', ' ').title()}\n")
@@ -754,7 +839,7 @@ Format your response in Markdown for best readability.
                     elif isinstance(value, str):
                         parts.append(f"- **{key}**: {value}")
         
-        if not agent_outputs:
+        if not agent_outputs and not lambda_intel:
             parts.append("\nI wasn't able to gather specific data for your query.")
             parts.append("Please try rephrasing or specify a stock symbol.")
         
