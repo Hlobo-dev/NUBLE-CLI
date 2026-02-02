@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KYPERIAN ELITE - Signal Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 50%, #0f0f23 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(90deg, #00ff88 0%, #00d4ff 50%, #ff00ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            letter-spacing: 3px;
+        }
+        
+        .header .subtitle {
+            font-size: 0.9em;
+            color: #888;
+            -webkit-text-fill-color: #888;
+        }
+        
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .status-bar .status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-bar .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #00ff88;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        
+        .card {
+            background: rgba(30, 30, 50, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(0, 255, 136, 0.5);
+            box-shadow: 0 10px 40px rgba(0, 255, 136, 0.2);
+        }
+        
+        .card.aligned {
+            border-color: rgba(0, 255, 136, 0.5);
+            background: rgba(0, 255, 136, 0.05);
+        }
+        
+        .card.veto {
+            border-color: rgba(255, 100, 100, 0.5);
+            background: rgba(255, 100, 100, 0.05);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .symbol {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #fff;
+        }
+        
+        .direction {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        
+        .direction.BUY {
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            color: #000;
+        }
+        
+        .direction.SELL {
+            background: linear-gradient(135deg, #ff6b6b, #cc4444);
+            color: #fff;
+        }
+        
+        .direction.NEUTRAL {
+            background: rgba(150, 150, 150, 0.3);
+            color: #888;
+        }
+        
+        .confidence-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            margin: 15px 0;
+            overflow: hidden;
+        }
+        
+        .confidence-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        
+        .confidence-fill.high {
+            background: linear-gradient(90deg, #00ff88, #00cc6a);
+        }
+        
+        .confidence-fill.medium {
+            background: linear-gradient(90deg, #ffcc00, #ff9900);
+        }
+        
+        .confidence-fill.low {
+            background: linear-gradient(90deg, #ff9999, #ff6666);
+        }
+        
+        .signals-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .signal-box {
+            text-align: center;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+        }
+        
+        .signal-box .tf {
+            font-size: 0.8em;
+            color: #888;
+            margin-bottom: 5px;
+        }
+        
+        .signal-box .action {
+            font-weight: bold;
+        }
+        
+        .signal-box .action.BUY { color: #00ff88; }
+        .signal-box .action.SELL { color: #ff6b6b; }
+        .signal-box .action.none { color: #666; }
+        
+        .signal-box .age {
+            font-size: 0.7em;
+            color: #666;
+        }
+        
+        .trade-setup {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+        }
+        
+        .trade-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            font-size: 0.9em;
+        }
+        
+        .trade-row .label {
+            color: #888;
+        }
+        
+        .trade-row .value {
+            font-weight: bold;
+        }
+        
+        .trade-row .value.positive { color: #00ff88; }
+        .trade-row .value.negative { color: #ff6b6b; }
+        
+        .recommendation {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(0, 100, 200, 0.1);
+            border-left: 3px solid #00d4ff;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.9em;
+        }
+        
+        .veto-warning {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(255, 100, 100, 0.1);
+            border-left: 3px solid #ff6b6b;
+            border-radius: 0 8px 8px 0;
+            color: #ff9999;
+        }
+        
+        .refresh-btn {
+            background: linear-gradient(135deg, #00d4ff, #00ff88);
+            border: none;
+            padding: 10px 25px;
+            border-radius: 25px;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .refresh-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(0, 255, 136, 0.4);
+        }
+        
+        .last-update {
+            color: #888;
+            font-size: 0.9em;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #888;
+        }
+        
+        .error {
+            background: rgba(255, 100, 100, 0.1);
+            border: 1px solid #ff6b6b;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            color: #ff9999;
+        }
+        
+        .api-config {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(30, 30, 50, 0.8);
+            border-radius: 10px;
+        }
+        
+        .api-config input {
+            width: 100%;
+            padding: 10px 15px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #fff;
+            font-family: inherit;
+        }
+        
+        .api-config label {
+            display: block;
+            margin-bottom: 5px;
+            color: #888;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>KYPERIAN ELITE</h1>
+        <div class="subtitle">Multi-Timeframe Signal Fusion Dashboard</div>
+    </div>
+    
+    <div class="api-config">
+        <label>API Endpoint</label>
+        <input type="text" id="apiUrl" value="https://9vyvetp9c7.execute-api.us-east-1.amazonaws.com/production" placeholder="Enter your API URL">
+    </div>
+    
+    <div class="status-bar">
+        <div class="status">
+            <div class="dot"></div>
+            <span>System Active</span>
+        </div>
+        <div>
+            <span class="last-update" id="lastUpdate">Last update: --</span>
+            <button class="refresh-btn" onclick="loadDashboard()">🔄 Refresh</button>
+        </div>
+    </div>
+    
+    <div id="dashboard" class="grid">
+        <div class="loading">Loading signals...</div>
+    </div>
+    
+    <script>
+        const API_URL_KEY = 'kyperian_api_url';
+        
+        // Load saved API URL
+        const savedUrl = localStorage.getItem(API_URL_KEY);
+        if (savedUrl) {
+            document.getElementById('apiUrl').value = savedUrl;
+        }
+        
+        // Save API URL on change
+        document.getElementById('apiUrl').addEventListener('change', function() {
+            localStorage.setItem(API_URL_KEY, this.value);
+        });
+        
+        function getApiUrl() {
+            return document.getElementById('apiUrl').value.replace(/\/$/, '');
+        }
+        
+        async function loadDashboard() {
+            const dashboard = document.getElementById('dashboard');
+            const lastUpdate = document.getElementById('lastUpdate');
+            
+            try {
+                dashboard.innerHTML = '<div class="loading">Loading signals...</div>';
+                
+                const response = await fetch(`${getApiUrl()}/dashboard`);
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Unknown error');
+                }
+                
+                lastUpdate.textContent = `Last update: ${new Date().toLocaleTimeString()}`;
+                
+                dashboard.innerHTML = data.symbols.map(sym => renderCard(sym)).join('');
+                
+            } catch (error) {
+                dashboard.innerHTML = `
+                    <div class="error">
+                        <h3>⚠️ Error Loading Data</h3>
+                        <p>${error.message}</p>
+                        <p style="margin-top: 10px; font-size: 0.8em;">
+                            Make sure the API URL is correct and CORS is enabled.
+                        </p>
+                    </div>
+                `;
+            }
+        }
+        
+        function renderCard(sym) {
+            const cardClass = sym.is_aligned ? 'aligned' : (sym.veto_active ? 'veto' : '');
+            const confClass = sym.confidence >= 80 ? 'high' : (sym.confidence >= 50 ? 'medium' : 'low');
+            
+            const signals = sym.signals || {};
+            const timeframes = ['1W', '1D', '4h'];
+            
+            const signalBoxes = timeframes.map(tf => {
+                const sig = signals[tf];
+                if (sig) {
+                    return `
+                        <div class="signal-box">
+                            <div class="tf">${tf}</div>
+                            <div class="action ${sig.action}">${sig.action}</div>
+                            <div class="age">${sig.age_hours.toFixed(1)}h ago</div>
+                        </div>
+                    `;
+                } else {
+                    return `
+                        <div class="signal-box">
+                            <div class="tf">${tf}</div>
+                            <div class="action none">--</div>
+                            <div class="age">No signal</div>
+                        </div>
+                    `;
+                }
+            }).join('');
+            
+            let tradeSetup = '';
+            if (sym.is_aligned && sym.entry_price > 0) {
+                tradeSetup = `
+                    <div class="trade-setup">
+                        <div class="trade-row">
+                            <span class="label">Entry</span>
+                            <span class="value">$${sym.entry_price.toLocaleString()}</span>
+                        </div>
+                        <div class="trade-row">
+                            <span class="label">Stop Loss</span>
+                            <span class="value negative">$${sym.stop_price.toLocaleString()} (-${sym.stop_loss_pct}%)</span>
+                        </div>
+                        <div class="trade-row">
+                            <span class="label">Take Profit</span>
+                            <span class="value positive">$${sym.target_price.toLocaleString()} (+${sym.take_profit_pct}%)</span>
+                        </div>
+                        <div class="trade-row">
+                            <span class="label">Position Size</span>
+                            <span class="value">${sym.position_size_pct}%</span>
+                        </div>
+                        <div class="trade-row">
+                            <span class="label">Risk/Reward</span>
+                            <span class="value positive">${sym.risk_reward_ratio.toFixed(1)}:1</span>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            let vetoWarning = '';
+            if (sym.veto_active) {
+                vetoWarning = `
+                    <div class="veto-warning">
+                        ⛔ <strong>VETO:</strong> ${sym.veto_reason}
+                    </div>
+                `;
+            }
+            
+            return `
+                <div class="card ${cardClass}">
+                    <div class="card-header">
+                        <span class="symbol">${sym.symbol}</span>
+                        <span class="direction ${sym.direction}">${sym.direction}</span>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span>Confidence</span>
+                        <span>${sym.confidence}% (${sym.confidence_level.toUpperCase()})</span>
+                    </div>
+                    <div class="confidence-bar">
+                        <div class="confidence-fill ${confClass}" style="width: ${sym.confidence}%"></div>
+                    </div>
+                    
+                    <div class="signals-grid">
+                        ${signalBoxes}
+                    </div>
+                    
+                    ${tradeSetup}
+                    ${vetoWarning}
+                    
+                    <div class="recommendation">
+                        ${sym.recommendation}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Auto-refresh every 30 seconds
+        setInterval(loadDashboard, 30000);
+        
+        // Initial load
+        loadDashboard();
+    </script>
+</body>
+</html>

@@ -477,6 +477,12 @@ Outputs:
     Export:
       Name: !Sub ${AWS::StackName}-ApiEndpoint
 
+  ApiId:
+    Description: API Gateway ID
+    Value: !Ref KyperianApi
+    Export:
+      Name: !Sub 'kyperian-${Environment}-api-id'
+
   WebhookUrl:
     Description: Webhook URL for TradingView
     Value: !Sub https://${KyperianApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/webhook
