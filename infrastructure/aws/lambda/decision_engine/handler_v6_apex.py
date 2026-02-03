@@ -1596,15 +1596,25 @@ def get_luxalgo_signals(symbol: str) -> LuxAlgoSignals:
             if response.get('Items'):
                 item = response['Items'][0]
                 
-                # Parse timestamp
-                ts = float(item.get('timestamp', 0))
-                if ts > 1e12:  # Milliseconds
-                    ts = ts / 1000
+                # Parse timestamp (can be ISO string or numeric)
+                ts_raw = item.get('timestamp', '')
+                try:
+                    if isinstance(ts_raw, str) and 'T' in ts_raw:
+                        # ISO format string
+                        signal_time = datetime.fromisoformat(ts_raw.replace('Z', '+00:00'))
+                    else:
+                        # Numeric timestamp
+                        ts = float(ts_raw) if ts_raw else 0
+                        if ts > 1e12:  # Milliseconds
+                            ts = ts / 1000
+                        signal_time = datetime.fromtimestamp(ts, tz=timezone.utc)
+                except (ValueError, TypeError):
+                    signal_time = now  # Default to now if parsing fails
                 
-                signal_time = datetime.fromtimestamp(ts, tz=timezone.utc)
                 age_hours = (now - signal_time).total_seconds() / 3600
                 
-                action = item.get('action', 'NEUTRAL')
+                # Use 'direction' field if available, fallback to 'action'
+                action = item.get('direction', item.get('action', 'NEUTRAL'))
                 price = float(item.get('price', 0))
                 strength = item.get('strength', 'normal')
                 

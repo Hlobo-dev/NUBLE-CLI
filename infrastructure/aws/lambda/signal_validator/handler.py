@@ -80,16 +80,19 @@ def validate_signal(signal):
 def store_signal(signal, signal_id):
     try:
         now = datetime.now(timezone.utc)
+        timestamp_str = now.isoformat()  # GSI expects String for timestamp
         item = {
             'pk': f"SIGNAL#{signal['symbol']}",
             'sk': f"{signal['timeframe']}#{now.strftime('%Y%m%d%H%M%S')}#{signal_id}",
             'symbol': signal['symbol'],
             'timeframe': signal['timeframe'],
+            'direction': signal['action'],  # Standardize to 'direction' for decision engine
             'action': signal['action'],
             'price': signal['price'],
             'confidence': signal['confidence'],
             'source': signal['source'],
-            'timestamp': signal['timestamp'],
+            'timestamp': timestamp_str,  # Store as ISO string for GSI compatibility
+            'timestamp_ms': signal['timestamp'],  # Keep numeric timestamp too
             'ttl': int(time.time()) + (7 * 24 * 3600),
             'gsi1pk': f"TF#{signal['timeframe']}",
             'gsi1sk': f"{signal['symbol']}#{now.strftime('%Y%m%d%H%M%S')}"
