@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================
-# KYPERIAN ELITE - Decision Engine Deployment Script
+# NUBLE ELITE - Decision Engine Deployment Script
 # ============================================================
 # Deploys the multi-timeframe fusion and notification system
 # 
@@ -27,9 +27,9 @@ NC='\033[0m'
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENVIRONMENT="${ENVIRONMENT:-production}"
 AWS_REGION="${AWS_REGION:-us-east-1}"
-AWS_PROFILE="${AWS_PROFILE:-kyperian}"
-STACK_NAME="kyperian-${ENVIRONMENT}-decision-engine"
-LAMBDA_NAME="kyperian-${ENVIRONMENT}-decision-engine"
+AWS_PROFILE="${AWS_PROFILE:-nuble}"
+STACK_NAME="nuble-${ENVIRONMENT}-decision-engine"
+LAMBDA_NAME="nuble-${ENVIRONMENT}-decision-engine"
 
 # Parse arguments
 TELEGRAM_TOKEN="${TELEGRAM_BOT_TOKEN:-}"
@@ -52,8 +52,8 @@ while [[ $# -gt 0 ]]; do
             ;;
         --environment)
             ENVIRONMENT="$2"
-            STACK_NAME="kyperian-${ENVIRONMENT}-decision-engine"
-            LAMBDA_NAME="kyperian-${ENVIRONMENT}-decision-engine"
+            STACK_NAME="nuble-${ENVIRONMENT}-decision-engine"
+            LAMBDA_NAME="nuble-${ENVIRONMENT}-decision-engine"
             shift 2
             ;;
         *)
@@ -65,7 +65,7 @@ done
 
 echo -e "${CYAN}"
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║     KYPERIAN ELITE - Decision Engine Deployment            ║"
+echo "║     NUBLE ELITE - Decision Engine Deployment               ║"
 echo "╠════════════════════════════════════════════════════════════╣"
 echo "║  Multi-Timeframe Fusion + Notification System              ║"
 echo "╚════════════════════════════════════════════════════════════╝"
@@ -123,10 +123,10 @@ echo -e "${YELLOW}Step 2: Updating API Gateway stack (adding API ID export)...${
 
 aws cloudformation deploy \
     --template-file "${SCRIPT_DIR}/cloudformation/api-gateway-enterprise.yaml" \
-    --stack-name "kyperian-${ENVIRONMENT}-api" \
+    --stack-name "nuble-${ENVIRONMENT}-api" \
     --parameter-overrides \
         Environment="${ENVIRONMENT}" \
-        LambdaStackName="kyperian-${ENVIRONMENT}-lambda" \
+        LambdaStackName="nuble-${ENVIRONMENT}-lambda" \
     --capabilities CAPABILITY_NAMED_IAM \
     --region "$AWS_REGION" \
     --profile "$AWS_PROFILE" \
@@ -205,7 +205,7 @@ echo ""
 echo -e "${YELLOW}Step 6: Getting API endpoints...${NC}"
 
 API_URL=$(aws cloudformation describe-stacks \
-    --stack-name "kyperian-${ENVIRONMENT}-api" \
+    --stack-name "nuble-${ENVIRONMENT}-api" \
     --query "Stacks[0].Outputs[?OutputKey=='ApiEndpoint'].OutputValue" \
     --output text \
     --region "$AWS_REGION" \
@@ -213,7 +213,7 @@ API_URL=$(aws cloudformation describe-stacks \
 
 if [ -z "$API_URL" ]; then
     API_ID=$(aws cloudformation describe-stacks \
-        --stack-name "kyperian-${ENVIRONMENT}-api" \
+        --stack-name "nuble-${ENVIRONMENT}-api" \
         --query "Stacks[0].Outputs[?OutputKey=='ApiId'].OutputValue" \
         --output text \
         --region "$AWS_REGION" \
@@ -262,5 +262,5 @@ fi
 
 echo ""
 echo -e "${CYAN}CloudWatch Dashboard:${NC}"
-echo "  https://${AWS_REGION}.console.aws.amazon.com/cloudwatch/home?region=${AWS_REGION}#dashboards:name=KYPERIAN-${ENVIRONMENT}-DecisionEngine"
+echo "  https://${AWS_REGION}.console.aws.amazon.com/cloudwatch/home?region=${AWS_REGION}#dashboards:name=NUBLE-${ENVIRONMENT}-DecisionEngine"
 echo ""

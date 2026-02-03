@@ -1,15 +1,15 @@
 #!/bin/bash
 #
-# KYPERIAN ADVISOR - Deployment Script
+# NUBLE ADVISOR - Deployment Script
 # =====================================
 #
-# Deploys the complete KYPERIAN ADVISOR infrastructure:
+# Deploys the complete NUBLE ADVISOR infrastructure:
 # - CloudFormation stack (DynamoDB, Lambda, API Gateway, EventBridge)
 # - Lambda function code
 # - Telegram bot webhook configuration
 #
 # Prerequisites:
-# - AWS CLI configured with 'kyperian' profile
+# - AWS CLI configured with 'nuble' profile
 # - Environment variables: POLYGON_API_KEY, ANTHROPIC_API_KEY
 # - Optional: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
 #
@@ -25,9 +25,9 @@ set -e
 
 # Configuration
 ENVIRONMENT=${1:-production}
-AWS_PROFILE=${AWS_PROFILE:-kyperian}
+AWS_PROFILE=${AWS_PROFILE:-nuble}
 AWS_REGION=${AWS_REGION:-us-east-1}
-STACK_NAME="kyperian-${ENVIRONMENT}-advisor"
+STACK_NAME="nuble-${ENVIRONMENT}-advisor"
 
 # Colors
 RED='\033[0;31m'
@@ -37,7 +37,7 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 echo -e "${BLUE}╔════════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║           KYPERIAN ADVISOR DEPLOYMENT                          ║${NC}"
+echo -e "${BLUE}║           NUBLE ADVISOR DEPLOYMENT                             ║${NC}"
 echo -e "${BLUE}║           The Autonomous AI Wealth Manager                     ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════════════════════════════╝${NC}"
 echo ""
@@ -137,7 +137,7 @@ zip -r "${ADVISOR_ZIP}" handler.py
 
 # Update Lambda function
 aws lambda update-function-code \
-    --function-name "kyperian-${ENVIRONMENT}-advisor" \
+    --function-name "nuble-${ENVIRONMENT}-advisor" \
     --zip-file "fileb://${ADVISOR_ZIP}" \
     --region "${AWS_REGION}" \
     --profile "${AWS_PROFILE}" \
@@ -158,7 +158,7 @@ zip -r "${TELEGRAM_ZIP}" handler.py
 
 # Update Lambda function
 aws lambda update-function-code \
-    --function-name "kyperian-${ENVIRONMENT}-telegram-bot" \
+    --function-name "nuble-${ENVIRONMENT}-telegram-bot" \
     --zip-file "fileb://${TELEGRAM_ZIP}" \
     --region "${AWS_REGION}" \
     --profile "${AWS_PROFILE}" \
@@ -166,7 +166,7 @@ aws lambda update-function-code \
 
 # Update Telegram bot environment with actual API URL
 aws lambda update-function-configuration \
-    --function-name "kyperian-${ENVIRONMENT}-telegram-bot" \
+    --function-name "nuble-${ENVIRONMENT}-telegram-bot" \
     --environment "Variables={POLYGON_API_KEY=${POLYGON_API_KEY},ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY},TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN},ADVISOR_API_URL=${ADVISOR_API_URL}}" \
     --region "${AWS_REGION}" \
     --profile "${AWS_PROFILE}" \
@@ -213,7 +213,7 @@ echo -e "${BLUE}╔════════════════════�
 echo -e "${BLUE}║           DEPLOYMENT COMPLETE                                  ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════════════════════════════╝${NC}"
 echo ""
-echo -e "${GREEN}KYPERIAN ADVISOR is now live!${NC}"
+echo -e "${GREEN}NUBLE ADVISOR is now live!${NC}"
 echo ""
 echo -e "📊 ${YELLOW}Advisor API:${NC}"
 echo -e "   GET  ${ADVISOR_API_URL}/"

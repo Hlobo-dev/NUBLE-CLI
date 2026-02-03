@@ -1,5 +1,5 @@
 # ============================================
-# KYPERIAN ELITE - Production Dockerfile
+# NUBLE ELITE - Production Dockerfile
 # ============================================
 # Multi-stage build for minimal image size
 # Target: <100MB, optimized for ECS Fargate
@@ -35,7 +35,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 FROM python:3.11-slim as production
 
 # Security: Run as non-root user
-RUN groupadd -r kyperian && useradd -r -g kyperian kyperian
+RUN groupadd -r nuble && useradd -r -g nuble nuble
 
 WORKDIR /app
 
@@ -44,16 +44,16 @@ COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/pytho
 COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy application code
-COPY --chown=kyperian:kyperian src/ ./src/
-COPY --chown=kyperian:kyperian config/ ./config/
-COPY --chown=kyperian:kyperian models/ ./models/
+COPY --chown=nuble:nuble src/ ./src/
+COPY --chown=nuble:nuble config/ ./config/
+COPY --chown=nuble:nuble models/ ./models/
 
 # Create data directories
 RUN mkdir -p /app/data /app/logs && \
-    chown -R kyperian:kyperian /app
+    chown -R nuble:nuble /app
 
 # Switch to non-root user
-USER kyperian
+USER nuble
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
@@ -69,7 +69,7 @@ ENV PYTHONUNBUFFERED=1 \
     WORKERS=4
 
 # Run with Gunicorn + Uvicorn workers for production
-CMD ["gunicorn", "src.kyperian.api.main:app", \
+CMD ["gunicorn", "src.nuble.api.main:app", \
      "--workers", "4", \
      "--worker-class", "uvicorn.workers.UvicornWorker", \
      "--bind", "0.0.0.0:8000", \

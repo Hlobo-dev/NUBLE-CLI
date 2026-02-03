@@ -1,5 +1,5 @@
 
-KYPERIAN ML TRADING SYSTEM
+NUBLE ML TRADING SYSTEM
 Implementation Plan for Copilot
 10 High-Impact ML Enhancements
 Based on Lopez de Prado Methodology & 2024-2025 Research
@@ -14,7 +14,7 @@ Target:
 Sharpe 1.0-1.5 sustained
 
 Executive Summary
-This document provides a comprehensive, phase-by-phase implementation plan for upgrading the KYPERIAN ML trading system from its current validated state (SLV: 0.94 Sharpe, TSLA: 0.91 Sharpe) to institutional-grade quality targeting 1.0-1.5 sustained Sharpe ratio.
+This document provides a comprehensive, phase-by-phase implementation plan for upgrading the NUBLE ML trading system from its current validated state (SLV: 0.94 Sharpe, TSLA: 0.91 Sharpe) to institutional-grade quality targeting 1.0-1.5 sustained Sharpe ratio.
 Current System Status
 Walk-forward validated with real alpha. SLV and TSLA models achieving Grade B (0.75-1.0 Sharpe). Infrastructure complete: Unified CLI, Claude integration, AWS Bedrock multi-agent orchestration.
 
@@ -49,7 +49,7 @@ Triple Barrier Labeling is the foundation for ALL other enhancements. It transfo
 1.1 Triple Barrier Labeling
 The Triple Barrier Method, introduced by Marcos López de Prado, labels trading data using three barriers: (1) Upper barrier for profit-taking, (2) Lower barrier for stop-loss, (3) Vertical barrier for time expiration. This simulates realistic trade conditions.
 Implementation Steps
-	•	Create new file: kyperian/labeling/triple_barrier.py
+	•	Create new file: nuble/labeling/triple_barrier.py
 	•	Define the TripleBarrierLabeler class with configurable parameters
 	•	Implement dynamic barrier calculation based on rolling volatility
 	•	Add vertical barrier (time expiration) logic
@@ -58,7 +58,7 @@ Implementation Steps
 	•	Write comprehensive unit tests
 	•	Validate on SLV/TSLA with walk-forward testing
 Code Architecture
-# kyperian/labeling/triple_barrier.py
+# nuble/labeling/triple_barrier.py
 
 class TripleBarrierLabeler:
     """
@@ -123,7 +123,7 @@ Window for volatility calculation
 1.2 Fractional Differentiation
 Standard differencing (d=1) removes too much memory from price series. Fractional differentiation uses d between 0 and 1 to achieve stationarity while preserving predictive information.
 Implementation Steps
-	•	Create new file: kyperian/features/frac_diff.py
+	•	Create new file: nuble/features/frac_diff.py
 	•	Implement FFD (Fixed-width window Fracdiff) algorithm
 	•	Add ADF test integration to find minimum d for stationarity
 	•	Create auto-tuning function to find optimal d per feature
@@ -131,7 +131,7 @@ Implementation Steps
 	•	Add memory preservation metrics
 	•	Write unit tests and validation
 Code Architecture
-# kyperian/features/frac_diff.py
+# nuble/features/frac_diff.py
 
 import numpy as np
 import pandas as pd
@@ -255,7 +255,7 @@ Meta-labeling learns WHEN to trade based on your primary signal. Instead of pred
 2.1 Meta-Labeling
 Meta-labeling is a two-model approach: (1) Primary model predicts direction (up/down), (2) Secondary model predicts whether to act on that signal. This dramatically improves precision and allows for position sizing based on confidence.
 Implementation Steps
-	•	Create new file: kyperian/models/meta_labeler.py
+	•	Create new file: nuble/models/meta_labeler.py
 	•	Implement MetaLabeler class wrapping primary model
 	•	Generate meta-labels from triple barrier outcomes
 	•	Train secondary classifier (RandomForest or XGBoost)
@@ -264,7 +264,7 @@ Implementation Steps
 	•	Integrate with walk-forward validation
 	•	Write comprehensive tests
 Code Architecture
-# kyperian/models/meta_labeler.py
+# nuble/models/meta_labeler.py
 
 from sklearn.ensemble import RandomForestClassifier
 import pandas as pd
@@ -394,7 +394,7 @@ class MetaLabeler:
 2.2 HMM Regime Detection
 Hidden Markov Models identify latent market regimes (bull, bear, sideways) from observable returns. This allows the system to avoid trading during high-volatility or range-bound regimes where trend-following fails.
 Implementation Steps
-	•	Create new file: kyperian/regime/hmm_detector.py
+	•	Create new file: nuble/regime/hmm_detector.py
 	•	Implement HMMRegimeDetector using hmmlearn library
 	•	Train on historical returns with 2-3 states
 	•	Add regime probability output for each day
@@ -403,7 +403,7 @@ Implementation Steps
 	•	Add visualization utilities
 	•	Write comprehensive tests
 Code Architecture
-# kyperian/regime/hmm_detector.py
+# nuble/regime/hmm_detector.py
 
 from hmmlearn.hmm import GaussianHMM
 import numpy as np
@@ -549,7 +549,7 @@ FinBERT adds sentiment alpha from financial news - a signal uncorrelated with pr
 3.1 FinBERT Sentiment Integration
 FinBERT is a pre-trained NLP model specifically fine-tuned for financial sentiment analysis. It understands domain-specific language and produces sentiment scores (positive, negative, neutral) for financial text.
 Implementation Steps
-	•	Create new file: kyperian/sentiment/finbert_analyzer.py
+	•	Create new file: nuble/sentiment/finbert_analyzer.py
 	•	Set up Hugging Face transformers with FinBERT model
 	•	Implement news data fetching (Alpha Vantage, NewsAPI, or Tiingo)
 	•	Create sentiment aggregation at ticker-date level
@@ -558,7 +558,7 @@ Implementation Steps
 	•	Integrate with feature pipeline
 	•	Write comprehensive tests
 Code Architecture
-# kyperian/sentiment/finbert_analyzer.py
+# nuble/sentiment/finbert_analyzer.py
 
 from transformers import BertTokenizer, BertForSequenceClassification
 import torch
@@ -733,7 +733,7 @@ class SentimentFeatureGenerator:
 3.2 Combinatorial Purged Cross-Validation (CPCV)
 CPCV addresses the backtest overfitting problem by: (1) Testing all possible train/test splits combinatorially, (2) Purging data around test boundaries to prevent leakage, (3) Computing the probability of backtest overfitting (PBO).
 Implementation Steps
-	•	Create new file: kyperian/validation/cpcv.py
+	•	Create new file: nuble/validation/cpcv.py
 	•	Implement combinatorial split generator
 	•	Add temporal purging with configurable embargo
 	•	Implement PBO (Probability of Backtest Overfitting) calculation
@@ -742,7 +742,7 @@ Implementation Steps
 	•	Integrate with model training pipeline
 	•	Write comprehensive tests
 Code Architecture
-# kyperian/validation/cpcv.py
+# nuble/validation/cpcv.py
 
 import numpy as np
 import pandas as pd
@@ -935,7 +935,7 @@ Key TFT Components
 	•	Quantile Outputs: Predict distribution, not just point estimates
 	•	Static Covariate Encoders: Handle time-invariant features (sector, market cap)
 Implementation Steps
-	•	Create new file: kyperian/models/tft_predictor.py
+	•	Create new file: nuble/models/tft_predictor.py
 	•	Use pytorch-forecasting library for TFT implementation
 	•	Define temporal data structure with known/unknown futures
 	•	Configure static, time-varying known, and time-varying unknown features
@@ -951,7 +951,7 @@ Key RL Components
 	•	Reward Function: Sharpe ratio or risk-adjusted PnL
 	•	Algorithm: PPO or A2C (stable, handles continuous actions)
 Implementation Steps
-	•	Create new file: kyperian/portfolio/rl_optimizer.py
+	•	Create new file: nuble/portfolio/rl_optimizer.py
 	•	Use stable-baselines3 for PPO/A2C implementation
 	•	Design custom Gym environment for trading
 	•	Implement realistic reward function (Sharpe or Sortino)
@@ -1012,7 +1012,7 @@ tqdm>=4.65.0
 joblib>=1.2.0
 pytest>=7.0.0
 Directory Structure
-kyperian/
+nuble/
 ├── __init__.py
 ├── labeling/
 │   ├── __init__.py
@@ -1090,7 +1090,7 @@ Instructions for GitHub Copilot
 Use these prompts to guide Copilot through implementation. Copy-paste each section when starting that phase.
 Phase 1 Copilot Prompt
 """
-TASK: Implement Triple Barrier Labeling for KYPERIAN trading system.
+TASK: Implement Triple Barrier Labeling for NUBLE trading system.
 
 CONTEXT:
 - This is for a quantitative trading system based on Lopez de Prado (2018)
@@ -1236,7 +1236,7 @@ Testing Checklist
 
 Final Notes
 Remember
-This plan transforms KYPERIAN from a good research platform (0.94 Sharpe) to an institutional-grade system (1.0-1.5 Sharpe). Work phase by phase, validate thoroughly, and don't skip the testing. The goal is robust alpha, not impressive backtests that fail in production.
+This plan transforms NUBLE from a good research platform (0.94 Sharpe) to an institutional-grade system (1.0-1.5 Sharpe). Work phase by phase, validate thoroughly, and don't skip the testing. The goal is robust alpha, not impressive backtests that fail in production.
 
 Success Metrics
 Metric

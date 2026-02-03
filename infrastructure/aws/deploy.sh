@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================
-# KYPERIAN ELITE - AWS Deployment Script
+# NUBLE - AWS Deployment Script
 # ============================================
 # Deploys entire infrastructure to AWS
 # Usage: ./deploy.sh [environment] [action]
@@ -13,7 +13,7 @@ set -e
 ENVIRONMENT=${1:-production}
 ACTION=${2:-deploy}
 AWS_REGION=${AWS_REGION:-us-east-1}
-PROJECT_NAME="kyperian"
+PROJECT_NAME="nuble"
 STACK_PREFIX="${PROJECT_NAME}-${ENVIRONMENT}"
 
 # Colors for output
@@ -222,7 +222,7 @@ deploy_monitoring() {
 
 # Full deployment
 deploy_all() {
-    log_info "Starting full KYPERIAN ELITE deployment..."
+    log_info "Starting full NUBLE ELITE deployment..."
     echo ""
     
     deploy_vpc
@@ -234,7 +234,7 @@ deploy_all() {
     
     echo ""
     log_success "============================================"
-    log_success "  KYPERIAN ELITE DEPLOYMENT COMPLETE! 🚀"
+    log_success "  NUBLE ELITE DEPLOYMENT COMPLETE! 🚀"
     log_success "============================================"
     echo ""
     
@@ -254,13 +254,13 @@ deploy_all() {
     echo ""
     log_info "API Gateway Endpoint: ${API_ENDPOINT}"
     log_info "Load Balancer DNS: ${ALB_DNS}"
-    log_info "Dashboard: https://${AWS_REGION}.console.aws.amazon.com/cloudwatch/home?region=${AWS_REGION}#dashboards:name=KYPERIAN-${ENVIRONMENT}-Main"
+    log_info "Dashboard: https://${AWS_REGION}.console.aws.amazon.com/cloudwatch/home?region=${AWS_REGION}#dashboards:name=NUBLE-${ENVIRONMENT}-Main"
     echo ""
 }
 
 # Delete all stacks
 delete_all() {
-    log_warning "Deleting all KYPERIAN ELITE stacks..."
+    log_warning "Deleting all NUBLE ELITE stacks..."
     
     STACKS=(
         "${STACK_PREFIX}-monitoring"
@@ -286,7 +286,7 @@ delete_all() {
 
 # Print help
 print_help() {
-    echo "KYPERIAN ELITE Deployment Script"
+    echo "NUBLE ELITE Deployment Script"
     echo ""
     echo "Usage: ./deploy.sh [environment] [action]"
     echo ""

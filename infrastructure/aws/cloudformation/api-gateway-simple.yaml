@@ -1,21 +1,17 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'NUBLE ELITE - API Gateway with WAF and Rate Limiting'
+Description: 'NUBLE ELITE - API Gateway HTTP API'
 
 Parameters:
   Environment:
     Type: String
     Default: production
   
-  NetworkStackName:
-    Type: String
-    Description: Name of the VPC CloudFormation stack
-  
   SignalValidatorLambdaArn:
     Type: String
     Description: ARN of the Signal Validator Lambda function
 
 Resources:
-  # ============ API Gateway ============
+  # ============ API Gateway HTTP API ============
   NubleAPI:
     Type: AWS::ApiGatewayV2::Api
     Properties:
@@ -44,7 +40,7 @@ Resources:
       IntegrationType: AWS_PROXY
       IntegrationUri: !Ref SignalValidatorLambdaArn
       PayloadFormatVersion: '2.0'
-      TimeoutInMillis: 10000
+      TimeoutInMillis: 29000
 
   # ============ Routes ============
   WebhookRoute:
@@ -71,7 +67,23 @@ Resources:
       AuthorizationType: NONE
       Target: !Sub integrations/${SignalValidatorIntegration}
 
-  # ============ Stage ============
+  SignalsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref NubleAPI
+      RouteKey: GET /signals
+      AuthorizationType: NONE
+      Target: !Sub integrations/${SignalValidatorIntegration}
+
+  DecisionsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref NubleAPI
+      RouteKey: GET /decisions
+      AuthorizationType: NONE
+      Target: !Sub integrations/${SignalValidatorIntegration}
+
+  # ============ Stage with Rate Limiting ============
   ProductionStage:
     Type: AWS::ApiGatewayV2::Stage
     Properties:
@@ -91,75 +103,47 @@ Resources:
       Tags:
         Environment: !Ref Environment
 
-  # ============ Log Group ============
+  # ============ CloudWatch Log Group ============
   APIGatewayLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub /aws/apigateway/nuble-${Environment}
       RetentionInDays: 30
 
-  # ============ WAF ============
-  WebACL:
-    Type: AWS::WAFv2::WebACL
+  # ============ CloudWatch Alarms ============
+  API5xxAlarm:
+    Type: AWS::CloudWatch::Alarm
     Properties:
-      Name: !Sub nuble-${Environment}-waf
-      Scope: REGIONAL
-      DefaultAction:
-        Allow: {}
-      VisibilityConfig:
-        SampledRequestsEnabled: true
-        CloudWatchMetricsEnabled: true
-        MetricName: !Sub nuble-${Environment}-waf
-      Rules:
-        - Name: RateLimitRule
-          Priority: 1
-          Action:
-            Block: {}
-          VisibilityConfig:
-            SampledRequestsEnabled: true
-            CloudWatchMetricsEnabled: true
-            MetricName: RateLimitRule
-          Statement:
-            RateBasedStatement:
-              Limit: 1000
-              AggregateKeyType: IP
-        
-        - Name: AWSManagedRulesCommonRuleSet
-          Priority: 2
-          OverrideAction:
-            None: {}
-          VisibilityConfig:
-            SampledRequestsEnabled: true
-            CloudWatchMetricsEnabled: true
-            MetricName: CommonRules
-          Statement:
-            ManagedRuleGroupStatement:
-              VendorName: AWS
-              Name: AWSManagedRulesCommonRuleSet
-        
-        - Name: AWSManagedRulesKnownBadInputsRuleSet
-          Priority: 3
-          OverrideAction:
-            None: {}
-          VisibilityConfig:
-            SampledRequestsEnabled: true
-            CloudWatchMetricsEnabled: true
-            MetricName: BadInputs
-          Statement:
-            ManagedRuleGroupStatement:
-              VendorName: AWS
-              Name: AWSManagedRulesKnownBadInputsRuleSet
+      AlarmName: !Sub nuble-${Environment}-api-5xx-errors
+      AlarmDescription: Triggers when 5xx errors exceed threshold
+      MetricName: 5xx
+      Namespace: AWS/ApiGateway
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 10
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: ApiId
+          Value: !Ref NubleAPI
+      TreatMissingData: notBreaching
 
-  # WAF Association with API Gateway
-  WebACLAssociation:
-    Type: AWS::WAFv2::WebACLAssociation
-    DependsOn: ProductionStage
+  APILatencyAlarm:
+    Type: AWS::CloudWatch::Alarm
     Properties:
-      ResourceArn: !Sub arn:aws:apigateway:${AWS::Region}::/apis/${NubleAPI}/stages/${Environment}
-      WebACLArn: !GetAtt WebACL.Arn
-
-  # ============ API Key (Optional) ============
-  # Add API Key authentication if needed for production
+      AlarmName: !Sub nuble-${Environment}-api-high-latency
+      AlarmDescription: Triggers when latency exceeds threshold
+      MetricName: Latency
+      Namespace: AWS/ApiGateway
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 3000
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: ApiId
+          Value: !Ref NubleAPI
+      TreatMissingData: notBreaching
 
 Outputs:
   ApiEndpoint:
@@ -168,14 +152,14 @@ Outputs:
     Export:
       Name: !Sub ${AWS::StackName}-ApiEndpoint
 
+  WebhookUrl:
+    Description: Webhook URL for TradingView alerts
+    Value: !Sub https://${NubleAPI}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/webhook
+    Export:
+      Name: !Sub ${AWS::StackName}-WebhookUrl
+
   ApiId:
     Description: API Gateway ID
     Value: !Ref NubleAPI
     Export:
       Name: !Sub ${AWS::StackName}-ApiId
-
-  WebACLArn:
-    Description: WAF Web ACL ARN
-    Value: !GetAtt WebACL.Arn
-    Export:
-      Name: !Sub ${AWS::StackName}-WebACLArn

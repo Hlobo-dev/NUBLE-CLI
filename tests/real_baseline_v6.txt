@@ -1,5 +1,5 @@
 ======================================================================
-KYPERIAN vs BUY-AND-HOLD: REAL DATA, REAL STRATEGY
+NUBLE vs BUY-AND-HOLD: REAL DATA, REAL STRATEGY
 ======================================================================
 Date: 2026-02-01 14:54:16
 Using: EnhancedSignalGenerator from src/institutional/signals/
@@ -23,7 +23,7 @@ TESTING: AAPL
     Win Rate:      54.6%
     Trading Days:  771
 
-  AAPL KYPERIAN ML:
+  AAPL NUBLE ML:
     Total Return:  +57.1%
     Annual Return: +15.9%
     Volatility:    24.5%
@@ -36,7 +36,7 @@ TESTING: AAPL
   COMPARISON:
     Alpha (excess return): -50.4%
     Sharpe difference:     -0.41
-    ❌ KYPERIAN UNDERPERFORMS by 50.4%
+    ❌ NUBLE UNDERPERFORMS by 50.4%
 
 ============================================================
 TESTING: MSFT
@@ -55,7 +55,7 @@ TESTING: MSFT
     Win Rate:      54.0%
     Trading Days:  771
 
-  MSFT KYPERIAN ML:
+  MSFT NUBLE ML:
     Total Return:  +52.4%
     Annual Return: +14.8%
     Volatility:    22.2%
@@ -68,7 +68,7 @@ TESTING: MSFT
   COMPARISON:
     Alpha (excess return): -27.2%
     Sharpe difference:     -0.22
-    ❌ KYPERIAN UNDERPERFORMS by 27.2%
+    ❌ NUBLE UNDERPERFORMS by 27.2%
 
 ============================================================
 TESTING: NVDA
@@ -87,7 +87,7 @@ TESTING: NVDA
     Win Rate:      55.4%
     Trading Days:  771
 
-  NVDA KYPERIAN ML:
+  NVDA NUBLE ML:
     Total Return:  +614.3%
     Annual Return: +90.1%
     Volatility:    47.1%
@@ -100,10 +100,10 @@ TESTING: NVDA
   COMPARISON:
     Alpha (excess return): -620.9%
     Sharpe difference:     -0.77
-    ❌ KYPERIAN UNDERPERFORMS by 620.9%
+    ❌ NUBLE UNDERPERFORMS by 620.9%
 
 ======================================================================
-PORTFOLIO TEST: KYPERIAN vs SPY
+PORTFOLIO TEST: NUBLE vs SPY
 ======================================================================
   Loaded SPY: 772 rows, 2023-01-03 to 2026-01-30
   Loaded AAPL: 772 rows, 2023-01-03 to 2026-01-30
@@ -138,7 +138,7 @@ PORTFOLIO TEST: KYPERIAN vs SPY
     Win Rate:      57.2%
     Trading Days:  771
 
-  KYPERIAN Portfolio:
+  NUBLE Portfolio:
     Total Return:  +194.7%
     Annual Return: +42.4%
     Volatility:    24.9%
@@ -152,7 +152,7 @@ PORTFOLIO TEST: KYPERIAN vs SPY
     Alpha:       +113.0%
     Sharpe diff: +0.29
 
-    ✅ KYPERIAN PORTFOLIO BEATS SPY by 113.0%
+    ✅ NUBLE PORTFOLIO BEATS SPY by 113.0%
 
 ======================================================================
 FINAL SUMMARY
@@ -168,7 +168,7 @@ MSFT     |    -27.2% |      -0.22 | ❌ UNDERPERFORM
 NVDA     |   -620.9% |      -0.77 | ❌ UNDERPERFORM
 
 Portfolio vs SPY:
-  KYPERIAN Return: +194.7%
+  NUBLE Return: +194.7%
   SPY Return:      +81.7%
   Alpha:           +113.0%
   Sharpe diff:     +0.29
@@ -181,7 +181,7 @@ Portfolio Alpha: +113.0%
 Portfolio Sharpe: 1.70
 Sharpe vs SPY: +0.29
 
-✅ VERDICT: KYPERIAN HAS REAL EDGE OVER BUY-AND-HOLD
+✅ VERDICT: NUBLE HAS REAL EDGE OVER BUY-AND-HOLD
    Alpha > 5% AND Sharpe > 0.3
 
 ======================================================================

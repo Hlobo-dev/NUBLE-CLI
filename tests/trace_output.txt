@@ -1,39 +1,39 @@
 INFO:institutional.regime.hmm_detector:HMMRegimeDetector initialized: 2 regimes, covariance=full
 Traceback (most recent call last):
-  File "/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI/tests/trace_signal_pipeline.py", line 67, in trace_full_pipeline
+  File "/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI/tests/trace_signal_pipeline.py", line 67, in trace_full_pipeline
     regime = detector.detect_regime(returns)
              ^^^^^^^^^^^^^^^^^^^^^^
 AttributeError: 'HMMRegimeDetector' object has no attribute 'detect_regime'
 INFO:institutional.features.frac_diff:FractionalDifferentiator initialized: pvalue=0.05, threshold=1e-05
 Traceback (most recent call last):
-  File "/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI/tests/trace_signal_pipeline.py", line 120, in trace_full_pipeline
+  File "/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI/tests/trace_signal_pipeline.py", line 120, in trace_full_pipeline
     frac_series = frac_diff.fit_transform(close_series, d=optimal_d)
 TypeError: FractionalDifferentiator.fit_transform() got an unexpected keyword argument 'd'. Did you mean 'df'?
 INFO:institutional.labeling.triple_barrier:TripleBarrierLabeler initialized: pt_sl=(1.0, 1.0), max_hold=10, vol_lookback=20
 Traceback (most recent call last):
-  File "/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI/tests/trace_signal_pipeline.py", line 162, in trace_full_pipeline
+  File "/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI/tests/trace_signal_pipeline.py", line 162, in trace_full_pipeline
     labels = labeler.get_labels(window)
-  File "/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI/src/institutional/labeling/triple_barrier.py", line 676, in get_labels
+  File "/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI/src/institutional/labeling/triple_barrier.py", line 676, in get_labels
     barrier_results = self.apply_barriers(close, events, side)
-  File "/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI/src/institutional/labeling/triple_barrier.py", line 567, in apply_barriers
+  File "/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI/src/institutional/labeling/triple_barrier.py", line 567, in apply_barriers
     events = close.index[valid_mask]
              ~~~~~~~~~~~^^^^^^^^^^^^
-  File "/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI/.venv/lib/python3.14/site-packages/pandas/core/indexes/base.py", line 5425, in __getitem__
+  File "/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI/.venv/lib/python3.14/site-packages/pandas/core/indexes/base.py", line 5425, in __getitem__
     result = getitem(key)
-  File "/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI/.venv/lib/python3.14/site-packages/pandas/core/arrays/datetimelike.py", line 393, in __getitem__
+  File "/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI/.venv/lib/python3.14/site-packages/pandas/core/arrays/datetimelike.py", line 393, in __getitem__
     result = cast(Union[Self, DTScalarOrNaT], super().__getitem__(key))
                                               ~~~~~~~~~~~~~~~~~~~^^^^^
-  File "/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI/.venv/lib/python3.14/site-packages/pandas/core/arrays/_mixins.py", line 304, in __getitem__
+  File "/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI/.venv/lib/python3.14/site-packages/pandas/core/arrays/_mixins.py", line 304, in __getitem__
     key = check_array_indexer(self, key)
-  File "/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI/.venv/lib/python3.14/site-packages/pandas/core/indexers/utils.py", line 556, in check_array_indexer
+  File "/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI/.venv/lib/python3.14/site-packages/pandas/core/indexers/utils.py", line 556, in check_array_indexer
     indexer = pd_array(indexer)
-  File "/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI/.venv/lib/python3.14/site-packages/pandas/core/construction.py", line 306, in array
+  File "/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI/.venv/lib/python3.14/site-packages/pandas/core/construction.py", line 306, in array
     raise TypeError("Cannot pass DataFrame to 'pandas.array'")
 TypeError: Cannot pass DataFrame to 'pandas.array'
 Traceback (most recent call last):
-  File "/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI/tests/trace_signal_pipeline.py", line 222, in trace_full_pipeline
+  File "/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI/tests/trace_signal_pipeline.py", line 222, in trace_full_pipeline
     signal = gen.generate_signal('NVDA', window, regime='BULL')
-  File "/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI/src/institutional/signals/enhanced_signals.py", line 246, in generate_signal
+  File "/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI/src/institutional/signals/enhanced_signals.py", line 246, in generate_signal
     raise ValueError(f"Insufficient data: {len(prices)} rows (need {self.long_period + 10})")
 ValueError: Insufficient data: 60 rows (need 70)
 
@@ -53,7 +53,7 @@ INSTITUTIONAL COMPONENTS INVENTORY
    ✅ ProperPBO: Available
       Methods: calculate...
 ================================================================================
-KYPERIAN SIGNAL PIPELINE DEEP TRACE
+NUBLE SIGNAL PIPELINE DEEP TRACE
 ================================================================================
 Timestamp: 2026-02-01 14:21:46.726662
 ================================================================================

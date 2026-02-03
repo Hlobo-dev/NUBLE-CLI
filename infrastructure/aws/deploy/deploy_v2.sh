@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# KYPERIAN Decision Engine V2 - Deployment Script
+# NUBLE Decision Engine V2 - Deployment Script
 # ================================================
 # Deploys the institutional-grade decision engine to AWS
 #
@@ -26,11 +26,11 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 
 # Configuration
-AWS_PROFILE="${AWS_PROFILE:-kyperian}"
+AWS_PROFILE="${AWS_PROFILE:-nuble}"
 AWS_REGION="${AWS_REGION:-us-east-1}"
 ENVIRONMENT="production"
-STACK_NAME="kyperian-${ENVIRONMENT}-decision-engine-v2"
-LAMBDA_NAME="kyperian-${ENVIRONMENT}-decision-engine-v2"
+STACK_NAME="nuble-${ENVIRONMENT}-decision-engine-v2"
+LAMBDA_NAME="nuble-${ENVIRONMENT}-decision-engine-v2"
 
 # Paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -76,7 +76,7 @@ done
 
 echo ""
 echo -e "${CYAN}╔═══════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║   KYPERIAN ELITE - Decision Engine V2 Deployment             ║${NC}"
+echo -e "${CYAN}║   NUBLE ELITE - Decision Engine V2 Deployment                ║${NC}"
 echo -e "${CYAN}║   Institutional-Grade Multi-Layer Analysis                   ║${NC}"
 echo -e "${CYAN}╚═══════════════════════════════════════════════════════════════╝${NC}"
 echo ""
@@ -132,7 +132,7 @@ aws cloudformation deploy \
     --capabilities CAPABILITY_NAMED_IAM \
     --profile "$AWS_PROFILE" \
     --region "$AWS_REGION" \
-    --tags Application=KYPERIAN Environment=$ENVIRONMENT Component=DecisionEngineV2
+    --tags Application=NUBLE Environment=$ENVIRONMENT Component=DecisionEngineV2
 
 echo -e "${GREEN}✓ Stack deployed${NC}"
 

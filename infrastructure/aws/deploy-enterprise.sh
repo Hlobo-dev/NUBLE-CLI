@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================
-# KYPERIAN ELITE - Enterprise AWS Deployment Script
+# NUBLE ELITE - Enterprise AWS Deployment Script
 # ============================================================
 # Full infrastructure deployment with production-grade features
 # 
@@ -25,7 +25,7 @@ set -euo pipefail
 ENVIRONMENT="${1:-production}"
 ACTION="${2:-deploy}"
 AWS_REGION="${AWS_REGION:-us-east-1}"
-PROJECT_NAME="kyperian"
+PROJECT_NAME="nuble"
 STACK_PREFIX="${PROJECT_NAME}-${ENVIRONMENT}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -446,7 +446,7 @@ deploy_monitoring() {
     log_success "Monitoring stack deployed successfully"
     
     # Output dashboard URL
-    log_info "Dashboard: https://${AWS_REGION}.console.aws.amazon.com/cloudwatch/home?region=${AWS_REGION}#dashboards:name=KYPERIAN-${ENVIRONMENT}-Main"
+    log_info "Dashboard: https://${AWS_REGION}.console.aws.amazon.com/cloudwatch/home?region=${AWS_REGION}#dashboards:name=NUBLE-${ENVIRONMENT}-Main"
 }
 
 # ============================================================
@@ -454,7 +454,7 @@ deploy_monitoring() {
 # ============================================================
 
 deploy_all() {
-    log_header "KYPERIAN ELITE - Full Deployment"
+    log_header "NUBLE ELITE - Full Deployment"
     
     local start_time=$(date +%s)
     
@@ -480,7 +480,7 @@ deploy_all() {
     
     echo ""
     echo -e "${GREEN}============================================================${NC}"
-    echo -e "${GREEN}  🚀 KYPERIAN ELITE DEPLOYMENT SUCCESSFUL!${NC}"
+    echo -e "${GREEN}  🚀 NUBLE ELITE DEPLOYMENT SUCCESSFUL!${NC}"
     echo -e "${GREEN}============================================================${NC}"
     echo ""
     echo -e "  ${CYAN}Environment:${NC} ${ENVIRONMENT}"
@@ -497,7 +497,7 @@ deploy_all() {
     fi
     
     echo ""
-    echo -e "  ${CYAN}Dashboard:${NC} https://${AWS_REGION}.console.aws.amazon.com/cloudwatch/home?region=${AWS_REGION}#dashboards:name=KYPERIAN-${ENVIRONMENT}-Main"
+    echo -e "  ${CYAN}Dashboard:${NC} https://${AWS_REGION}.console.aws.amazon.com/cloudwatch/home?region=${AWS_REGION}#dashboards:name=NUBLE-${ENVIRONMENT}-Main"
     echo ""
 }
 
@@ -508,7 +508,7 @@ deploy_all() {
 delete_all() {
     log_header "Deleting All Stacks"
     
-    log_warning "This will delete ALL KYPERIAN resources in ${ENVIRONMENT}!"
+    log_warning "This will delete ALL NUBLE resources in ${ENVIRONMENT}!"
     read -p "Are you sure? (type 'yes' to confirm): " confirm
     
     if [[ "${confirm}" != "yes" ]]; then
@@ -621,7 +621,7 @@ test_webhook() {
 
 print_help() {
     echo ""
-    echo "KYPERIAN ELITE - Enterprise AWS Deployment"
+    echo "NUBLE ELITE - Enterprise AWS Deployment"
     echo ""
     echo "Usage: $0 [environment] [action]"
     echo ""
