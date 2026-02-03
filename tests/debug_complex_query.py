@@ -24,7 +24,7 @@ if env_file.exists():
 
 
 async def debug_complex_query():
-    from kyperian.agents.orchestrator import OrchestratorAgent
+    from nuble.agents.orchestrator import OrchestratorAgent
     
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:

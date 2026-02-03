@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-KYPERIAN Production Configuration
+NUBLE Production Configuration
 
 Based on validated audit results (February 1, 2026):
 - Alpha: 13.8% (t=3.21)
@@ -240,7 +240,7 @@ def get_config(phase: str = "paper") -> ProductionConfig:
 
 if __name__ == "__main__":
     print("="*60)
-    print("KYPERIAN Production Configuration")
+    print("NUBLE Production Configuration")
     print("="*60)
     
     config = get_config("paper")

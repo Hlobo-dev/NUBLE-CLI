@@ -32,7 +32,7 @@ References:
 [1] López de Prado, M. (2018). Advances in Financial Machine Learning. Wiley. Chapter 5.
 [2] Hosking, J.R.M. (1981). "Fractional Differencing." Biometrika.
 
-Author: KYPERIAN Institutional
+Author: NUBLE Institutional
 Version: 2.0.0 (Lopez de Prado Compliant)
 """
 

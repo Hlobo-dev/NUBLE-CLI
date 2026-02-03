@@ -1,10 +1,10 @@
 """
-KYPERIAN Crypto Module Quick Test
+NUBLE Crypto Module Quick Test
 Tests all crypto components without interactive prompts
 """
 
 import sys
-sys.path.insert(0, "/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI")
+sys.path.insert(0, "/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI")
 
 import time
 from datetime import datetime, timedelta
@@ -12,7 +12,7 @@ import socket
 socket.setdefaulttimeout(10)  # 10 second timeout for all connections
 
 print("=" * 70)
-print("🚀 KYPERIAN CRYPTO MODULE - QUICK TEST")
+print("🚀 NUBLE CRYPTO MODULE - QUICK TEST")
 print("=" * 70)
 print(f"📅 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 print("=" * 70)
@@ -28,7 +28,7 @@ print("\n🧪 TEST 1: CRYPTONEWS API")
 print("-" * 50)
 
 try:
-    from src.kyperian.news.crypto_client import CryptoNewsClient
+    from src.nuble.news.crypto_client import CryptoNewsClient
     
     client = CryptoNewsClient()
     
@@ -66,7 +66,7 @@ print("\n🧪 TEST 2: COINDESK API")
 print("-" * 50)
 
 try:
-    from src.kyperian.news.coindesk_client import CoinDeskClient
+    from src.nuble.news.coindesk_client import CoinDeskClient
     
     client = CoinDeskClient()
     
@@ -109,7 +109,7 @@ print("\n🧪 TEST 3: ASSET DETECTOR")
 print("-" * 50)
 
 try:
-    from src.kyperian.assets.detector import AssetDetector, AssetClass
+    from src.nuble.assets.detector import AssetDetector, AssetClass
     
     detector = AssetDetector()
     
@@ -146,7 +146,7 @@ print("\n🧪 TEST 4: CRYPTO ANALYZER")
 print("-" * 50)
 
 try:
-    from src.kyperian.assets.crypto_analyzer import CryptoAnalyzer
+    from src.nuble.assets.crypto_analyzer import CryptoAnalyzer
     
     # Initialize without FinBERT for speed
     analyzer = CryptoAnalyzer(load_finbert=False)

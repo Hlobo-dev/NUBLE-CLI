@@ -1,6 +1,6 @@
 <div align="center">
   
-  # 🔮 KYPERIAN
+  # 🔮 NUBLE
   
   **Institutional-Grade AI Investment Research Platform**
   
@@ -10,13 +10,13 @@
   [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
   [![Claude](https://img.shields.io/badge/AI-Claude%20Opus%204.5-purple.svg)](https://anthropic.com)
 
-  ![KYPERIAN Demo](demo/demo.png) 
+  ![NUBLE Demo](demo/demo.png) 
   
 </div>
 
-## ✨ What is KYPERIAN?
+## ✨ What is NUBLE?
 
-KYPERIAN is an institutional-grade AI investment research platform that combines the power of Claude Opus 4.5 with real-time financial data, SEC filings analysis, and advanced machine learning. Built for professional traders, analysts, and investors who demand the best.
+NUBLE is an institutional-grade AI investment research platform that combines the power of Claude Opus 4.5 with real-time financial data, SEC filings analysis, and advanced machine learning. Built for professional traders, analysts, and investors who demand the best.
 
 ### Key Features
 
@@ -33,8 +33,8 @@ KYPERIAN is an institutional-grade AI investment research platform that combines
 
 \`\`\`bash
 # Clone the repository
-git clone https://github.com/Hlobo-dev/KYPERIAN-CLI.git
-cd KYPERIAN-CLI
+git clone https://github.com/Hlobo-dev/NUBLE-CLI.git
+cd NUBLE-CLI
 
 # Create virtual environment
 python -m venv .venv
@@ -51,9 +51,9 @@ pip install -e .
    \`\`\`bash
    echo 'ANTHROPIC_API_KEY=sk-ant-your-key-here' > .env
    \`\`\`
-3. **Launch KYPERIAN**:
+3. **Launch NUBLE**:
    \`\`\`bash
-   kyperian
+   nuble
    \`\`\`
 
 ## 💡 Example Queries
@@ -70,7 +70,7 @@ pip install -e .
 
 \`\`\`
 src/
-├── kyperian/         # CLI Application
+├── nuble/         # CLI Application
 │   ├── cli.py        # Interactive shell
 │   ├── llm.py        # Claude/OpenAI integration
 │   ├── manager.py    # Query orchestration
@@ -110,5 +110,5 @@ GPL-3.0 License - See [LICENSE](LICENSE) for details.
 ---
 
 <div align="center">
-  <b>KYPERIAN</b> - Institutional-Grade AI Investment Research
+  <b>NUBLE</b> - Institutional-Grade AI Investment Research
 </div>

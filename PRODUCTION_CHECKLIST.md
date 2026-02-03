@@ -1,4 +1,4 @@
-# 🏆 KYPERIAN ELITE INSTITUTIONAL TRADING SYSTEM
+# 🏆 NUBLE ELITE INSTITUTIONAL TRADING SYSTEM
 ## Phase 6: Production Readiness Checklist
 
 **Generated:** February 1, 2026  
@@ -9,7 +9,7 @@
 
 ## 📋 EXECUTIVE SUMMARY
 
-The KYPERIAN Elite Multi-Agent Institutional Trading System has completed **rigorous 6-phase validation** and is certified **PRODUCTION READY**.
+The NUBLE Elite Multi-Agent Institutional Trading System has completed **rigorous 6-phase validation** and is certified **PRODUCTION READY**.
 
 ### Validation Results Overview
 
@@ -29,7 +29,7 @@ The KYPERIAN Elite Multi-Agent Institutional Trading System has completed **rigo
 ### Core Components
 
 ```
-KYPERIAN Elite Trading System
+NUBLE Elite Trading System
 ├── 🧠 Orchestrator (Master Brain)
 │   └── Claude Sonnet 4 (claude-sonnet-4-20250514)
 │
@@ -231,8 +231,8 @@ Result: 8/8 PASSED (100%)
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/Hlobo-dev/KYPERIAN-CLI.git
-cd KYPERIAN-CLI
+git clone https://github.com/Hlobo-dev/NUBLE-CLI.git
+cd NUBLE-CLI
 
 # 2. Create virtual environment
 python3 -m venv .venv
@@ -249,14 +249,14 @@ cp .env.example .env
 python tests/test_integration_final.py
 
 # 6. Run the system
-python -m src.kyperian
+python -m src.nuble
 ```
 
 ### Post-Deployment Verification
 
 ```bash
 # Quick health check
-python -c "from src.kyperian.agents.orchestrator import OrchestratorAgent; print('✅ System OK')"
+python -c "from src.nuble.agents.orchestrator import OrchestratorAgent; print('✅ System OK')"
 
 # Full integration test
 python tests/test_integration_final.py
@@ -267,9 +267,9 @@ python tests/test_integration_final.py
 ## 📁 FILE STRUCTURE
 
 ```
-KYPERIAN-CLI/
+NUBLE-CLI/
 ├── src/
-│   ├── kyperian/
+│   ├── nuble/
 │   │   ├── agents/                 # 🤖 Multi-Agent System
 │   │   │   ├── orchestrator.py     # Master brain (Claude Sonnet 4)
 │   │   │   ├── base.py             # Agent base classes
@@ -353,9 +353,9 @@ ALPHA_VANTAGE_API_KEY=...              # Alternative data
 FINNHUB_API_KEY=...                    # News data
 
 # Optional - Configuration
-KYPERIAN_LOG_LEVEL=INFO                # Logging level
-KYPERIAN_MAX_AGENTS=5                  # Max parallel agents
-KYPERIAN_TIMEOUT=30                    # Agent timeout (seconds)
+NUBLE_LOG_LEVEL=INFO                # Logging level
+NUBLE_MAX_AGENTS=5                  # Max parallel agents
+NUBLE_TIMEOUT=30                    # Agent timeout (seconds)
 ```
 
 ### Model Configuration
@@ -413,7 +413,7 @@ OrchestratorConfig(
 |-------|----------|
 | Import errors | Run `pip install -e .` |
 | API key errors | Check `.env` file |
-| Timeout errors | Increase `KYPERIAN_TIMEOUT` |
+| Timeout errors | Increase `NUBLE_TIMEOUT` |
 | Memory errors | Reduce `max_parallel_agents` |
 
 ### Common Commands
@@ -423,17 +423,17 @@ OrchestratorConfig(
 python tests/test_integration_final.py
 
 # Interactive CLI
-python -m src.kyperian
+python -m src.nuble
 
 # Check agent status
-python -c "from src.kyperian.agents.orchestrator import OrchestratorAgent; o = OrchestratorAgent(); print(f'Agents: {len(o.agents)}')"
+python -c "from src.nuble.agents.orchestrator import OrchestratorAgent; o = OrchestratorAgent(); print(f'Agents: {len(o.agents)}')"
 ```
 
 ---
 
 ## 🎉 CONCLUSION
 
-**The KYPERIAN Elite Multi-Agent Institutional Trading System is PRODUCTION READY.**
+**The NUBLE Elite Multi-Agent Institutional Trading System is PRODUCTION READY.**
 
 ### Key Achievements
 
@@ -455,5 +455,5 @@ python -c "from src.kyperian.agents.orchestrator import OrchestratorAgent; o = O
 
 **🏆 SYSTEM STATUS: PRODUCTION READY**
 
-*Validated by: KYPERIAN Validation Suite v6.0*  
+*Validated by: NUBLE Validation Suite v6.0*  
 *Date: February 1, 2026*

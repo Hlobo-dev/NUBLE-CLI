@@ -354,7 +354,7 @@ class AdversarialTester:
         print("PHASE 8: ADVERSARIAL TESTING - TRYING TO BREAK THE SYSTEM")
         print("="*70)
         
-        from src.kyperian.agents.orchestrator import OrchestratorAgent
+        from src.nuble.agents.orchestrator import OrchestratorAgent
         orchestrator = OrchestratorAgent(api_key=self.api_key)
         
         # Group tests by category

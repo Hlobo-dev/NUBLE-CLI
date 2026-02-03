@@ -7,7 +7,7 @@ sys.path.insert(0, 'src')
 sys.path.insert(0, '.')
 
 print("="*70)
-print("KYPERIAN INSTITUTIONAL AUDIT - QUICK TEST")
+print("NUBLE INSTITUTIONAL AUDIT - QUICK TEST")
 print("="*70)
 
 # Import modules

@@ -1,5 +1,5 @@
 """
-KYPERIAN ELITE - Decision Engine V2 Lambda Handler
+NUBLE ELITE - Decision Engine V2 Lambda Handler
 ====================================================
 Serverless handler for the institutional-grade decision engine.
 
@@ -9,7 +9,7 @@ Features:
 - Sends notifications for high-confidence trades
 - Stores decisions for tracking
 
-Author: KYPERIAN ELITE
+Author: NUBLE ELITE
 Version: 2.0.0
 """
 
@@ -42,8 +42,8 @@ BOTO_CONFIG = Config(
 )
 
 # Environment
-SIGNALS_TABLE = os.environ.get('DYNAMODB_SIGNALS_TABLE', 'kyperian-production-signals')
-DECISIONS_TABLE = os.environ.get('DYNAMODB_DECISIONS_TABLE', 'kyperian-production-decisions')
+SIGNALS_TABLE = os.environ.get('DYNAMODB_SIGNALS_TABLE', 'nuble-production-signals')
+DECISIONS_TABLE = os.environ.get('DYNAMODB_DECISIONS_TABLE', 'nuble-production-decisions')
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '')
 TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID', '')
 DISCORD_WEBHOOK_URL = os.environ.get('DISCORD_WEBHOOK_URL', '')
@@ -610,7 +610,7 @@ def format_telegram_message(decision: Dict) -> str:
     setup = decision['trade_setup']
     
     message = f"""
-{emoji} <b>KYPERIAN ELITE V2 ALERT</b> {emoji}
+{emoji} <b>NUBLE ELITE V2 ALERT</b> {emoji}
 
 <b>{symbol}</b> {dir_emoji} <b>{direction}</b>
 Strength: {strength} | Confidence: {confidence:.1f}%
@@ -787,7 +787,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # Determine what to process
         source = event.get('source', '')
         
-        if source == 'kyperian.signals':
+        if source == 'nuble.signals':
             # New signal arrived
             detail = event.get('detail', {})
             symbol = detail.get('symbol')
@@ -919,7 +919,7 @@ def handle_api_request(event: Dict, engine: InlineDecisionEngine) -> Dict:
         'statusCode': 200,
         'headers': headers,
         'body': json.dumps({
-            'service': 'KYPERIAN Decision Engine V2',
+            'service': 'NUBLE Decision Engine V2',
             'version': '2.0.0',
             'endpoints': [
                 '/dashboard - Get all symbol analyses',

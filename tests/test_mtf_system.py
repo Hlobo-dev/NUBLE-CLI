@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-KYPERIAN ELITE: Multi-Timeframe System Tests
+NUBLE ELITE: Multi-Timeframe System Tests
 
 Tests the complete institutional multi-timeframe signal system:
 1. TimeframeManager - Signal storage and freshness
@@ -17,7 +17,7 @@ import json
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from kyperian.signals import (
+from nuble.signals import (
     TimeframeManager,
     TimeframeSignal,
     Timeframe,
@@ -639,7 +639,7 @@ def test_full_integration():
 def main():
     """Run all tests."""
     print("="*60)
-    print("KYPERIAN ELITE: MULTI-TIMEFRAME SYSTEM TESTS")
+    print("NUBLE ELITE: MULTI-TIMEFRAME SYSTEM TESTS")
     print("="*60)
     print(f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     

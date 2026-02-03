@@ -13,11 +13,11 @@ from dataclasses import dataclass
 print("✅ dataclasses imported")
 
 print("Step 3: Testing base module...")
-from kyperian.agents.base import AgentType, SpecializedAgent
+from nuble.agents.base import AgentType, SpecializedAgent
 print("✅ base imported")
 
 print("Step 4: Testing market_analyst...")
-from kyperian.agents.market_analyst import MarketAnalystAgent
+from nuble.agents.market_analyst import MarketAnalystAgent
 print("✅ market_analyst imported")
 
 print("Step 5: Creating MarketAnalystAgent...")

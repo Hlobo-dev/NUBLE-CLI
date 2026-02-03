@@ -1,6 +1,6 @@
 {
   "system": {
-    "name": "KYPERIAN Elite Multi-Agent Institutional Trading System",
+    "name": "NUBLE Elite Multi-Agent Institutional Trading System",
     "version": "1.0.0",
     "status": "PRODUCTION_READY",
     "certification_date": "2026-02-01"
@@ -44,7 +44,7 @@
   "architecture": {
     "orchestrator": {
       "model": "claude-sonnet-4-20250514",
-      "file": "src/kyperian/agents/orchestrator.py"
+      "file": "src/nuble/agents/orchestrator.py"
     },
     "agents": [
       {

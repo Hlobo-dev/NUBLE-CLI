@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: |
-  KYPERIAN ELITE - Enterprise Signal Validator Lambda
+  NUBLE ELITE - Enterprise Signal Validator Lambda
   =====================================================
   Ultra-fast signal validation with <10ms target latency
   Features:
@@ -46,7 +46,7 @@ Resources:
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub kyperian-${Environment}-lambda-execution
+      RoleName: !Sub nuble-${Environment}-lambda-execution
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -112,7 +112,7 @@ Resources:
                   - ssm:GetParameters
                   - ssm:GetParametersByPath
                 Resource:
-                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/kyperian/*
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/nuble/*
         
         - PolicyName: CloudWatchLogs
           PolicyDocument:
@@ -137,7 +137,7 @@ Resources:
                 Resource: '*'
                 Condition:
                   StringEquals:
-                    cloudwatch:namespace: KYPERIAN
+                    cloudwatch:namespace: NUBLE
 
   # ============================================================
   # LAMBDA FUNCTION
@@ -147,7 +147,7 @@ Resources:
     Type: AWS::Lambda::Function
     DependsOn: LambdaExecutionRole
     Properties:
-      FunctionName: !Sub kyperian-${Environment}-signal-validator
+      FunctionName: !Sub nuble-${Environment}-signal-validator
       Description: Ultra-fast signal validation for TradingView webhooks (<10ms target)
       Runtime: python3.11
       Handler: handler.lambda_handler
@@ -170,8 +170,8 @@ Resources:
       Environment:
         Variables:
           ENVIRONMENT: !Ref Environment
-          POWERTOOLS_SERVICE_NAME: kyperian-signal-validator
-          POWERTOOLS_METRICS_NAMESPACE: KYPERIAN
+          POWERTOOLS_SERVICE_NAME: nuble-signal-validator
+          POWERTOOLS_METRICS_NAMESPACE: NUBLE
           LOG_LEVEL: INFO
           DYNAMODB_SIGNALS_TABLE: !Ref SignalsTable
           DYNAMODB_DECISIONS_TABLE: !Ref DecisionsTable
@@ -192,7 +192,7 @@ Resources:
         - Key: Service
           Value: signal-validator
         - Key: CostCenter
-          Value: kyperian-trading
+          Value: nuble-trading
 
   # Lambda Version for Alias
   SignalValidatorVersion:
@@ -217,7 +217,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Security group for Lambda functions
-      GroupName: !Sub kyperian-${Environment}-lambda-sg
+      GroupName: !Sub nuble-${Environment}-lambda-sg
       VpcId:
         Fn::ImportValue: !Sub ${NetworkStackName}-VpcId
       SecurityGroupEgress:
@@ -225,7 +225,7 @@ Resources:
           CidrIp: 0.0.0.0/0
       Tags:
         - Key: Name
-          Value: !Sub kyperian-${Environment}-lambda-sg
+          Value: !Sub nuble-${Environment}-lambda-sg
 
   # Lambda Permission for API Gateway
   LambdaApiGatewayPermission:
@@ -252,7 +252,7 @@ Resources:
   LambdaLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub /aws/lambda/kyperian-${Environment}-signal-validator
+      LogGroupName: !Sub /aws/lambda/nuble-${Environment}-signal-validator
       RetentionInDays: 30
       Tags:
         - Key: Environment
@@ -265,7 +265,7 @@ Resources:
   DeadLetterQueue:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: !Sub kyperian-${Environment}-dlq
+      QueueName: !Sub nuble-${Environment}-dlq
       MessageRetentionPeriod: 1209600  # 14 days
       VisibilityTimeout: 300
       Tags:
@@ -275,7 +275,7 @@ Resources:
   SignalProcessingQueue:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: !Sub kyperian-${Environment}-signals
+      QueueName: !Sub nuble-${Environment}-signals
       VisibilityTimeout: 300
       MessageRetentionPeriod: 86400  # 1 day
       RedrivePolicy:
@@ -292,18 +292,18 @@ Resources:
   SignalEventBus:
     Type: AWS::Events::EventBus
     Properties:
-      Name: !Sub kyperian-${Environment}-signals
+      Name: !Sub nuble-${Environment}-signals
 
   # Rule to log all events for debugging
   EventLoggingRule:
     Type: AWS::Events::Rule
     Properties:
-      Name: !Sub kyperian-${Environment}-log-all-events
+      Name: !Sub nuble-${Environment}-log-all-events
       EventBusName: !Ref SignalEventBus
       State: ENABLED
       EventPattern:
         source:
-          - prefix: kyperian
+          - prefix: nuble
       Targets:
         - Id: cloudwatch-logs
           Arn: !GetAtt EventLogGroup.Arn
@@ -311,14 +311,14 @@ Resources:
   EventLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub /aws/events/kyperian-${Environment}
+      LogGroupName: !Sub /aws/events/nuble-${Environment}
       RetentionInDays: 14
 
   # EventBridge to CloudWatch Logs permission
   EventLogGroupPolicy:
     Type: AWS::Logs::ResourcePolicy
     Properties:
-      PolicyName: !Sub kyperian-${Environment}-eventbridge-logs
+      PolicyName: !Sub nuble-${Environment}-eventbridge-logs
       PolicyDocument: !Sub |
         {
           "Version": "2012-10-17",
@@ -335,12 +335,12 @@ Resources:
   SignalToSQSRule:
     Type: AWS::Events::Rule
     Properties:
-      Name: !Sub kyperian-${Environment}-signal-to-sqs
+      Name: !Sub nuble-${Environment}-signal-to-sqs
       EventBusName: !Ref SignalEventBus
       State: ENABLED
       EventPattern:
         source:
-          - kyperian.signal.validator
+          - nuble.signal.validator
         detail-type:
           - SignalValidated
       Targets:
@@ -374,7 +374,7 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      TableName: !Sub kyperian-${Environment}-signals
+      TableName: !Sub nuble-${Environment}-signals
       BillingMode: PAY_PER_REQUEST
       
       AttributeDefinitions:
@@ -444,7 +444,7 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      TableName: !Sub kyperian-${Environment}-decisions
+      TableName: !Sub nuble-${Environment}-decisions
       BillingMode: PAY_PER_REQUEST
       
       AttributeDefinitions:
@@ -500,7 +500,7 @@ Resources:
   SignalsTableParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /kyperian/dynamodb/signals-table
+      Name: /nuble/dynamodb/signals-table
       Type: String
       Value: !Ref SignalsTable
       Description: DynamoDB Signals table name
@@ -510,7 +510,7 @@ Resources:
   DecisionsTableParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /kyperian/dynamodb/decisions-table
+      Name: /nuble/dynamodb/decisions-table
       Type: String
       Value: !Ref DecisionsTable
       Description: DynamoDB Decisions table name
@@ -520,7 +520,7 @@ Resources:
   EventBusParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /kyperian/eventbridge/bus-name
+      Name: /nuble/eventbridge/bus-name
       Type: String
       Value: !Ref SignalEventBus
       Description: EventBridge bus name for signals
@@ -534,7 +534,7 @@ Resources:
   LambdaErrorsAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub kyperian-${Environment}-lambda-errors
+      AlarmName: !Sub nuble-${Environment}-lambda-errors
       AlarmDescription: Lambda function error rate is high
       MetricName: Errors
       Namespace: AWS/Lambda
@@ -551,7 +551,7 @@ Resources:
   LambdaLatencyAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub kyperian-${Environment}-lambda-latency
+      AlarmName: !Sub nuble-${Environment}-lambda-latency
       AlarmDescription: Lambda p99 latency exceeds 50ms
       MetricName: Duration
       Namespace: AWS/Lambda
@@ -568,7 +568,7 @@ Resources:
   LambdaThrottlesAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub kyperian-${Environment}-lambda-throttles
+      AlarmName: !Sub nuble-${Environment}-lambda-throttles
       AlarmDescription: Lambda function is being throttled
       MetricName: Throttles
       Namespace: AWS/Lambda
@@ -585,7 +585,7 @@ Resources:
   DLQMessagesAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub kyperian-${Environment}-dlq-messages
+      AlarmName: !Sub nuble-${Environment}-dlq-messages
       AlarmDescription: Messages in dead letter queue
       MetricName: ApproximateNumberOfMessagesVisible
       Namespace: AWS/SQS
@@ -602,7 +602,7 @@ Resources:
   DynamoDBThrottleAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub kyperian-${Environment}-dynamodb-throttle
+      AlarmName: !Sub nuble-${Environment}-dynamodb-throttle
       AlarmDescription: DynamoDB is being throttled
       MetricName: ThrottledRequests
       Namespace: AWS/DynamoDB

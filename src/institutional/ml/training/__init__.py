@@ -1,6 +1,6 @@
 # Training Infrastructure
 """
-Production-ready training infrastructure for KYPERIAN.
+Production-ready training infrastructure for NUBLE.
 
 Key components:
 - RealDataTrainer: Train on real market data from Polygon

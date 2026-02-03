@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-KYPERIAN ELITE - Comprehensive Agent Testing Suite
+NUBLE ELITE - Comprehensive Agent Testing Suite
 
 EVERY agent must pass EVERY test before we move forward.
 No assumptions. No shortcuts.
@@ -100,7 +100,7 @@ def test_all_agents_initialize():
     print("="*60)
     
     try:
-        from kyperian.agents import (
+        from nuble.agents import (
             MarketAnalystAgent,
             QuantAnalystAgent,
             NewsAnalystAgent,
@@ -180,7 +180,7 @@ async def test_agents_execute():
     print("="*60)
     
     try:
-        from kyperian.agents import (
+        from nuble.agents import (
             MarketAnalystAgent,
             QuantAnalystAgent,
             NewsAnalystAgent,
@@ -276,7 +276,7 @@ async def test_agent_data_quality():
     print("="*60)
     
     try:
-        from kyperian.agents import (
+        from nuble.agents import (
             MarketAnalystAgent,
             QuantAnalystAgent,
             AgentTask,
@@ -395,7 +395,7 @@ async def test_orchestrator_coordination():
     results.record("Orchestrator API key present", True)
     
     try:
-        from kyperian.agents import OrchestratorAgent
+        from nuble.agents import OrchestratorAgent
     except ImportError as e:
         results.record("Import Orchestrator", False, str(e))
         return
@@ -498,7 +498,7 @@ async def test_edge_cases():
     print("="*60)
     
     try:
-        from kyperian.agents import (
+        from nuble.agents import (
             MarketAnalystAgent,
             AgentTask,
             AgentResult,
@@ -613,7 +613,7 @@ async def test_performance():
     print("="*60)
     
     try:
-        from kyperian.agents import (
+        from nuble.agents import (
             MarketAnalystAgent,
             QuantAnalystAgent,
             AgentTask,
@@ -687,7 +687,7 @@ def test_memory_system():
     print("="*60)
     
     try:
-        from kyperian.memory import MemoryManager, UserProfile, Conversation, Prediction
+        from nuble.memory import MemoryManager, UserProfile, Conversation, Prediction
     except ImportError as e:
         results.record("Import memory", False, str(e))
         return
@@ -811,7 +811,7 @@ def test_api_structure():
         return
     
     try:
-        from kyperian.api.main import create_app
+        from nuble.api.main import create_app
         results.record("Import create_app", True)
     except ImportError as e:
         results.record("Import create_app", False, str(e))
@@ -822,7 +822,7 @@ def test_api_structure():
         results.record("Create app instance", True)
         
         # Check app properties
-        if app.title == "KYPERIAN Elite API":
+        if app.title == "NUBLE Elite API":
             results.record("App title correct", True)
         else:
             results.record("App title correct", False, f"Got: {app.title}")
@@ -853,7 +853,7 @@ def test_api_structure():
 async def run_all_tests():
     """Run all tests and report results."""
     print("\n" + "="*60)
-    print("KYPERIAN ELITE - COMPREHENSIVE TEST SUITE")
+    print("NUBLE ELITE - COMPREHENSIVE TEST SUITE")
     print("="*60)
     print(f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"Python: {sys.version.split()[0]}")

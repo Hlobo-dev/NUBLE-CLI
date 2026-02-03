@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Real Data Training Module for KYPERIAN
+Real Data Training Module for NUBLE
 
 This module trains and validates models on REAL market data from Polygon.io.
 

@@ -1,8 +1,8 @@
-# KYPERIAN ELITE - AWS Production Architecture
+# NUBLE ELITE - AWS Production Architecture
 
 ## 🏗️ Infrastructure Overview
 
-This directory contains the complete AWS infrastructure for KYPERIAN ELITE, designed for:
+This directory contains the complete AWS infrastructure for NUBLE ELITE, designed for:
 
 - **Sub-100ms latency** from signal to decision
 - **99.99% availability** with multi-AZ deployment
@@ -167,8 +167,8 @@ AWS_REGION=us-east-1
 ENVIRONMENT=production
 
 # DynamoDB Tables
-SIGNALS_TABLE=kyperian-production-signals
-DECISIONS_TABLE=kyperian-production-decisions
+SIGNALS_TABLE=nuble-production-signals
+DECISIONS_TABLE=nuble-production-decisions
 
 # Redis
 REDIS_HOST=<from-ssm-parameter>
@@ -178,9 +178,9 @@ REDIS_PORT=6379
 ### SSM Parameters
 
 The deployment automatically creates:
-- `/kyperian/redis/host` - Redis endpoint
-- `/kyperian/redis/port` - Redis port
-- `/kyperian/dynamodb/signals-table` - Signals table name
+- `/nuble/redis/host` - Redis endpoint
+- `/nuble/redis/port` - Redis port
+- `/nuble/dynamodb/signals-table` - Signals table name
 
 ## 🚨 Alerts
 
@@ -193,7 +193,7 @@ Automatic alerts are configured for:
 Configure email alerts:
 ```bash
 aws sns subscribe \
-  --topic-arn arn:aws:sns:us-east-1:ACCOUNT:kyperian-production-alerts \
+  --topic-arn arn:aws:sns:us-east-1:ACCOUNT:nuble-production-alerts \
   --protocol email \
   --notification-endpoint your@email.com
 ```
@@ -203,7 +203,7 @@ aws sns subscribe \
 ### GitHub Actions Example
 
 ```yaml
-name: Deploy KYPERIAN
+name: Deploy NUBLE
 
 on:
   push:
@@ -260,4 +260,4 @@ Alert message format:
 
 ---
 
-**🚀 KYPERIAN ELITE - The World's Most Intelligent Trading System**
+**🚀 NUBLE ELITE - The World's Most Intelligent Trading System**

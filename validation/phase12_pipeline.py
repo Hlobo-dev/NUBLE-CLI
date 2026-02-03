@@ -7,7 +7,7 @@ Target: REALISTIC Sharpe 0.8-1.2 (not fake 5.0)
 """
 
 import sys
-sys.path.insert(0, '/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI')
+sys.path.insert(0, '/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI')
 
 import numpy as np
 import pandas as pd
@@ -229,7 +229,7 @@ def run_walk_forward_validation(symbol: str = 'SPY') -> Dict[str, Any]:
     logger.info(f"{'='*60}")
     
     # Load data
-    data_path = f'/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI/data/train/{symbol}.csv'
+    data_path = f'/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI/data/train/{symbol}.csv'
     df = pd.read_csv(data_path)
     df['date'] = pd.to_datetime(df['date'] if 'date' in df.columns else df.iloc[:, 0])
     df.set_index('date', inplace=True)

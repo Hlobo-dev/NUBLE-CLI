@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-KYPERIAN Paper Trading Simulator
+NUBLE Paper Trading Simulator
 
 This module simulates real trading with paper money to validate
 the system before deploying real capital.
@@ -391,7 +391,7 @@ class PaperTrader:
 def run_paper_trading_demo():
     """Run a demo of paper trading."""
     print("="*60)
-    print("KYPERIAN Paper Trading Demo")
+    print("NUBLE Paper Trading Demo")
     print("="*60)
     
     # Initialize trader
@@ -492,7 +492,7 @@ def run_paper_trading_demo():
                   f"(Current: ${pos.current_price:.2f}, P&L: {pos.pnl_pct:+.2%})")
     
     # Save state
-    save_path = "/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI/data/paper_trading_state.json"
+    save_path = "/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI/data/paper_trading_state.json"
     trader.save_state(save_path)
     print(f"\n💾 State saved to: {save_path}")
     

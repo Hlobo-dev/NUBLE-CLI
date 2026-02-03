@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'KYPERIAN ELITE - Decision Engine Stack (Multi-Timeframe Fusion + Notifications)'
+Description: 'NUBLE ELITE - Decision Engine Stack (Multi-Timeframe Fusion + Notifications)'
 
 Parameters:
   Environment:
@@ -37,7 +37,7 @@ Resources:
   DecisionEngineLambdaRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub 'kyperian-${Environment}-decision-engine-role'
+      RoleName: !Sub 'nuble-${Environment}-decision-engine-role'
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -61,10 +61,10 @@ Resources:
                   - dynamodb:Scan
                   - dynamodb:UpdateItem
                 Resource:
-                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/kyperian-${Environment}-signals'
-                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/kyperian-${Environment}-signals/index/*'
-                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/kyperian-${Environment}-decisions'
-                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/kyperian-${Environment}-decisions/index/*'
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/nuble-${Environment}-signals'
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/nuble-${Environment}-signals/index/*'
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/nuble-${Environment}-decisions'
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/nuble-${Environment}-decisions/index/*'
         
         - PolicyName: EventBridgeAccess
           PolicyDocument:
@@ -73,7 +73,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - events:PutEvents
-                Resource: !Sub 'arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/kyperian-${Environment}-signals'
+                Resource: !Sub 'arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/nuble-${Environment}-signals'
         
         - PolicyName: CloudWatchMetrics
           PolicyDocument:
@@ -85,7 +85,7 @@ Resources:
                 Resource: '*'
                 Condition:
                   StringEquals:
-                    cloudwatch:namespace: KYPERIAN
+                    cloudwatch:namespace: NUBLE
 
   # ============================================================
   # LAMBDA FUNCTION
@@ -94,7 +94,7 @@ Resources:
   DecisionEngineLambda:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Sub 'kyperian-${Environment}-decision-engine'
+      FunctionName: !Sub 'nuble-${Environment}-decision-engine'
       Description: 'Multi-timeframe signal fusion and notification engine'
       Runtime: python3.11
       Handler: handler.lambda_handler
@@ -106,14 +106,14 @@ Resources:
       Environment:
         Variables:
           ENVIRONMENT: !Ref Environment
-          DYNAMODB_SIGNALS_TABLE: !Sub 'kyperian-${Environment}-signals'
-          DYNAMODB_DECISIONS_TABLE: !Sub 'kyperian-${Environment}-decisions'
+          DYNAMODB_SIGNALS_TABLE: !Sub 'nuble-${Environment}-signals'
+          DYNAMODB_DECISIONS_TABLE: !Sub 'nuble-${Environment}-decisions'
           TELEGRAM_BOT_TOKEN: !Ref TelegramBotToken
           TELEGRAM_CHAT_ID: !Ref TelegramChatId
           DISCORD_WEBHOOK_URL: !Ref DiscordWebhookUrl
           LOG_LEVEL: INFO
-          POWERTOOLS_SERVICE_NAME: kyperian-decision-engine
-          POWERTOOLS_METRICS_NAMESPACE: KYPERIAN
+          POWERTOOLS_SERVICE_NAME: nuble-decision-engine
+          POWERTOOLS_METRICS_NAMESPACE: NUBLE
       Code:
         ZipFile: |
           # Placeholder - will be replaced by actual deployment
@@ -121,7 +121,7 @@ Resources:
               return {'statusCode': 200, 'body': 'Deploy actual code'}
       Tags:
         - Key: Service
-          Value: kyperian-decision-engine
+          Value: nuble-decision-engine
         - Key: Environment
           Value: !Ref Environment
 
@@ -132,7 +132,7 @@ Resources:
   ScheduledCheckRule:
     Type: AWS::Events::Rule
     Properties:
-      Name: !Sub 'kyperian-${Environment}-alignment-check'
+      Name: !Sub 'nuble-${Environment}-alignment-check'
       Description: 'Check signal alignment every N minutes'
       ScheduleExpression: !Sub 'rate(${CheckIntervalMinutes} minutes)'
       State: ENABLED
@@ -155,12 +155,12 @@ Resources:
   NewSignalRule:
     Type: AWS::Events::Rule
     Properties:
-      Name: !Sub 'kyperian-${Environment}-new-signal-trigger'
+      Name: !Sub 'nuble-${Environment}-new-signal-trigger'
       Description: 'Trigger decision engine when new signal arrives'
-      EventBusName: !Sub 'kyperian-${Environment}-signals'
+      EventBusName: !Sub 'nuble-${Environment}-signals'
       EventPattern:
         source:
-          - kyperian.signals
+          - nuble.signals
         detail-type:
           - SignalReceived
       State: ENABLED
@@ -184,7 +184,7 @@ Resources:
     Type: AWS::ApiGatewayV2::Integration
     Properties:
       ApiId: 
-        Fn::ImportValue: !Sub 'kyperian-${Environment}-api-id'
+        Fn::ImportValue: !Sub 'nuble-${Environment}-api-id'
       IntegrationType: AWS_PROXY
       IntegrationUri: !GetAtt DecisionEngineLambda.Arn
       PayloadFormatVersion: '2.0'
@@ -193,7 +193,7 @@ Resources:
     Type: AWS::ApiGatewayV2::Route
     Properties:
       ApiId:
-        Fn::ImportValue: !Sub 'kyperian-${Environment}-api-id'
+        Fn::ImportValue: !Sub 'nuble-${Environment}-api-id'
       RouteKey: 'GET /dashboard'
       Target: !Sub 'integrations/${DecisionApiIntegration}'
   
@@ -201,7 +201,7 @@ Resources:
     Type: AWS::ApiGatewayV2::Route
     Properties:
       ApiId:
-        Fn::ImportValue: !Sub 'kyperian-${Environment}-api-id'
+        Fn::ImportValue: !Sub 'nuble-${Environment}-api-id'
       RouteKey: 'GET /status'
       Target: !Sub 'integrations/${DecisionApiIntegration}'
   
@@ -209,7 +209,7 @@ Resources:
     Type: AWS::ApiGatewayV2::Route
     Properties:
       ApiId:
-        Fn::ImportValue: !Sub 'kyperian-${Environment}-api-id'
+        Fn::ImportValue: !Sub 'nuble-${Environment}-api-id'
       RouteKey: 'GET /check/{symbol}'
       Target: !Sub 'integrations/${DecisionApiIntegration}'
   
@@ -222,7 +222,7 @@ Resources:
       SourceArn: !Sub 
         - 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*'
         - ApiId:
-            Fn::ImportValue: !Sub 'kyperian-${Environment}-api-id'
+            Fn::ImportValue: !Sub 'nuble-${Environment}-api-id'
 
   # ============================================================
   # CLOUDWATCH DASHBOARD
@@ -231,7 +231,7 @@ Resources:
   DecisionEngineDashboard:
     Type: AWS::CloudWatch::Dashboard
     Properties:
-      DashboardName: !Sub 'KYPERIAN-${Environment}-DecisionEngine'
+      DashboardName: !Sub 'NUBLE-${Environment}-DecisionEngine'
       DashboardBody: !Sub |
         {
           "widgets": [
@@ -244,7 +244,7 @@ Resources:
               "properties": {
                 "title": "Signal Alignment Checks",
                 "metrics": [
-                  ["KYPERIAN", "AlignmentChecks", "Service", "decision-engine"],
+                  ["NUBLE", "AlignmentChecks", "Service", "decision-engine"],
                   [".", "HighConfidenceSignals", ".", "."],
                   [".", "NotificationsSent", ".", "."]
                 ],
@@ -262,7 +262,7 @@ Resources:
               "properties": {
                 "title": "Lambda Performance",
                 "metrics": [
-                  ["AWS/Lambda", "Duration", "FunctionName", "kyperian-${Environment}-decision-engine"],
+                  ["AWS/Lambda", "Duration", "FunctionName", "nuble-${Environment}-decision-engine"],
                   [".", "Errors", ".", "."],
                   [".", "Invocations", ".", "."]
                 ],
@@ -279,7 +279,7 @@ Resources:
               "height": 6,
               "properties": {
                 "title": "Recent Decisions",
-                "query": "SOURCE '/aws/lambda/kyperian-${Environment}-decision-engine' | fields @timestamp, @message | filter @message like /Confidence:|ALIGNED|VETO/ | sort @timestamp desc | limit 50",
+                "query": "SOURCE '/aws/lambda/nuble-${Environment}-decision-engine' | fields @timestamp, @message | filter @message like /Confidence:|ALIGNED|VETO/ | sort @timestamp desc | limit 50",
                 "region": "${AWS::Region}"
               }
             }
@@ -293,7 +293,7 @@ Resources:
   DecisionEngineErrorAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub 'kyperian-${Environment}-decision-engine-errors'
+      AlarmName: !Sub 'nuble-${Environment}-decision-engine-errors'
       AlarmDescription: 'Decision Engine Lambda errors'
       MetricName: Errors
       Namespace: AWS/Lambda
@@ -312,14 +312,14 @@ Outputs:
     Description: 'Decision Engine Lambda ARN'
     Value: !GetAtt DecisionEngineLambda.Arn
     Export:
-      Name: !Sub 'kyperian-${Environment}-decision-engine-arn'
+      Name: !Sub 'nuble-${Environment}-decision-engine-arn'
   
   DecisionEngineLambdaName:
     Description: 'Decision Engine Lambda Name'
     Value: !Ref DecisionEngineLambda
     Export:
-      Name: !Sub 'kyperian-${Environment}-decision-engine-name'
+      Name: !Sub 'nuble-${Environment}-decision-engine-name'
   
   DashboardUrl:
     Description: 'CloudWatch Dashboard URL'
-    Value: !Sub 'https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=KYPERIAN-${Environment}-DecisionEngine'
+    Value: !Sub 'https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=NUBLE-${Environment}-DecisionEngine'

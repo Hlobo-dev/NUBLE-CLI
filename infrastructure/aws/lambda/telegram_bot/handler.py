@@ -1,9 +1,9 @@
 """
-KYPERIAN ADVISOR - TELEGRAM BOT HANDLER
+NUBLE ADVISOR - TELEGRAM BOT HANDLER
 =========================================
 
 Handles incoming Telegram messages for conversational AI interaction.
-This is the chat interface to the KYPERIAN ADVISOR.
+This is the chat interface to the NUBLE ADVISOR.
 
 Features:
 - Natural language Q&A about portfolio
@@ -21,7 +21,7 @@ Commands:
 /digest     - Daily digest
 /vix        - Current VIX
 
-Author: KYPERIAN ELITE
+Author: NUBLE ELITE
 Version: 5.0.0
 """
 
@@ -87,7 +87,7 @@ def send_typing_action(chat_id: str):
 
 
 def call_advisor_api(endpoint: str, method: str = "GET", body: Dict = None) -> Dict:
-    """Call the KYPERIAN ADVISOR API"""
+    """Call the NUBLE ADVISOR API"""
     if not ADVISOR_API_URL:
         return {"error": "ADVISOR_API_URL not configured"}
     
@@ -119,7 +119,7 @@ def call_claude(prompt: str) -> str:
     try:
         url = "https://api.anthropic.com/v1/messages"
         
-        system = f"""You are KYPERIAN, an elite AI wealth advisor for {OWNER_NAME}.
+        system = f"""You are NUBLE, an elite AI wealth advisor for {OWNER_NAME}.
 You're chatting via Telegram, so keep responses concise but helpful.
 Use emojis where appropriate but don't overdo it.
 If asked about specific trades or portfolio, provide actionable advice.
@@ -159,7 +159,7 @@ def get_vix() -> tuple:
     
     try:
         url = f"https://api.polygon.io/v2/aggs/ticker/VIX/prev?apiKey={POLYGON_API_KEY}"
-        req = urllib.request.Request(url, headers={"User-Agent": "KYPERIAN"})
+        req = urllib.request.Request(url, headers={"User-Agent": "NUBLE"})
         
         with urllib.request.urlopen(req, timeout=5) as response:
             data = json.loads(response.read().decode())
@@ -188,7 +188,7 @@ def handle_command(command: str, args: str, chat_id: str) -> str:
     if command == "start":
         return f"""👋 Hey {OWNER_NAME}!
 
-I'm <b>KYPERIAN</b>, your AI wealth advisor.
+I'm <b>NUBLE</b>, your AI wealth advisor.
 
 I'm here to help you make smarter trading decisions. I monitor markets 24/7, analyze signals, and keep you informed.
 
@@ -205,7 +205,7 @@ Or just ask me anything about markets or your portfolio!
 Let's build some wealth 📈"""
 
     elif command == "help":
-        return """🤖 <b>KYPERIAN Commands</b>
+        return """🤖 <b>NUBLE Commands</b>
 
 <b>Quick Info:</b>
 /status - System status
@@ -233,7 +233,7 @@ I'm powered by Claude AI and have real-time market data 🧠"""
         vix, vix_state = get_vix()
         mode = "🛡️ DEFENSIVE" if vix > 30 else "✅ NORMAL"
         
-        return f"""🤖 <b>KYPERIAN ADVISOR Status</b>
+        return f"""🤖 <b>NUBLE ADVISOR Status</b>
 
 <b>Version:</b> 5.0.0
 <b>Status:</b> ✅ Operational

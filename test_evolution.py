@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-KYPERIAN Evolution - Integration Test
+NUBLE Evolution - Integration Test
 
 Tests all Priority 1-3 modules together:
 1. Beta Hedge Module
@@ -209,7 +209,7 @@ def test_continuous_learning():
 def run_all_tests():
     """Run all integration tests."""
     print("="*60)
-    print("KYPERIAN EVOLUTION - INTEGRATION TEST")
+    print("NUBLE EVOLUTION - INTEGRATION TEST")
     print("="*60)
     print(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     
@@ -248,7 +248,7 @@ def run_all_tests():
     
     print("\n" + "="*60)
     if all_passed:
-        print("🎉 ALL TESTS PASSED - KYPERIAN EVOLUTION COMPLETE")
+        print("🎉 ALL TESTS PASSED - NUBLE EVOLUTION COMPLETE")
     else:
         print("⚠️ SOME TESTS FAILED - REVIEW REQUIRED")
     print("="*60)

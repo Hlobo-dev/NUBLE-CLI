@@ -3,10 +3,10 @@ requires = ["setuptools>=45", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "kyperian"
+name = "nuble"
 version = "1.0.0"
-description = "KYPERIAN - Institutional-Grade AI Investment Research Platform"
-authors = [{name = "KYPERIAN"}]
+description = "NUBLE - Institutional-Grade AI Investment Research Platform"
+authors = [{name = "NUBLE"}]
 license = {text = "GPL-3.0"}
 readme = "README.md"
 requires-python = ">=3.8"
@@ -27,7 +27,7 @@ dependencies = [
 ]
 
 [project.scripts]
-kyperian = "kyperian.cli:main"
+nuble = "nuble.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

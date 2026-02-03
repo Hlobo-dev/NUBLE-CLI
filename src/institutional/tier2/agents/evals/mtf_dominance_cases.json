@@ -1,0 +1,175 @@
+{
+  "agent_id": "mtf_dominance",
+  "version": "1.0",
+  "description": "Evaluation cases for MTF Dominance Agent - tests multi-timeframe trend analysis",
+  "cases": [
+    {
+      "name": "strong_bullish_alignment",
+      "description": "All timeframes show clear bullish trend",
+      "context": {
+        "symbol": "AAPL",
+        "proposed_action": "buy",
+        "current_price": 180.0,
+        "market_data": {
+          "trends": {
+            "1h": {"direction": "up", "strength": 0.8, "ma_position": "above"},
+            "4h": {"direction": "up", "strength": 0.75, "ma_position": "above"},
+            "1d": {"direction": "up", "strength": 0.85, "ma_position": "above"}
+          },
+          "mtf_alignment": 0.90
+        }
+      },
+      "expected_claim": "BULLISH",
+      "expected_evidence_keys": ["timeframe_analysis", "alignment_score", "dominant_trend"],
+      "acceptable_claims": [],
+      "tags": ["happy_path", "bullish"]
+    },
+    {
+      "name": "strong_bearish_alignment",
+      "description": "All timeframes show clear bearish trend",
+      "context": {
+        "symbol": "XYZ",
+        "proposed_action": "sell",
+        "current_price": 50.0,
+        "market_data": {
+          "trends": {
+            "1h": {"direction": "down", "strength": 0.85, "ma_position": "below"},
+            "4h": {"direction": "down", "strength": 0.80, "ma_position": "below"},
+            "1d": {"direction": "down", "strength": 0.90, "ma_position": "below"}
+          },
+          "mtf_alignment": 0.92
+        }
+      },
+      "expected_claim": "BEARISH",
+      "expected_evidence_keys": ["timeframe_analysis", "alignment_score"],
+      "acceptable_claims": [],
+      "tags": ["happy_path", "bearish"]
+    },
+    {
+      "name": "mixed_signals_short_term_bullish",
+      "description": "Short timeframe bullish but longer timeframes neutral/bearish",
+      "context": {
+        "symbol": "TSLA",
+        "proposed_action": "buy",
+        "current_price": 250.0,
+        "market_data": {
+          "trends": {
+            "1h": {"direction": "up", "strength": 0.75, "ma_position": "above"},
+            "4h": {"direction": "neutral", "strength": 0.30, "ma_position": "at"},
+            "1d": {"direction": "down", "strength": 0.60, "ma_position": "below"}
+          },
+          "mtf_alignment": 0.35
+        }
+      },
+      "expected_claim": "MIXED",
+      "expected_evidence_keys": ["timeframe_analysis", "alignment_score", "conflict_analysis"],
+      "acceptable_claims": ["NEUTRAL"],
+      "tags": ["edge_case", "mixed_signals"]
+    },
+    {
+      "name": "neutral_consolidation",
+      "description": "All timeframes showing sideways/neutral action",
+      "context": {
+        "symbol": "SPY",
+        "proposed_action": "hold",
+        "current_price": 450.0,
+        "market_data": {
+          "trends": {
+            "1h": {"direction": "neutral", "strength": 0.25, "ma_position": "at"},
+            "4h": {"direction": "neutral", "strength": 0.20, "ma_position": "at"},
+            "1d": {"direction": "neutral", "strength": 0.15, "ma_position": "at"}
+          },
+          "mtf_alignment": 0.20
+        }
+      },
+      "expected_claim": "NEUTRAL",
+      "expected_evidence_keys": ["timeframe_analysis", "alignment_score"],
+      "acceptable_claims": ["MIXED"],
+      "tags": ["consolidation", "neutral"]
+    },
+    {
+      "name": "higher_tf_dominance",
+      "description": "Daily trend strong, hourly showing pullback - should favor daily",
+      "context": {
+        "symbol": "NVDA",
+        "proposed_action": "buy",
+        "current_price": 500.0,
+        "market_data": {
+          "trends": {
+            "1h": {"direction": "down", "strength": 0.50, "ma_position": "below"},
+            "4h": {"direction": "up", "strength": 0.65, "ma_position": "above"},
+            "1d": {"direction": "up", "strength": 0.90, "ma_position": "above"}
+          },
+          "mtf_alignment": 0.55
+        }
+      },
+      "expected_claim": "BULLISH",
+      "expected_evidence_keys": ["timeframe_analysis", "dominant_trend", "pullback_detected"],
+      "acceptable_claims": ["MIXED"],
+      "tags": ["higher_tf_dominance", "pullback"]
+    },
+    {
+      "name": "missing_timeframe_data",
+      "description": "Incomplete data - should handle gracefully",
+      "context": {
+        "symbol": "AMD",
+        "proposed_action": "buy",
+        "current_price": 150.0,
+        "market_data": {
+          "trends": {
+            "1h": {"direction": "up", "strength": 0.70, "ma_position": "above"}
+          },
+          "mtf_alignment": null
+        }
+      },
+      "expected_claim": "INSUFFICIENT_DATA",
+      "expected_evidence_keys": ["data_quality_issues"],
+      "acceptable_claims": ["NEUTRAL", "MIXED"],
+      "tags": ["edge_case", "data_quality"]
+    },
+    {
+      "name": "extreme_alignment_bullish",
+      "description": "Perfect alignment with very high strength - strong conviction",
+      "context": {
+        "symbol": "QQQ",
+        "proposed_action": "buy",
+        "current_price": 400.0,
+        "market_data": {
+          "trends": {
+            "1h": {"direction": "up", "strength": 0.95, "ma_position": "above"},
+            "4h": {"direction": "up", "strength": 0.92, "ma_position": "above"},
+            "1d": {"direction": "up", "strength": 0.88, "ma_position": "above"},
+            "1w": {"direction": "up", "strength": 0.85, "ma_position": "above"}
+          },
+          "mtf_alignment": 0.98
+        }
+      },
+      "expected_claim": "BULLISH",
+      "expected_evidence_keys": ["timeframe_analysis", "alignment_score"],
+      "acceptable_claims": [],
+      "tags": ["high_conviction", "strong_trend"]
+    },
+    {
+      "name": "trend_reversal_in_progress",
+      "description": "Lower timeframes reversing while higher still show old trend",
+      "context": {
+        "symbol": "META",
+        "proposed_action": "buy",
+        "current_price": 350.0,
+        "market_data": {
+          "trends": {
+            "1h": {"direction": "up", "strength": 0.70, "ma_position": "above"},
+            "4h": {"direction": "up", "strength": 0.45, "ma_position": "crossing"},
+            "1d": {"direction": "down", "strength": 0.55, "ma_position": "below"}
+          },
+          "mtf_alignment": 0.40,
+          "potential_reversal": true
+        }
+      },
+      "expected_claim": "MIXED",
+      "expected_evidence_keys": ["timeframe_analysis", "reversal_signals"],
+      "acceptable_claims": ["NEUTRAL"],
+      "tags": ["reversal", "transition"]
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-KYPERIAN INSTITUTIONAL AUDIT
+NUBLE INSTITUTIONAL AUDIT
 ============================
 
 Master script that runs ALL audit modules on actual data.
@@ -868,7 +868,7 @@ class InstitutionalAudit:
     def run_full_audit(self):
         """Run complete institutional audit."""
         print("╔" + "═" * 68 + "╗")
-        print("║" + " KYPERIAN INSTITUTIONAL AUDIT ".center(68) + "║")
+        print("║" + " NUBLE INSTITUTIONAL AUDIT ".center(68) + "║")
         print("║" + f" {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ".center(68) + "║")
         print("╚" + "═" * 68 + "╝")
         

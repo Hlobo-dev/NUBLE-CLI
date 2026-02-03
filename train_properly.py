@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-KYPERIAN Proper Training Script
+NUBLE Proper Training Script
 
 This script fixes the overfitting issues by:
 1. Using proper regularization (L2, dropout, early stopping)

@@ -2,7 +2,7 @@
 """
 Phase 8: Baseline Comparison Test
 
-Compares KYPERIAN's ML-based strategy against naive buy-and-hold.
+Compares NUBLE's ML-based strategy against naive buy-and-hold.
 This proves the system adds value over passive investment.
 """
 import sys
@@ -17,7 +17,7 @@ logging.basicConfig(level=logging.WARNING)
 
 
 class BaselineComparisonTester:
-    """Compare KYPERIAN ML strategies vs buy-and-hold baseline."""
+    """Compare NUBLE ML strategies vs buy-and-hold baseline."""
     
     def __init__(self):
         self.results = {}
@@ -147,7 +147,7 @@ class BaselineComparisonTester:
     
     def regime_aware_strategy(self, df: pd.DataFrame, vol_lookback: int = 20, vol_threshold: float = 0.015) -> np.ndarray:
         """
-        Regime-aware strategy simulating KYPERIAN's ML approach:
+        Regime-aware strategy simulating NUBLE's ML approach:
         - Reduce exposure in high volatility
         - Size positions based on conviction
         - Combine momentum and mean reversion
@@ -206,7 +206,7 @@ class BaselineComparisonTester:
             'Buy & Hold (Baseline)': self.buy_and_hold_strategy(df),
             'Momentum (20-day)': self.momentum_strategy(df, lookback=20),
             'Mean Reversion': self.mean_reversion_strategy(df, lookback=20),
-            'KYPERIAN ML Simulation': self.regime_aware_strategy(df),
+            'NUBLE ML Simulation': self.regime_aware_strategy(df),
         }
         
         # Calculate metrics
@@ -228,17 +228,17 @@ class BaselineComparisonTester:
             print(f"{r['name']:<30} {r['annual_return']:>10.1%} {r['sharpe']:>10.2f} "
                   f"{r['max_drawdown']:>10.1%} {r['sortino']:>10.2f}")
         
-        # Compare KYPERIAN to baseline
+        # Compare NUBLE to baseline
         baseline = self.results['Buy & Hold (Baseline)']
-        kyperian = self.results['KYPERIAN ML Simulation']
+        nuble = self.results['NUBLE ML Simulation']
         
         print("\n" + "="*70)
-        print("KYPERIAN VS BASELINE ANALYSIS")
+        print("NUBLE VS BASELINE ANALYSIS")
         print("="*70)
         
-        sharpe_advantage = kyperian['sharpe'] - baseline['sharpe']
-        return_advantage = kyperian['annual_return'] - baseline['annual_return']
-        dd_improvement = baseline['max_drawdown'] - kyperian['max_drawdown']
+        sharpe_advantage = nuble['sharpe'] - baseline['sharpe']
+        return_advantage = nuble['annual_return'] - baseline['annual_return']
+        dd_improvement = baseline['max_drawdown'] - nuble['max_drawdown']
         
         print(f"\n📈 Return Advantage: {return_advantage:+.1%} annual")
         print(f"📊 Sharpe Advantage: {sharpe_advantage:+.2f}")
@@ -247,10 +247,10 @@ class BaselineComparisonTester:
         # Statistical significance test
         print("\n📊 STATISTICAL SIGNIFICANCE:")
         
-        kyperian_returns = strategies['KYPERIAN ML Simulation']
+        nuble_returns = strategies['NUBLE ML Simulation']
         baseline_returns = strategies['Buy & Hold (Baseline)']
         
-        excess_returns = kyperian_returns - baseline_returns
+        excess_returns = nuble_returns - baseline_returns
         excess_mean = np.mean(excess_returns) * 252
         excess_std = np.std(excess_returns) * np.sqrt(252)
         
@@ -293,13 +293,13 @@ class BaselineComparisonTester:
             concerns.append(f"Alpha not significant (t={t_stat:.2f})")
         
         # Check 4: Reasonable return
-        if kyperian['annual_return'] < 0:
-            concerns.append(f"Negative return ({kyperian['annual_return']:.1%})")
+        if nuble['annual_return'] < 0:
+            concerns.append(f"Negative return ({nuble['annual_return']:.1%})")
             passed = False
         
         if passed:
             print("🏆 BASELINE COMPARISON: PASSED")
-            print(f"   KYPERIAN demonstrates value over buy-and-hold")
+            print(f"   NUBLE demonstrates value over buy-and-hold")
         else:
             print("❌ BASELINE COMPARISON: FAILED")
         

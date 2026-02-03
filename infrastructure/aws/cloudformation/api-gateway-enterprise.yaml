@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: |
-  KYPERIAN ELITE - Enterprise API Gateway
+  NUBLE ELITE - Enterprise API Gateway
   ========================================
   High-performance HTTP API with:
   - WAF Web ACL with advanced rules
@@ -53,11 +53,11 @@ Resources:
   # HTTP API GATEWAY
   # ============================================================
   
-  KyperianApi:
+  NubleApi:
     Type: AWS::ApiGatewayV2::Api
     Properties:
-      Name: !Sub kyperian-${Environment}-api
-      Description: KYPERIAN ELITE Trading Signal API
+      Name: !Sub nuble-${Environment}-api
+      Description: NUBLE ELITE Trading Signal API
       ProtocolType: HTTP
       Version: '1.0'
       
@@ -77,11 +77,11 @@ Resources:
           - X-Amz-Date
           - X-Api-Key
           - X-Amz-Security-Token
-          - X-Kyperian-Source
-          - X-Kyperian-Timeframe
+          - X-Nuble-Source
+          - X-Nuble-Timeframe
         ExposeHeaders:
           - X-Request-Id
-          - X-Kyperian-Latency
+          - X-Nuble-Latency
         MaxAge: 86400
       
       # Disable default endpoint if custom domain is used
@@ -98,7 +98,7 @@ Resources:
   SignalValidatorIntegration:
     Type: AWS::ApiGatewayV2::Integration
     Properties:
-      ApiId: !Ref KyperianApi
+      ApiId: !Ref NubleApi
       IntegrationType: AWS_PROXY
       IntegrationUri:
         Fn::ImportValue: !Sub ${LambdaStackName}-LambdaAliasArn
@@ -114,7 +114,7 @@ Resources:
   HealthRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref KyperianApi
+      ApiId: !Ref NubleApi
       RouteKey: GET /health
       AuthorizationType: NONE
       Target: !Sub integrations/${SignalValidatorIntegration}
@@ -123,7 +123,7 @@ Resources:
   WebhookRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref KyperianApi
+      ApiId: !Ref NubleApi
       RouteKey: POST /webhook
       AuthorizationType: NONE
       Target: !Sub integrations/${SignalValidatorIntegration}
@@ -132,7 +132,7 @@ Resources:
   MTFWebhookRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref KyperianApi
+      ApiId: !Ref NubleApi
       RouteKey: POST /webhook/mtf
       AuthorizationType: NONE
       Target: !Sub integrations/${SignalValidatorIntegration}
@@ -141,7 +141,7 @@ Resources:
   SignalBySymbolRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref KyperianApi
+      ApiId: !Ref NubleApi
       RouteKey: GET /signals/{symbol}
       AuthorizationType: NONE
       Target: !Sub integrations/${SignalValidatorIntegration}
@@ -150,7 +150,7 @@ Resources:
   DecisionRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref KyperianApi
+      ApiId: !Ref NubleApi
       RouteKey: GET /decision/{symbol}
       AuthorizationType: NONE
       Target: !Sub integrations/${SignalValidatorIntegration}
@@ -159,7 +159,7 @@ Resources:
   AlignmentRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref KyperianApi
+      ApiId: !Ref NubleApi
       RouteKey: GET /alignment/{symbol}
       AuthorizationType: NONE
       Target: !Sub integrations/${SignalValidatorIntegration}
@@ -168,7 +168,7 @@ Resources:
   BatchSignalsRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref KyperianApi
+      ApiId: !Ref NubleApi
       RouteKey: POST /signals/batch
       AuthorizationType: NONE
       Target: !Sub integrations/${SignalValidatorIntegration}
@@ -180,7 +180,7 @@ Resources:
   ApiStage:
     Type: AWS::ApiGatewayV2::Stage
     Properties:
-      ApiId: !Ref KyperianApi
+      ApiId: !Ref NubleApi
       StageName: !Ref Environment
       AutoDeploy: true
       Description: !Sub ${Environment} stage with logging and throttling
@@ -207,7 +207,7 @@ Resources:
   ApiAccessLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub /aws/apigateway/kyperian-${Environment}-access
+      LogGroupName: !Sub /aws/apigateway/nuble-${Environment}-access
       RetentionInDays: 30
       Tags:
         - Key: Environment
@@ -220,8 +220,8 @@ Resources:
   WebAcl:
     Type: AWS::WAFv2::WebACL
     Properties:
-      Name: !Sub kyperian-${Environment}-waf
-      Description: WAF protection for KYPERIAN API
+      Name: !Sub nuble-${Environment}-waf
+      Description: WAF protection for NUBLE API
       Scope: REGIONAL
       DefaultAction:
         Allow: {}
@@ -229,7 +229,7 @@ Resources:
       VisibilityConfig:
         SampledRequestsEnabled: true
         CloudWatchMetricsEnabled: true
-        MetricName: !Sub kyperian-${Environment}-waf
+        MetricName: !Sub nuble-${Environment}-waf
       
       Rules:
         # Rate limiting per IP
@@ -334,7 +334,7 @@ Resources:
   TradingViewIPSet:
     Type: AWS::WAFv2::IPSet
     Properties:
-      Name: !Sub kyperian-${Environment}-tradingview-ips
+      Name: !Sub nuble-${Environment}-tradingview-ips
       Description: Known TradingView webhook IP addresses
       Scope: REGIONAL
       IPAddressVersion: IPV4
@@ -354,7 +354,7 @@ Resources:
   #   Type: AWS::WAFv2::WebACLAssociation
   #   DependsOn: ApiStage
   #   Properties:
-  #     ResourceArn: !Sub arn:aws:apigateway:${AWS::Region}::/apis/${KyperianApi}/stages/${Environment}
+  #     ResourceArn: !Sub arn:aws:apigateway:${AWS::Region}::/apis/${NubleApi}/stages/${Environment}
   #     WebACLArn: !GetAtt WebAcl.Arn
 
   # ============================================================
@@ -378,7 +378,7 @@ Resources:
     Condition: CreateCustomDomain
     DependsOn: ApiStage
     Properties:
-      ApiId: !Ref KyperianApi
+      ApiId: !Ref NubleApi
       DomainName: !Ref CustomDomainName
       Stage: !Ref Environment
 
@@ -389,13 +389,13 @@ Resources:
   Api4xxErrorsAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub kyperian-${Environment}-api-4xx-errors
+      AlarmName: !Sub nuble-${Environment}-api-4xx-errors
       AlarmDescription: High rate of 4xx errors
       MetricName: 4xx
       Namespace: AWS/ApiGateway
       Dimensions:
         - Name: ApiId
-          Value: !Ref KyperianApi
+          Value: !Ref NubleApi
         - Name: Stage
           Value: !Ref Environment
       Statistic: Sum
@@ -408,13 +408,13 @@ Resources:
   Api5xxErrorsAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub kyperian-${Environment}-api-5xx-errors
+      AlarmName: !Sub nuble-${Environment}-api-5xx-errors
       AlarmDescription: High rate of 5xx errors
       MetricName: 5xx
       Namespace: AWS/ApiGateway
       Dimensions:
         - Name: ApiId
-          Value: !Ref KyperianApi
+          Value: !Ref NubleApi
         - Name: Stage
           Value: !Ref Environment
       Statistic: Sum
@@ -427,13 +427,13 @@ Resources:
   ApiLatencyAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub kyperian-${Environment}-api-latency
+      AlarmName: !Sub nuble-${Environment}-api-latency
       AlarmDescription: API latency is too high
       MetricName: Latency
       Namespace: AWS/ApiGateway
       Dimensions:
         - Name: ApiId
-          Value: !Ref KyperianApi
+          Value: !Ref NubleApi
         - Name: Stage
           Value: !Ref Environment
       ExtendedStatistic: p99
@@ -446,13 +446,13 @@ Resources:
   WafBlockedRequestsAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub kyperian-${Environment}-waf-blocked
+      AlarmName: !Sub nuble-${Environment}-waf-blocked
       AlarmDescription: High number of WAF blocked requests
       MetricName: BlockedRequests
       Namespace: AWS/WAFV2
       Dimensions:
         - Name: WebACL
-          Value: !Sub kyperian-${Environment}-waf
+          Value: !Sub nuble-${Environment}-waf
         - Name: Region
           Value: !Ref AWS::Region
         - Name: Rule
@@ -467,31 +467,31 @@ Resources:
 Outputs:
   ApiId:
     Description: API Gateway ID
-    Value: !Ref KyperianApi
+    Value: !Ref NubleApi
     Export:
       Name: !Sub ${AWS::StackName}-ApiId
 
   ApiEndpoint:
     Description: API Gateway endpoint URL
-    Value: !Sub https://${KyperianApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
+    Value: !Sub https://${NubleApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
     Export:
       Name: !Sub ${AWS::StackName}-ApiEndpoint
 
   ApiId:
     Description: API Gateway ID
-    Value: !Ref KyperianApi
+    Value: !Ref NubleApi
     Export:
-      Name: !Sub 'kyperian-${Environment}-api-id'
+      Name: !Sub 'nuble-${Environment}-api-id'
 
   WebhookUrl:
     Description: Webhook URL for TradingView
-    Value: !Sub https://${KyperianApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/webhook
+    Value: !Sub https://${NubleApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/webhook
     Export:
       Name: !Sub ${AWS::StackName}-WebhookUrl
 
   MTFWebhookUrl:
     Description: MTF Webhook URL
-    Value: !Sub https://${KyperianApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/webhook/mtf
+    Value: !Sub https://${NubleApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/webhook/mtf
     Export:
       Name: !Sub ${AWS::StackName}-MTFWebhookUrl
 

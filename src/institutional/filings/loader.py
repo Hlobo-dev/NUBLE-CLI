@@ -76,7 +76,7 @@ class FilingsLoader:
     """
     
     # Default identity for SEC EDGAR API
-    DEFAULT_IDENTITY = "KYPERIAN Research research@kyperian.ai"
+    DEFAULT_IDENTITY = "NUBLE Research research@nuble.ai"
     
     def __init__(self, identity: str = None):
         """

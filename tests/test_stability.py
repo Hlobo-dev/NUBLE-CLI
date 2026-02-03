@@ -148,7 +148,7 @@ class StabilityTester:
         print(f"Duration: {self.duration_minutes} minutes | Rate: {self.requests_per_minute} req/min")
         print("="*70)
         
-        from src.kyperian.agents.orchestrator import OrchestratorAgent
+        from src.nuble.agents.orchestrator import OrchestratorAgent
         orchestrator = OrchestratorAgent(api_key=self.api_key)
         
         request_interval = 60 / self.requests_per_minute

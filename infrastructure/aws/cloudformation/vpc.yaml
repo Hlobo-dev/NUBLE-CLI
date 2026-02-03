@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'KYPERIAN ELITE - VPC and Networking Infrastructure'
+Description: 'NUBLE ELITE - VPC and Networking Infrastructure'
 
 Parameters:
   Environment:
@@ -16,7 +16,7 @@ Parameters:
 
 Resources:
   # ============ VPC ============
-  KyperianVPC:
+  NubleVPC:
     Type: AWS::EC2::VPC
     Properties:
       CidrBlock: !Ref VpcCidr
@@ -24,7 +24,7 @@ Resources:
       EnableDnsSupport: true
       Tags:
         - Key: Name
-          Value: !Sub kyperian-${Environment}-vpc
+          Value: !Sub nuble-${Environment}-vpc
 
   # ============ Internet Gateway ============
   InternetGateway:
@@ -32,57 +32,57 @@ Resources:
     Properties:
       Tags:
         - Key: Name
-          Value: !Sub kyperian-${Environment}-igw
+          Value: !Sub nuble-${Environment}-igw
 
   AttachGateway:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
-      VpcId: !Ref KyperianVPC
+      VpcId: !Ref NubleVPC
       InternetGatewayId: !Ref InternetGateway
 
   # ============ Public Subnets ============
   PublicSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
-      VpcId: !Ref KyperianVPC
+      VpcId: !Ref NubleVPC
       CidrBlock: 10.0.1.0/24
       AvailabilityZone: !Select [0, !GetAZs '']
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: !Sub kyperian-${Environment}-public-1
+          Value: !Sub nuble-${Environment}-public-1
 
   PublicSubnet2:
     Type: AWS::EC2::Subnet
     Properties:
-      VpcId: !Ref KyperianVPC
+      VpcId: !Ref NubleVPC
       CidrBlock: 10.0.2.0/24
       AvailabilityZone: !Select [1, !GetAZs '']
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: !Sub kyperian-${Environment}-public-2
+          Value: !Sub nuble-${Environment}-public-2
 
   # ============ Private Subnets ============
   PrivateSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
-      VpcId: !Ref KyperianVPC
+      VpcId: !Ref NubleVPC
       CidrBlock: 10.0.10.0/24
       AvailabilityZone: !Select [0, !GetAZs '']
       Tags:
         - Key: Name
-          Value: !Sub kyperian-${Environment}-private-1
+          Value: !Sub nuble-${Environment}-private-1
 
   PrivateSubnet2:
     Type: AWS::EC2::Subnet
     Properties:
-      VpcId: !Ref KyperianVPC
+      VpcId: !Ref NubleVPC
       CidrBlock: 10.0.11.0/24
       AvailabilityZone: !Select [1, !GetAZs '']
       Tags:
         - Key: Name
-          Value: !Sub kyperian-${Environment}-private-2
+          Value: !Sub nuble-${Environment}-private-2
 
   # ============ NAT Gateway ============
   NatEIP:
@@ -98,16 +98,16 @@ Resources:
       SubnetId: !Ref PublicSubnet1
       Tags:
         - Key: Name
-          Value: !Sub kyperian-${Environment}-nat
+          Value: !Sub nuble-${Environment}-nat
 
   # ============ Route Tables ============
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
-      VpcId: !Ref KyperianVPC
+      VpcId: !Ref NubleVPC
       Tags:
         - Key: Name
-          Value: !Sub kyperian-${Environment}-public-rt
+          Value: !Sub nuble-${Environment}-public-rt
 
   PublicRoute:
     Type: AWS::EC2::Route
@@ -132,10 +132,10 @@ Resources:
   PrivateRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
-      VpcId: !Ref KyperianVPC
+      VpcId: !Ref NubleVPC
       Tags:
         - Key: Name
-          Value: !Sub kyperian-${Environment}-private-rt
+          Value: !Sub nuble-${Environment}-private-rt
 
   PrivateRoute:
     Type: AWS::EC2::Route
@@ -161,7 +161,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Security group for ALB
-      VpcId: !Ref KyperianVPC
+      VpcId: !Ref NubleVPC
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 443
@@ -173,13 +173,13 @@ Resources:
           CidrIp: 0.0.0.0/0
       Tags:
         - Key: Name
-          Value: !Sub kyperian-${Environment}-alb-sg
+          Value: !Sub nuble-${Environment}-alb-sg
 
   ECSSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Security group for ECS tasks
-      VpcId: !Ref KyperianVPC
+      VpcId: !Ref NubleVPC
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 8000
@@ -187,13 +187,13 @@ Resources:
           SourceSecurityGroupId: !Ref ALBSecurityGroup
       Tags:
         - Key: Name
-          Value: !Sub kyperian-${Environment}-ecs-sg
+          Value: !Sub nuble-${Environment}-ecs-sg
 
   RedisSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Security group for Redis
-      VpcId: !Ref KyperianVPC
+      VpcId: !Ref NubleVPC
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 6379
@@ -201,12 +201,12 @@ Resources:
           SourceSecurityGroupId: !Ref ECSSecurityGroup
       Tags:
         - Key: Name
-          Value: !Sub kyperian-${Environment}-redis-sg
+          Value: !Sub nuble-${Environment}-redis-sg
 
 Outputs:
   VpcId:
     Description: VPC ID
-    Value: !Ref KyperianVPC
+    Value: !Ref NubleVPC
     Export:
       Name: !Sub ${AWS::StackName}-VpcId
 

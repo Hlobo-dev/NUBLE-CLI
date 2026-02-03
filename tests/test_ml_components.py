@@ -14,7 +14,7 @@ These tests validate:
 3. Edge case handling
 4. Statistical properties
 
-Author: Kyperian Institutional ML
+Author: Nuble Institutional ML
 """
 
 import pytest

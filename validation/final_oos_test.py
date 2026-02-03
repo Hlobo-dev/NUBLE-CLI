@@ -16,7 +16,7 @@ This simulates real production deployment.
 """
 
 import sys
-sys.path.insert(0, '/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI')
+sys.path.insert(0, '/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI')
 
 print("Loading imports...")
 
@@ -149,7 +149,7 @@ def run_oos_test(symbol: str, config: dict) -> dict:
     max_depth = config['max_depth']
     
     # Load training data
-    train_path = Path(f'/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI/data/train/{symbol}.csv')
+    train_path = Path(f'/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI/data/train/{symbol}.csv')
     if not train_path.exists():
         print(f"  Training data not found: {train_path}")
         return None
@@ -159,7 +159,7 @@ def run_oos_test(symbol: str, config: dict) -> dict:
     train_df = train_df[(train_df.index >= TRAIN_START) & (train_df.index <= TRAIN_END)]
     
     # Load test data
-    test_path = Path(f'/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI/data/test/{symbol}.csv')
+    test_path = Path(f'/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI/data/test/{symbol}.csv')
     if not test_path.exists():
         print(f"  Test data not found: {test_path}")
         return None

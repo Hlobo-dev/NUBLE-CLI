@@ -1,16 +1,16 @@
 """
-KYPERIAN Crypto Module - Fast Direct Test
+NUBLE Crypto Module - Fast Direct Test
 Tests APIs directly with synchronous requests
 """
 
 import sys
-sys.path.insert(0, "/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI")
+sys.path.insert(0, "/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI")
 
 import requests
 from datetime import datetime, timedelta
 
 print("=" * 70)
-print("🚀 KYPERIAN CRYPTO MODULE - DIRECT API TEST")
+print("🚀 NUBLE CRYPTO MODULE - DIRECT API TEST")
 print("=" * 70)
 print(f"📅 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 print("=" * 70)
@@ -168,7 +168,7 @@ print("\n🧪 TEST 5: ASSET DETECTOR")
 print("-" * 50)
 
 try:
-    from src.kyperian.assets.detector import AssetDetector, AssetClass
+    from src.nuble.assets.detector import AssetDetector, AssetClass
     
     detector = AssetDetector()
     
@@ -208,7 +208,7 @@ print("\n🧪 TEST 6: COINDESK CLIENT CLASS")
 print("-" * 50)
 
 try:
-    from src.kyperian.news.coindesk_client import CoinDeskClient
+    from src.nuble.news.coindesk_client import CoinDeskClient
     
     client = CoinDeskClient()
     

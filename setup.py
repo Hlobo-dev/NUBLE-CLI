@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 setup(
-    name="kyperian",
+    name="nuble",
     version="1.0.0",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
@@ -16,7 +16,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'kyperian=kyperian.cli:main',
+            'nuble=nuble.cli:main',
         ],
     },
     python_requires=">=3.8",

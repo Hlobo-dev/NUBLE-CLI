@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'KYPERIAN Decision Engine V2 - Institutional Grade Multi-Layer Analysis'
+Description: 'NUBLE Decision Engine V2 - Institutional Grade Multi-Layer Analysis'
 
 Parameters:
   Environment:
@@ -39,7 +39,7 @@ Resources:
   DecisionsTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub 'kyperian-${Environment}-decisions'
+      TableName: !Sub 'nuble-${Environment}-decisions'
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: pk
@@ -71,7 +71,7 @@ Resources:
         PointInTimeRecoveryEnabled: true
       Tags:
         - Key: Application
-          Value: KYPERIAN
+          Value: NUBLE
         - Key: Environment
           Value: !Ref Environment
         - Key: Component
@@ -85,7 +85,7 @@ Resources:
   DecisionEngineLambdaRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub 'kyperian-${Environment}-decision-engine-v2-role'
+      RoleName: !Sub 'nuble-${Environment}-decision-engine-v2-role'
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -109,8 +109,8 @@ Resources:
                   - dynamodb:BatchGetItem
                   - dynamodb:Scan
                 Resource:
-                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/kyperian-${Environment}-signals'
-                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/kyperian-${Environment}-signals/index/*'
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/nuble-${Environment}-signals'
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/nuble-${Environment}-signals/index/*'
                   - !GetAtt DecisionsTable.Arn
                   - !Sub '${DecisionsTable.Arn}/index/*'
               - Effect: Allow
@@ -120,7 +120,7 @@ Resources:
                 Resource: '*'
       Tags:
         - Key: Application
-          Value: KYPERIAN
+          Value: NUBLE
         - Key: Environment
           Value: !Ref Environment
 
@@ -130,8 +130,8 @@ Resources:
   DecisionEngineLambda:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Sub 'kyperian-${Environment}-decision-engine-v2'
-      Description: 'KYPERIAN Decision Engine V2 - 15+ Data Points, 4 Layer Analysis'
+      FunctionName: !Sub 'nuble-${Environment}-decision-engine-v2'
+      Description: 'NUBLE Decision Engine V2 - 15+ Data Points, 4 Layer Analysis'
       Runtime: python3.11
       Handler: handler_v2.lambda_handler
       Role: !GetAtt DecisionEngineLambdaRole.Arn
@@ -142,19 +142,19 @@ Resources:
       Environment:
         Variables:
           ENVIRONMENT: !Ref Environment
-          DYNAMODB_SIGNALS_TABLE: !Sub 'kyperian-${Environment}-signals'
+          DYNAMODB_SIGNALS_TABLE: !Sub 'nuble-${Environment}-signals'
           DYNAMODB_DECISIONS_TABLE: !Ref DecisionsTable
           TELEGRAM_BOT_TOKEN: !Ref TelegramBotToken
           TELEGRAM_CHAT_ID: !Ref TelegramChatId
           DISCORD_WEBHOOK_URL: !Ref DiscordWebhookUrl
-          POWERTOOLS_SERVICE_NAME: kyperian-decision-engine
-          POWERTOOLS_METRICS_NAMESPACE: KYPERIAN
+          POWERTOOLS_SERVICE_NAME: nuble-decision-engine
+          POWERTOOLS_METRICS_NAMESPACE: NUBLE
           LOG_LEVEL: INFO
       TracingConfig:
         Mode: Active
       Tags:
         - Key: Application
-          Value: KYPERIAN
+          Value: NUBLE
         - Key: Environment
           Value: !Ref Environment
         - Key: Component
@@ -176,11 +176,11 @@ Resources:
   DecisionEngineLogs:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub '/aws/lambda/kyperian-${Environment}-decision-engine-v2'
+      LogGroupName: !Sub '/aws/lambda/nuble-${Environment}-decision-engine-v2'
       RetentionInDays: 14
       Tags:
         - Key: Application
-          Value: KYPERIAN
+          Value: NUBLE
         - Key: Environment
           Value: !Ref Environment
 
@@ -190,7 +190,7 @@ Resources:
   DecisionEngineScheduleRule:
     Type: AWS::Events::Rule
     Properties:
-      Name: !Sub 'kyperian-${Environment}-decision-engine-v2-schedule'
+      Name: !Sub 'nuble-${Environment}-decision-engine-v2-schedule'
       Description: 'Trigger Decision Engine V2 every N minutes'
       ScheduleExpression: !Sub 'rate(${AnalysisIntervalMinutes} minutes)'
       State: ENABLED
@@ -213,11 +213,11 @@ Resources:
   SignalEventRule:
     Type: AWS::Events::Rule
     Properties:
-      Name: !Sub 'kyperian-${Environment}-new-signal-v2'
+      Name: !Sub 'nuble-${Environment}-new-signal-v2'
       Description: 'Trigger Decision Engine V2 when new signals arrive'
       EventPattern:
         source:
-          - 'kyperian.signals'
+          - 'nuble.signals'
         detail-type:
           - 'New Signal'
       State: ENABLED
@@ -239,8 +239,8 @@ Resources:
   DecisionEngineAPI:
     Type: AWS::ApiGatewayV2::Api
     Properties:
-      Name: !Sub 'kyperian-${Environment}-decision-engine-v2-api'
-      Description: 'KYPERIAN Decision Engine V2 API'
+      Name: !Sub 'nuble-${Environment}-decision-engine-v2-api'
+      Description: 'NUBLE Decision Engine V2 API'
       ProtocolType: HTTP
       CorsConfiguration:
         AllowOrigins:
@@ -253,7 +253,7 @@ Resources:
           - '*'
         MaxAge: 300
       Tags:
-        Application: KYPERIAN
+        Application: NUBLE
         Environment: !Ref Environment
         Version: '2.0.0'
 
@@ -311,7 +311,7 @@ Resources:
         ThrottlingBurstLimit: 100
         ThrottlingRateLimit: 50
       Tags:
-        Application: KYPERIAN
+        Application: NUBLE
         Environment: !Ref Environment
 
   APILambdaPermission:
@@ -328,7 +328,7 @@ Resources:
   ErrorAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub 'kyperian-${Environment}-decision-engine-v2-errors'
+      AlarmName: !Sub 'nuble-${Environment}-decision-engine-v2-errors'
       AlarmDescription: 'Alert when Decision Engine V2 has errors'
       MetricName: Errors
       Namespace: AWS/Lambda
@@ -345,7 +345,7 @@ Resources:
   DurationAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub 'kyperian-${Environment}-decision-engine-v2-slow'
+      AlarmName: !Sub 'nuble-${Environment}-decision-engine-v2-slow'
       AlarmDescription: 'Alert when Decision Engine V2 is slow'
       MetricName: Duration
       Namespace: AWS/Lambda

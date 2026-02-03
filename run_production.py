@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-KYPERIAN Production Runner
+NUBLE Production Runner
 
 Main entry point for production paper trading.
 Based on validated institutional audit (February 1, 2026):
@@ -32,7 +32,7 @@ warnings.filterwarnings('ignore')
 
 
 def print_banner():
-    """Print the KYPERIAN banner."""
+    """Print the NUBLE banner."""
     banner = """
     ╔═══════════════════════════════════════════════════════════════╗
     ║                                                               ║
@@ -226,7 +226,7 @@ def run_backtest():
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
-        description='KYPERIAN Production Runner',
+        description='NUBLE Production Runner',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -266,7 +266,7 @@ Examples:
     elif args.mode == 'backtest':
         run_backtest()
     
-    print("\n✨ KYPERIAN - Institutional ML Trading System")
+    print("\n✨ NUBLE - Institutional ML Trading System")
     print("   Vibe Trading © 2026 | Paper Trade First!")
 
 

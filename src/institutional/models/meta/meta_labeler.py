@@ -31,7 +31,7 @@ Implementation Details:
 - Confidence-based position sizing using Kelly-like formulas
 - Full walk-forward validation support
 
-Author: Kyperian Institutional ML
+Author: Nuble Institutional ML
 License: Proprietary
 """
 

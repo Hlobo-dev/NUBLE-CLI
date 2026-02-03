@@ -25,15 +25,15 @@ class Suite:
     async def t1(self):
         t=time.time()
         try:
-            from src.kyperian.agents.base import SpecializedAgent, AgentType
-            from src.kyperian.agents.orchestrator import OrchestratorAgent
+            from src.nuble.agents.base import SpecializedAgent, AgentType
+            from src.nuble.agents.orchestrator import OrchestratorAgent
             from src.institutional.ml.regime import HMMRegimeModel
             return R("Imports",S.P,time.time()-t,"OK")
         except Exception as e: return R("Imports",S.F,time.time()-t,str(e)[:50])
     async def t2(self):
         t=time.time()
         try:
-            from src.kyperian.agents.orchestrator import OrchestratorAgent
+            from src.nuble.agents.orchestrator import OrchestratorAgent
             o=OrchestratorAgent(api_key=self.k)
             o._initialize_agents()  # Force lazy init
             c=len(o._agents)
@@ -42,7 +42,7 @@ class Suite:
     async def t3(self):
         t=time.time()
         try:
-            from src.kyperian.agents.orchestrator import OrchestratorAgent
+            from src.nuble.agents.orchestrator import OrchestratorAgent
             o=OrchestratorAgent(api_key=self.k)
             r=await o.process("Apple stock price?","t3")
             m=r.get('message','')
@@ -51,7 +51,7 @@ class Suite:
     async def t4(self):
         t=time.time()
         try:
-            from src.kyperian.agents.orchestrator import OrchestratorAgent
+            from src.nuble.agents.orchestrator import OrchestratorAgent
             o=OrchestratorAgent(api_key=self.k)
             r=await o.process("NVIDIA analysis: technicals and risks","t4")
             m=r.get('message','');a=r.get('agents_used',[])
@@ -60,7 +60,7 @@ class Suite:
     async def t5(self):
         t=time.time()
         try:
-            from src.kyperian.agents.orchestrator import OrchestratorAgent
+            from src.nuble.agents.orchestrator import OrchestratorAgent
             o=OrchestratorAgent(api_key=self.k)
             r=await o.process("What is P/E ratio?","t5")
             m=r.get('message','')
@@ -69,7 +69,7 @@ class Suite:
     async def t6(self):
         t=time.time()
         try:
-            from src.kyperian.agents.orchestrator import OrchestratorAgent
+            from src.nuble.agents.orchestrator import OrchestratorAgent
             o=OrchestratorAgent(api_key=self.k)
             c=f"ctx{int(time.time())}"
             r1=await o.process("Tesla stock",c);r2=await o.process("Competitors?",c)
@@ -79,7 +79,7 @@ class Suite:
     async def t7(self):
         t=time.time()
         try:
-            from src.kyperian.agents.orchestrator import OrchestratorAgent
+            from src.nuble.agents.orchestrator import OrchestratorAgent
             o=OrchestratorAgent(api_key=self.k)
             r=await o.process("¿Cómo está AAPL?","t7")
             m=r.get('message','')
@@ -88,7 +88,7 @@ class Suite:
     async def t8(self):
         t=time.time()
         try:
-            from src.kyperian.agents.orchestrator import OrchestratorAgent
+            from src.nuble.agents.orchestrator import OrchestratorAgent
             o=OrchestratorAgent(api_key=self.k)
             s=f"wf{int(time.time())}"
             r1=await o.process("Market overview",s)

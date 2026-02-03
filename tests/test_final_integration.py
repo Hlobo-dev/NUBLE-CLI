@@ -2,7 +2,7 @@
 """
 Phase 8: Final Integration Test
 
-End-to-end user journeys testing the complete KYPERIAN system.
+End-to-end user journeys testing the complete NUBLE system.
 These tests simulate real user interactions from start to finish.
 """
 import sys
@@ -36,7 +36,7 @@ class FinalIntegrationTester:
             return False
         
         try:
-            from src.kyperian.agents.orchestrator import OrchestratorAgent
+            from src.nuble.agents.orchestrator import OrchestratorAgent
             self.orchestrator = OrchestratorAgent(api_key=self.api_key)
             return True
         except Exception as e:

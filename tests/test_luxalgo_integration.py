@@ -20,7 +20,7 @@ def test_webhook_parsing():
     print("TEST: Webhook Parsing")
     print("="*60)
     
-    from kyperian.signals.luxalgo_webhook import parse_luxalgo_webhook, LuxAlgoSignalType
+    from nuble.signals.luxalgo_webhook import parse_luxalgo_webhook, LuxAlgoSignalType
     
     # Test case 1: Basic BUY signal
     payload1 = {
@@ -87,7 +87,7 @@ def test_signal_store():
     print("TEST: Signal Store")
     print("="*60)
     
-    from kyperian.signals.luxalgo_webhook import (
+    from nuble.signals.luxalgo_webhook import (
         LuxAlgoSignalStore, parse_luxalgo_webhook
     )
     
@@ -140,10 +140,10 @@ def test_signal_fusion():
     print("TEST: Signal Fusion Engine")
     print("="*60)
     
-    from kyperian.signals.luxalgo_webhook import (
+    from nuble.signals.luxalgo_webhook import (
         get_signal_store, parse_luxalgo_webhook, reset_signal_store
     )
-    from kyperian.signals.fusion_engine import SignalFusionEngine, FusedSignalStrength
+    from nuble.signals.fusion_engine import SignalFusionEngine, FusedSignalStrength
     
     # Reset store for clean test
     reset_signal_store()
@@ -198,9 +198,9 @@ def test_signal_sources():
     print("TEST: Signal Sources")
     print("="*60)
     
-    from kyperian.signals.sources.technical_luxalgo import TechnicalLuxAlgoSource
-    from kyperian.signals.sources.regime_hmm import RegimeHMMSource
-    from kyperian.signals.luxalgo_webhook import get_signal_store, parse_luxalgo_webhook, reset_signal_store
+    from nuble.signals.sources.technical_luxalgo import TechnicalLuxAlgoSource
+    from nuble.signals.sources.regime_hmm import RegimeHMMSource
+    from nuble.signals.luxalgo_webhook import get_signal_store, parse_luxalgo_webhook, reset_signal_store
     import pandas as pd
     import numpy as np
     
@@ -261,8 +261,8 @@ def test_prediction_tracking():
     print("TEST: Prediction Tracking")
     print("="*60)
     
-    from kyperian.learning.prediction_tracker import PredictionTracker, PredictionOutcome
-    from kyperian.signals.fusion_engine import FusedSignal, FusedSignalStrength
+    from nuble.learning.prediction_tracker import PredictionTracker, PredictionOutcome
+    from nuble.signals.fusion_engine import FusedSignal, FusedSignalStrength
     
     tracker = PredictionTracker()
     
@@ -307,7 +307,7 @@ def test_accuracy_monitoring():
     print("TEST: Accuracy Monitoring")
     print("="*60)
     
-    from kyperian.learning.accuracy_monitor import AccuracyMonitor
+    from nuble.learning.accuracy_monitor import AccuracyMonitor
     
     monitor = AccuracyMonitor(rolling_window=20)
     
@@ -352,7 +352,7 @@ def test_weight_adjustment():
     print("TEST: Weight Adjustment")
     print("="*60)
     
-    from kyperian.learning.weight_adjuster import WeightAdjuster
+    from nuble.learning.weight_adjuster import WeightAdjuster
     
     base_weights = {
         'luxalgo': 0.50,
@@ -397,7 +397,7 @@ def test_weight_adjustment():
 def run_all_tests():
     """Run all integration tests."""
     print("\n" + "="*60)
-    print("KYPERIAN LUXALGO INTEGRATION TESTS")
+    print("NUBLE LUXALGO INTEGRATION TESTS")
     print("="*60)
     print(f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     

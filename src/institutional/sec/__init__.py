@@ -13,7 +13,7 @@ Features:
 - Export to PDF, DOCX, Excel
 - Citation support with source links
 
-Enhanced for KYPERIAN Institutional Research Platform
+Enhanced for NUBLE Institutional Research Platform
 """
 
 import os

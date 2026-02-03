@@ -13,7 +13,7 @@ Target: Sharpe > 0.5, PBO < 0.5
 """
 
 import sys
-sys.path.insert(0, '/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI')
+sys.path.insert(0, '/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI')
 
 import numpy as np
 import pandas as pd
@@ -314,7 +314,7 @@ def run_walk_forward_validation(
     
     # Load data
     df = pd.read_csv(
-        f'/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI/data/train/{symbol}.csv',
+        f'/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI/data/train/{symbol}.csv',
         index_col=0, parse_dates=True
     )
     logger.info(f"Data: {len(df)} rows ({df.index[0].date()} to {df.index[-1].date()})")
@@ -444,7 +444,7 @@ def run_cpcv_validation(
     
     # Load data
     df = pd.read_csv(
-        f'/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI/data/train/{symbol}.csv',
+        f'/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI/data/train/{symbol}.csv',
         index_col=0, parse_dates=True
     )
     

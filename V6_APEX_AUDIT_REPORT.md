@@ -1,4 +1,4 @@
-# KYPERIAN V6 APEX PREDATOR - COMPLETE AUDIT REPORT
+# NUBLE V6 APEX PREDATOR - COMPLETE AUDIT REPORT
 ## The Most Advanced Decision Engine in Existence
 
 **Date:** February 2026  
@@ -9,7 +9,7 @@
 
 ## 🎯 EXECUTIVE SUMMARY
 
-KYPERIAN V6 APEX PREDATOR is the culmination of 40+ years of quantitative trading wisdom, integrating EVERYTHING from the KYPERIAN codebase into a single, relentless decision engine.
+NUBLE V6 APEX PREDATOR is the culmination of 40+ years of quantitative trading wisdom, integrating EVERYTHING from the NUBLE codebase into a single, relentless decision engine.
 
 ### Key Achievements:
 - **50+ data points** analyzed per symbol
@@ -26,7 +26,7 @@ KYPERIAN V6 APEX PREDATOR is the culmination of 40+ years of quantitative tradin
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                    KYPERIAN V6 - THE APEX PREDATOR                          │
+│                    NUBLE V6 - THE APEX PREDATOR                          │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │  LAYER 1: TECHNICAL (35%)           │  LAYER 2: INTELLIGENCE (30%)         │
 │  ├─ LuxAlgo MTF Signals (34%)       │  ├─ HMM Regime Detection (33%)       │
@@ -69,7 +69,7 @@ KYPERIAN V6 APEX PREDATOR is the culmination of 40+ years of quantitative tradin
 | **Backtesting Engine** | `backtesting/engine.py` | 🔄 AVAILABLE | Walk-forward optimization |
 | **Paper Trader** | `trading/paper_trader.py` | 🔄 AVAILABLE | Simulation before live |
 
-### Components Leveraged from `src/kyperian/`
+### Components Leveraged from `src/nuble/`
 
 | Component | File | Integration Status | Notes |
 |-----------|------|-------------------|-------|
@@ -190,7 +190,7 @@ Other MODERATE signals don't have LuxAlgo alignment (requires webhook signals).
 
 ### Lambda Configuration
 ```yaml
-Function: kyperian-production-decision-engine
+Function: nuble-production-decision-engine
 Runtime: Python 3.11
 Memory: 1024 MB
 Timeout: 120 seconds
@@ -201,8 +201,8 @@ Handler: handler_v6_apex.lambda_handler
 ```
 POLYGON_API_KEY: [Configured]
 ANTHROPIC_API_KEY: [Configured]
-DYNAMODB_SIGNALS_TABLE: kyperian-production-signals
-DYNAMODB_DECISIONS_TABLE: kyperian-production-decisions
+DYNAMODB_SIGNALS_TABLE: nuble-production-signals
+DYNAMODB_DECISIONS_TABLE: nuble-production-decisions
 ```
 
 ### API Endpoints
@@ -273,7 +273,7 @@ POST /trigger             EventBridge trigger
 **Test Command:**
 ```bash
 aws lambda invoke \
-    --function-name kyperian-production-decision-engine \
+    --function-name nuble-production-decision-engine \
     --payload '{"rawPath": "/analyze/NVDA"}' \
     --region us-east-1 \
     /tmp/result.json && cat /tmp/result.json
@@ -281,7 +281,7 @@ aws lambda invoke \
 
 ---
 
-**KYPERIAN V6 APEX PREDATOR**  
+**NUBLE V6 APEX PREDATOR**  
 *The ultimate AI wealth manager. Relentless. Precise. Profitable.*
 
 🦅

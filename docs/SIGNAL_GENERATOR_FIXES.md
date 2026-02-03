@@ -1,7 +1,7 @@
 # Signal Generator Fixes - Summary
 
 ## Date: February 1, 2026
-## Issue: KYPERIAN underperforming buy-and-hold by -73% alpha
+## Issue: NUBLE underperforming buy-and-hold by -73% alpha
 
 ---
 

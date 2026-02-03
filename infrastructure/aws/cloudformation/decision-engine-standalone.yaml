@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'KYPERIAN ELITE - Decision Engine Standalone Stack'
+Description: 'NUBLE ELITE - Decision Engine Standalone Stack'
 
 Parameters:
   Environment:
@@ -8,7 +8,7 @@ Parameters:
   
   ApiId:
     Type: String
-    Description: 'Existing API Gateway ID (from kyperian-production-api stack)'
+    Description: 'Existing API Gateway ID (from nuble-production-api stack)'
   
   TelegramBotToken:
     Type: String
@@ -28,7 +28,7 @@ Resources:
   DecisionEngineLambdaRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub 'kyperian-${Environment}-decision-engine-role'
+      RoleName: !Sub 'nuble-${Environment}-decision-engine-role'
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -50,15 +50,15 @@ Resources:
                   - dynamodb:Query
                   - dynamodb:Scan
                 Resource:
-                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/kyperian-${Environment}-signals'
-                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/kyperian-${Environment}-signals/index/*'
-                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/kyperian-${Environment}-decisions'
-                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/kyperian-${Environment}-decisions/index/*'
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/nuble-${Environment}-signals'
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/nuble-${Environment}-signals/index/*'
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/nuble-${Environment}-decisions'
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/nuble-${Environment}-decisions/index/*'
 
   DecisionEngineLambda:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Sub 'kyperian-${Environment}-decision-engine'
+      FunctionName: !Sub 'nuble-${Environment}-decision-engine'
       Runtime: python3.11
       Handler: handler.lambda_handler
       Role: !GetAtt DecisionEngineLambdaRole.Arn
@@ -67,8 +67,8 @@ Resources:
       Environment:
         Variables:
           ENVIRONMENT: !Ref Environment
-          DYNAMODB_SIGNALS_TABLE: !Sub 'kyperian-${Environment}-signals'
-          DYNAMODB_DECISIONS_TABLE: !Sub 'kyperian-${Environment}-decisions'
+          DYNAMODB_SIGNALS_TABLE: !Sub 'nuble-${Environment}-signals'
+          DYNAMODB_DECISIONS_TABLE: !Sub 'nuble-${Environment}-decisions'
           TELEGRAM_BOT_TOKEN: !Ref TelegramBotToken
           TELEGRAM_CHAT_ID: !Ref TelegramChatId
           DISCORD_WEBHOOK_URL: !Ref DiscordWebhookUrl
@@ -80,7 +80,7 @@ Resources:
   ScheduledCheckRule:
     Type: AWS::Events::Rule
     Properties:
-      Name: !Sub 'kyperian-${Environment}-alignment-check'
+      Name: !Sub 'nuble-${Environment}-alignment-check'
       ScheduleExpression: 'rate(5 minutes)'
       State: ENABLED
       Targets:

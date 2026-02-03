@@ -1,15 +1,15 @@
-# KYPERIAN-CLI: Complete System Capabilities
+# NUBLE-CLI: Complete System Capabilities
 
 ## Executive Summary
 
-**KYPERIAN** is an institutional-grade AI investment research platform that combines the power of **Claude Opus 4.5** (Anthropic's most advanced AI) with real-time market data, SEC filings analysis, and state-of-the-art machine learning models. It functions as an **AI-powered junior analyst** that can research companies, analyze SEC filings, generate trading signals, and provide comprehensive investment insights through natural language conversation.
+**NUBLE** is an institutional-grade AI investment research platform that combines the power of **Claude Opus 4.5** (Anthropic's most advanced AI) with real-time market data, SEC filings analysis, and state-of-the-art machine learning models. It functions as an **AI-powered junior analyst** that can research companies, analyze SEC filings, generate trading signals, and provide comprehensive investment insights through natural language conversation.
 
 The system has **three major subsystems**:
-1. **KYPERIAN Core** - Claude-powered conversational AI for investment research
+1. **NUBLE Core** - Claude-powered conversational AI for investment research
 2. **Institutional Platform** - Professional-grade ML models, analytics, and data infrastructure  
 3. **TENK Integration** - Specialized SEC filings Q&A with vector database
 
-Unlike simple chatbots, KYPERIAN can execute multi-step research plans, fetch real-time data, run ML predictions, and synthesize comprehensive analysis reports - all through natural language queries like "What are Tesla's biggest risk factors and should I buy the stock?"
+Unlike simple chatbots, NUBLE can execute multi-step research plans, fetch real-time data, run ML predictions, and synthesize comprehensive analysis reports - all through natural language queries like "What are Tesla's biggest risk factors and should I buy the stock?"
 
 ---
 
@@ -17,11 +17,11 @@ Unlike simple chatbots, KYPERIAN can execute multi-step research plans, fetch re
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                              KYPERIAN-CLI                                    │
+│                              NUBLE-CLI                                    │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
 │  ┌─────────────────────┐     ┌─────────────────────┐                        │
-│  │   src/kyperian/     │     │  src/institutional/  │                        │
+│  │   src/nuble/     │     │  src/institutional/  │                        │
 │  │   (Core CLI)        │     │  (Pro Platform)      │                        │
 │  ├─────────────────────┤     ├─────────────────────┤                        │
 │  │ • cli.py            │     │ • cli.py (Advanced) │                        │
@@ -213,8 +213,8 @@ class DataType(Enum):
 
 **Basic:**
 ```bash
-kyperian              # Launch interactive shell
-kyperian "query"      # One-shot query
+nuble              # Launch interactive shell
+nuble "query"      # One-shot query
 ```
 
 **Institutional CLI Commands:**
@@ -406,7 +406,7 @@ NBeatsConfig(
 
 ## 9. Competitive Positioning
 
-| Feature | KYPERIAN | Bloomberg Terminal | QuantConnect | ChatGPT + Plugins |
+| Feature | NUBLE | Bloomberg Terminal | QuantConnect | ChatGPT + Plugins |
 |---------|----------|-------------------|--------------|-------------------|
 | **Price** | Free/API costs | $25,000/yr | Free-$250/mo | $20/mo |
 | **AI Analysis** | ✅ Claude Opus 4.5 | ❌ Limited | ❌ None | ✅ GPT-4 |
@@ -418,7 +418,7 @@ NBeatsConfig(
 | **Open Source** | ✅ Yes | ❌ No | ⚠️ Partial | ❌ No |
 | **Local Deployment** | ✅ Yes | ❌ No | ❌ No | ❌ No |
 
-**KYPERIAN's Unique Value:**
+**NUBLE's Unique Value:**
 1. **AI-First Research** - Claude Opus 4.5 understands complex financial questions
 2. **SEC Filings as a First-Class Citizen** - Deep RAG over 10-K/10-Q filings
 3. **Production ML Models** - Validated with walk-forward testing
@@ -469,8 +469,8 @@ NBeatsConfig(
 
 ```bash
 # Install
-git clone https://github.com/Hlobo-dev/KYPERIAN-CLI.git
-cd KYPERIAN-CLI
+git clone https://github.com/Hlobo-dev/NUBLE-CLI.git
+cd NUBLE-CLI
 python -m venv .venv && source .venv/bin/activate
 pip install -e .
 
@@ -479,7 +479,7 @@ echo 'ANTHROPIC_API_KEY=sk-ant-...' > .env
 echo 'POLYGON_API_KEY=...' >> .env
 
 # Run
-kyperian
+nuble
 ```
 
 ```
@@ -513,7 +513,7 @@ Based on Tesla's 2024 10-K filing, the main risk factors are:
 
 ## Summary
 
-KYPERIAN is a **comprehensive AI investment research platform** that brings together:
+NUBLE is a **comprehensive AI investment research platform** that brings together:
 
 - 🧠 **Claude Opus 4.5** for natural language financial analysis
 - 📊 **Real-time market data** via Polygon.io

@@ -1,4 +1,4 @@
-# 🏛️ KYPERIAN ELITE: Institutional Multi-Timeframe System
+# 🏛️ NUBLE ELITE: Institutional Multi-Timeframe System
 
 ## The World's Most Intelligent Trading Signal Architecture
 
@@ -6,7 +6,7 @@
 
 ## 🎯 Executive Summary
 
-The KYPERIAN Multi-Timeframe (MTF) System is an **institutional-grade signal fusion engine** that:
+The NUBLE Multi-Timeframe (MTF) System is an **institutional-grade signal fusion engine** that:
 
 - **Weekly (1W)** has **VETO POWER** over all other timeframes
 - **Daily (1D)** confirms direction
@@ -66,14 +66,14 @@ Weekly NEUTRAL
 ## 📁 System Files
 
 ```
-src/kyperian/signals/
+src/nuble/signals/
 ├── timeframe_manager.py    # Signal storage & freshness decay
 ├── veto_engine.py          # Institutional veto logic
 ├── position_calculator.py  # Kelly-based position sizing
 ├── mtf_fusion.py           # Main fusion engine
 └── __init__.py             # Exports all components
 
-src/kyperian/api/
+src/nuble/api/
 └── mtf_api.py              # FastAPI endpoints
 ```
 
@@ -84,7 +84,7 @@ src/kyperian/api/
 ### Python Usage
 
 ```python
-from kyperian.signals import MTFFusionEngine
+from nuble.signals import MTFFusionEngine
 
 # Create engine
 engine = MTFFusionEngine(portfolio_value=100000)
@@ -129,8 +129,8 @@ if decision.can_trade:
 
 Start the server:
 ```bash
-cd KYPERIAN-CLI
-python3 -m uvicorn src.kyperian.api.main:app --host 0.0.0.0 --port 8000
+cd NUBLE-CLI
+python3 -m uvicorn src.nuble.api.main:app --host 0.0.0.0 --port 8000
 ```
 
 Send signals:
@@ -268,7 +268,7 @@ python3 tests/test_mtf_system.py
 
 Quick test:
 ```python
-from kyperian.signals import MTFFusionEngine, generate_mtf_decision
+from nuble.signals import MTFFusionEngine, generate_mtf_decision
 
 # Use global engine
 decision = generate_mtf_decision("ETHUSD", current_price=2340.0)
@@ -328,8 +328,8 @@ Signals decay over time:
 
 ## 📄 License
 
-Proprietary - KYPERIAN Institutional
+Proprietary - NUBLE Institutional
 
 ---
 
-*Built with 🧠 by KYPERIAN Elite*
+*Built with 🧠 by NUBLE Elite*

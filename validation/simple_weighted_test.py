@@ -9,7 +9,7 @@ This validates Priority 3: Sample Weighting independently.
 """
 
 import sys
-sys.path.insert(0, '/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI')
+sys.path.insert(0, '/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI')
 
 import os
 os.environ['NUMBA_DISABLE_JIT'] = '1'  # Disable numba for stability
@@ -218,7 +218,7 @@ def main():
     for symbol in symbols:
         try:
             df = pd.read_csv(
-                f'/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI/data/train/{symbol}.csv',
+                f'/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI/data/train/{symbol}.csv',
                 index_col=0, parse_dates=True
             )
             

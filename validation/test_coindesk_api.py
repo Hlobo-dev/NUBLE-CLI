@@ -2,7 +2,7 @@
 """Simple CoinDesk API Test"""
 
 import sys
-sys.path.insert(0, "/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI")
+sys.path.insert(0, "/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI")
 
 import requests
 

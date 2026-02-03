@@ -812,7 +812,7 @@ def run_full_validation(train_epochs: int = 100):
         train_epochs: Number of epochs to train each model
     """
     print("\n" + "="*70)
-    print("  KYPERIAN MODEL VALIDATION SUITE")
+    print("  NUBLE MODEL VALIDATION SUITE")
     print("  Proving Models Work (or Don't)")
     print("="*70)
     
@@ -1024,7 +1024,7 @@ async def run_validation_on_real_data(
         return
     
     print("\n" + "="*70)
-    print("  KYPERIAN MODEL VALIDATION - REAL DATA")
+    print("  NUBLE MODEL VALIDATION - REAL DATA")
     print("="*70)
     
     try:

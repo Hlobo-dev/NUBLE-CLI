@@ -1,8 +1,8 @@
-# KYPERIAN ELITE - AWS Production Architecture
+# NUBLE ELITE - AWS Production Architecture
 
 ## 🏗️ Complete Infrastructure Documentation
 
-This document provides a comprehensive overview of the KYPERIAN ELITE AWS infrastructure, designed to be the **world's most intelligent and robust trading system**.
+This document provides a comprehensive overview of the NUBLE ELITE AWS infrastructure, designed to be the **world's most intelligent and robust trading system**.
 
 ---
 
@@ -102,7 +102,7 @@ Input → Validate → Enrich → Store (DynamoDB) → Publish (EventBridge)
 **Event Pattern**:
 ```json
 {
-  "source": ["kyperian.signal.validator"],
+  "source": ["nuble.signal.validator"],
   "detail-type": ["SignalValidated"]
 }
 ```
@@ -140,10 +140,10 @@ Input → Validate → Enrich → Store (DynamoDB) → Publish (EventBridge)
 **Cache Strategy**:
 | Data Type | TTL | Key Pattern |
 |-----------|-----|-------------|
-| Weekly Signal | 7 days | kyperian:signal:SYMBOL:1W:* |
-| Daily Signal | 24 hours | kyperian:signal:SYMBOL:1D:* |
-| 4H Signal | 8 hours | kyperian:signal:SYMBOL:4h:* |
-| Decision | 5 minutes | kyperian:decision:SYMBOL |
+| Weekly Signal | 7 days | nuble:signal:SYMBOL:1W:* |
+| Daily Signal | 24 hours | nuble:signal:SYMBOL:1D:* |
+| 4H Signal | 8 hours | nuble:signal:SYMBOL:4h:* |
+| Decision | 5 minutes | nuble:decision:SYMBOL |
 
 ### 6. DynamoDB
 
@@ -197,9 +197,9 @@ TTL: 30 days
 ### Logging
 
 All logs flow to CloudWatch Logs:
-- `/aws/lambda/kyperian-*` - Lambda logs
-- `/ecs/kyperian-*` - ECS logs
-- `/aws/apigateway/kyperian-*` - API Gateway logs
+- `/aws/lambda/nuble-*` - Lambda logs
+- `/ecs/nuble-*` - ECS logs
+- `/aws/apigateway/nuble-*` - API Gateway logs
 
 ---
 
@@ -241,10 +241,10 @@ TradingView → API Gateway (API Key) → Lambda → EventBridge → ECS
 ### Secrets Management
 
 All secrets stored in AWS SSM Parameter Store:
-- `/kyperian/redis/host`
-- `/kyperian/redis/port`
-- `/kyperian/api/key`
-- `/kyperian/broker/credentials`
+- `/nuble/redis/host`
+- `/nuble/redis/port`
+- `/nuble/api/key`
+- `/nuble/broker/credentials`
 
 ### Encryption
 
@@ -308,21 +308,21 @@ ECS uses rolling updates with:
 **Scale ECS Manually**:
 ```bash
 aws ecs update-service \
-  --cluster kyperian-production \
-  --service kyperian-production-service \
+  --cluster nuble-production \
+  --service nuble-production-service \
   --desired-count 5
 ```
 
 **Invalidate Cache**:
 ```bash
 aws elasticache create-replication-group-message \
-  --replication-group-id kyperian-production-redis \
+  --replication-group-id nuble-production-redis \
   --message-type FLUSHDB
 ```
 
 **Check Lambda Logs**:
 ```bash
-aws logs tail /aws/lambda/kyperian-production-signal-validator --follow
+aws logs tail /aws/lambda/nuble-production-signal-validator --follow
 ```
 
 ### Incident Response
@@ -370,7 +370,7 @@ aws logs tail /aws/lambda/kyperian-production-signal-validator --follow
 
 ### TradingView Webhook
 
-**Endpoint**: `https://api.kyperian.com/production/webhook`
+**Endpoint**: `https://api.nuble.com/production/webhook`
 
 **Headers**:
 ```
@@ -425,4 +425,4 @@ The ECS service exposes internal APIs for broker connectivity:
 
 ---
 
-**🚀 KYPERIAN ELITE - Built for Performance, Designed for Scale**
+**🚀 NUBLE ELITE - Built for Performance, Designed for Scale**

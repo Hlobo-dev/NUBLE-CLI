@@ -24,7 +24,7 @@ References:
 [1] López de Prado, M. (2018). Advances in Financial Machine Learning. Wiley.
 [2] López de Prado, M. (2020). Machine Learning for Asset Managers. Cambridge.
 
-Author: KYPERIAN Institutional
+Author: NUBLE Institutional
 Version: 2.0.0 (Lopez de Prado Compliant)
 """
 

@@ -14,7 +14,7 @@ Target: Reduce PBO from 74% to less than 50%
 """
 
 import sys
-sys.path.insert(0, '/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI')
+sys.path.insert(0, '/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI')
 
 import numpy as np
 import pandas as pd
@@ -247,7 +247,7 @@ def run_weighted_validation():
     for symbol in symbols:
         try:
             df = pd.read_csv(
-                f'/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI/data/train/{symbol}.csv',
+                f'/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI/data/train/{symbol}.csv',
                 index_col=0, parse_dates=True
             )
             

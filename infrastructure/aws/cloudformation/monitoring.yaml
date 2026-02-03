@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'KYPERIAN ELITE - CloudWatch Dashboards and Comprehensive Monitoring'
+Description: 'NUBLE ELITE - CloudWatch Dashboards and Comprehensive Monitoring'
 
 Parameters:
   Environment:
@@ -31,8 +31,8 @@ Resources:
   AlertTopic:
     Type: AWS::SNS::Topic
     Properties:
-      TopicName: !Sub kyperian-${Environment}-alerts
-      DisplayName: KYPERIAN Elite Alerts
+      TopicName: !Sub nuble-${Environment}-alerts
+      DisplayName: NUBLE Elite Alerts
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -49,7 +49,7 @@ Resources:
   MainDashboard:
     Type: AWS::CloudWatch::Dashboard
     Properties:
-      DashboardName: !Sub KYPERIAN-${Environment}-Main
+      DashboardName: !Sub NUBLE-${Environment}-Main
       DashboardBody: !Sub |
         {
           "widgets": [
@@ -60,7 +60,7 @@ Resources:
               "width": 24,
               "height": 1,
               "properties": {
-                "markdown": "# 🚀 KYPERIAN ELITE - Real-Time Trading System Dashboard"
+                "markdown": "# 🚀 NUBLE ELITE - Real-Time Trading System Dashboard"
               }
             },
             {
@@ -72,7 +72,7 @@ Resources:
               "properties": {
                 "title": "📊 Signals Processed",
                 "metrics": [
-                  ["kyperian-signal-validator", "SignalsProcessed", {"stat": "Sum", "period": 300}]
+                  ["nuble-signal-validator", "SignalsProcessed", {"stat": "Sum", "period": 300}]
                 ],
                 "view": "timeSeries",
                 "stacked": false,
@@ -88,7 +88,7 @@ Resources:
               "properties": {
                 "title": "⚡ Lambda Latency (ms)",
                 "metrics": [
-                  ["AWS/Lambda", "Duration", "FunctionName", "kyperian-${Environment}-signal-validator", {"stat": "Average"}],
+                  ["AWS/Lambda", "Duration", "FunctionName", "nuble-${Environment}-signal-validator", {"stat": "Average"}],
                   ["...", {"stat": "p99"}],
                   ["...", {"stat": "Maximum"}]
                 ],
@@ -113,9 +113,9 @@ Resources:
               "properties": {
                 "title": "❌ Errors",
                 "metrics": [
-                  ["kyperian-signal-validator", "ValidationErrors", {"stat": "Sum", "period": 300}],
+                  ["nuble-signal-validator", "ValidationErrors", {"stat": "Sum", "period": 300}],
                   [".", "UnexpectedErrors", {"stat": "Sum", "period": 300}],
-                  ["AWS/Lambda", "Errors", "FunctionName", "kyperian-${Environment}-signal-validator", {"stat": "Sum"}]
+                  ["AWS/Lambda", "Errors", "FunctionName", "nuble-${Environment}-signal-validator", {"stat": "Sum"}]
                 ],
                 "view": "timeSeries",
                 "stacked": true,
@@ -131,7 +131,7 @@ Resources:
               "properties": {
                 "title": "🖥️ ECS Service Health",
                 "metrics": [
-                  ["AWS/ECS", "CPUUtilization", "ServiceName", "kyperian-${Environment}-service", "ClusterName", "kyperian-${Environment}"],
+                  ["AWS/ECS", "CPUUtilization", "ServiceName", "nuble-${Environment}-service", "ClusterName", "nuble-${Environment}"],
                   [".", "MemoryUtilization", ".", ".", ".", "."]
                 ],
                 "view": "timeSeries",
@@ -153,7 +153,7 @@ Resources:
               "properties": {
                 "title": "🔄 ECS Running Tasks",
                 "metrics": [
-                  ["AWS/ECS", "RunningTaskCount", "ServiceName", "kyperian-${Environment}-service", "ClusterName", "kyperian-${Environment}"],
+                  ["AWS/ECS", "RunningTaskCount", "ServiceName", "nuble-${Environment}-service", "ClusterName", "nuble-${Environment}"],
                   [".", "DesiredTaskCount", ".", ".", ".", "."]
                 ],
                 "view": "timeSeries",
@@ -170,7 +170,7 @@ Resources:
               "properties": {
                 "title": "🗄️ Redis Cache Performance",
                 "metrics": [
-                  ["AWS/ElastiCache", "CacheHitRate", "CacheClusterId", "kyperian-${Environment}-redis-001"],
+                  ["AWS/ElastiCache", "CacheHitRate", "CacheClusterId", "nuble-${Environment}-redis-001"],
                   [".", "CacheMisses", ".", "."]
                 ],
                 "view": "timeSeries",
@@ -187,7 +187,7 @@ Resources:
               "properties": {
                 "title": "💾 Redis Memory",
                 "metrics": [
-                  ["AWS/ElastiCache", "DatabaseMemoryUsagePercentage", "CacheClusterId", "kyperian-${Environment}-redis-001"],
+                  ["AWS/ElastiCache", "DatabaseMemoryUsagePercentage", "CacheClusterId", "nuble-${Environment}-redis-001"],
                   [".", "BytesUsedForCache", ".", "."]
                 ],
                 "view": "timeSeries",
@@ -204,7 +204,7 @@ Resources:
               "properties": {
                 "title": "🌐 API Gateway",
                 "metrics": [
-                  ["AWS/ApiGateway", "Count", "ApiId", "kyperian-${Environment}-api", {"stat": "Sum"}],
+                  ["AWS/ApiGateway", "Count", "ApiId", "nuble-${Environment}-api", {"stat": "Sum"}],
                   [".", "4XXError", ".", ".", {"stat": "Sum"}],
                   [".", "5XXError", ".", ".", {"stat": "Sum"}]
                 ],
@@ -222,9 +222,9 @@ Resources:
               "properties": {
                 "title": "📈 End-to-End Latency (Signal → Decision)",
                 "metrics": [
-                  ["kyperian-signal-validator", "TotalProcessingTime", {"stat": "Average"}],
+                  ["nuble-signal-validator", "TotalProcessingTime", {"stat": "Average"}],
                   ["...", {"stat": "p99"}],
-                  ["AWS/ApplicationELB", "TargetResponseTime", "LoadBalancer", "app/kyperian-${Environment}-alb", {"stat": "Average"}]
+                  ["AWS/ApplicationELB", "TargetResponseTime", "LoadBalancer", "app/nuble-${Environment}-alb", {"stat": "Average"}]
                 ],
                 "view": "timeSeries",
                 "stacked": false,
@@ -243,7 +243,7 @@ Resources:
   TradingDashboard:
     Type: AWS::CloudWatch::Dashboard
     Properties:
-      DashboardName: !Sub KYPERIAN-${Environment}-Trading
+      DashboardName: !Sub NUBLE-${Environment}-Trading
       DashboardBody: !Sub |
         {
           "widgets": [
@@ -254,7 +254,7 @@ Resources:
               "width": 24,
               "height": 1,
               "properties": {
-                "markdown": "# 📈 KYPERIAN ELITE - Trading Metrics Dashboard"
+                "markdown": "# 📈 NUBLE ELITE - Trading Metrics Dashboard"
               }
             },
             {
@@ -266,7 +266,7 @@ Resources:
               "properties": {
                 "title": "🎯 Signals by Action",
                 "metrics": [
-                  ["kyperian", "SignalAction", "Action", "BUY", {"stat": "Sum"}],
+                  ["nuble", "SignalAction", "Action", "BUY", {"stat": "Sum"}],
                   ["...", "SELL", {"stat": "Sum"}],
                   ["...", "STRONG_BUY", {"stat": "Sum"}],
                   ["...", "STRONG_SELL", {"stat": "Sum"}],
@@ -285,7 +285,7 @@ Resources:
               "properties": {
                 "title": "⏰ Signals by Timeframe",
                 "metrics": [
-                  ["kyperian", "SignalTimeframe", "Timeframe", "1W", {"stat": "Sum"}],
+                  ["nuble", "SignalTimeframe", "Timeframe", "1W", {"stat": "Sum"}],
                   ["...", "1D", {"stat": "Sum"}],
                   ["...", "4h", {"stat": "Sum"}],
                   ["...", "1h", {"stat": "Sum"}]
@@ -303,7 +303,7 @@ Resources:
               "properties": {
                 "title": "🚫 Veto Rate",
                 "metrics": [
-                  ["kyperian", "DecisionVetoed", {"stat": "Sum"}],
+                  ["nuble", "DecisionVetoed", {"stat": "Sum"}],
                   [".", "DecisionApproved", {"stat": "Sum"}]
                 ],
                 "view": "pie",
@@ -319,7 +319,7 @@ Resources:
               "properties": {
                 "title": "📊 Signal Confidence Distribution",
                 "metrics": [
-                  ["kyperian", "SignalConfidence", {"stat": "Average"}],
+                  ["nuble", "SignalConfidence", {"stat": "Average"}],
                   ["...", {"stat": "p90"}],
                   ["...", {"stat": "p10"}]
                 ],
@@ -337,7 +337,7 @@ Resources:
               "properties": {
                 "title": "💰 Position Size Recommendations",
                 "metrics": [
-                  ["kyperian", "PositionSize", {"stat": "Average"}],
+                  ["nuble", "PositionSize", {"stat": "Average"}],
                   ["...", {"stat": "Maximum"}]
                 ],
                 "view": "timeSeries",
@@ -352,13 +352,13 @@ Resources:
   HighLatencyAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub kyperian-${Environment}-high-latency
+      AlarmName: !Sub nuble-${Environment}-high-latency
       AlarmDescription: Lambda processing time exceeds 100ms
       MetricName: Duration
       Namespace: AWS/Lambda
       Dimensions:
         - Name: FunctionName
-          Value: !Sub kyperian-${Environment}-signal-validator
+          Value: !Sub nuble-${Environment}-signal-validator
       Statistic: p99
       Period: 60
       EvaluationPeriods: 3
@@ -373,13 +373,13 @@ Resources:
   HighErrorRateAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub kyperian-${Environment}-high-error-rate
+      AlarmName: !Sub nuble-${Environment}-high-error-rate
       AlarmDescription: Error rate exceeds 5%
       MetricName: Errors
       Namespace: AWS/Lambda
       Dimensions:
         - Name: FunctionName
-          Value: !Sub kyperian-${Environment}-signal-validator
+          Value: !Sub nuble-${Environment}-signal-validator
       Statistic: Sum
       Period: 300
       EvaluationPeriods: 2
@@ -392,15 +392,15 @@ Resources:
   ECSUnhealthyAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub kyperian-${Environment}-ecs-unhealthy
+      AlarmName: !Sub nuble-${Environment}-ecs-unhealthy
       AlarmDescription: ECS tasks are unhealthy
       MetricName: RunningTaskCount
       Namespace: AWS/ECS
       Dimensions:
         - Name: ServiceName
-          Value: !Sub kyperian-${Environment}-service
+          Value: !Sub nuble-${Environment}-service
         - Name: ClusterName
-          Value: !Sub kyperian-${Environment}
+          Value: !Sub nuble-${Environment}
       Statistic: Average
       Period: 60
       EvaluationPeriods: 2
@@ -413,13 +413,13 @@ Resources:
   RedisHighMemoryAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub kyperian-${Environment}-redis-high-memory
+      AlarmName: !Sub nuble-${Environment}-redis-high-memory
       AlarmDescription: Redis memory usage exceeds 90%
       MetricName: DatabaseMemoryUsagePercentage
       Namespace: AWS/ElastiCache
       Dimensions:
         - Name: CacheClusterId
-          Value: !Sub kyperian-${Environment}-redis-001
+          Value: !Sub nuble-${Environment}-redis-001
       Statistic: Average
       Period: 300
       EvaluationPeriods: 2
@@ -438,8 +438,8 @@ Outputs:
 
   MainDashboardURL:
     Description: Main Dashboard URL
-    Value: !Sub https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=KYPERIAN-${Environment}-Main
+    Value: !Sub https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=NUBLE-${Environment}-Main
 
   TradingDashboardURL:
     Description: Trading Dashboard URL
-    Value: !Sub https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=KYPERIAN-${Environment}-Trading
+    Value: !Sub https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=NUBLE-${Environment}-Trading

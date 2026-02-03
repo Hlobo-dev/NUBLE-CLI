@@ -1,5 +1,5 @@
 """
-KYPERIAN ADVISOR - AUTONOMOUS AI WEALTH MANAGER
+NUBLE ADVISOR - AUTONOMOUS AI WEALTH MANAGER
 =================================================
 
 The most advanced institutional-grade autonomous trading advisor.
@@ -7,7 +7,7 @@ Combines ALL system capabilities into a single intelligent agent.
 
 Architecture:
 ┌─────────────────────────────────────────────────────────────────┐
-│                     KYPERIAN ADVISOR BRAIN                       │
+│                     NUBLE ADVISOR BRAIN                       │
 │                    (Claude Opus 4.5 Core)                        │
 ├─────────────────────────────────────────────────────────────────┤
 │  MARKET INTELLIGENCE    PORTFOLIO CONTEXT    EXECUTION ENGINE   │
@@ -38,7 +38,7 @@ Features:
 - Deep Research on Demand
 - Performance Tracking & Reporting
 
-Author: KYPERIAN ELITE
+Author: NUBLE ELITE
 Version: 5.0.0 (ADVISOR)
 Date: February 2026
 """
@@ -78,21 +78,21 @@ TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID', '')
 IBKR_API_KEY = os.environ.get('IBKR_API_KEY', '')
 
 # DynamoDB Tables
-SIGNALS_TABLE = os.environ.get('DYNAMODB_SIGNALS_TABLE', 'kyperian-production-signals')
-DECISIONS_TABLE = os.environ.get('DYNAMODB_DECISIONS_TABLE', 'kyperian-production-decisions')
-TRADES_TABLE = os.environ.get('DYNAMODB_TRADES_TABLE', 'kyperian-production-trades')
-PORTFOLIO_TABLE = os.environ.get('DYNAMODB_PORTFOLIO_TABLE', 'kyperian-production-portfolio')
-CONVERSATIONS_TABLE = os.environ.get('DYNAMODB_CONVERSATIONS_TABLE', 'kyperian-production-conversations')
+SIGNALS_TABLE = os.environ.get('DYNAMODB_SIGNALS_TABLE', 'nuble-production-signals')
+DECISIONS_TABLE = os.environ.get('DYNAMODB_DECISIONS_TABLE', 'nuble-production-decisions')
+TRADES_TABLE = os.environ.get('DYNAMODB_TRADES_TABLE', 'nuble-production-trades')
+PORTFOLIO_TABLE = os.environ.get('DYNAMODB_PORTFOLIO_TABLE', 'nuble-production-portfolio')
+CONVERSATIONS_TABLE = os.environ.get('DYNAMODB_CONVERSATIONS_TABLE', 'nuble-production-conversations')
 
 # Engine Configuration
 CONFIG = {
     "version": "5.0.0",
-    "name": "KYPERIAN ADVISOR",
+    "name": "NUBLE ADVISOR",
     "codename": "The Autonomous Wealth Manager",
     
     # Personality
     "personality": {
-        "name": "KYPERIAN",
+        "name": "NUBLE",
         "style": "Professional but friendly, like a trusted Goldman Sachs advisor",
         "traits": ["proactive", "data-driven", "risk-aware", "clear", "actionable"],
     },
@@ -311,7 +311,7 @@ def polygon_request(endpoint: str, params: Dict = None) -> Dict:
     full_url = f"{url}?{query_string}"
     
     try:
-        req = urllib.request.Request(full_url, headers={"User-Agent": "KYPERIAN-ADVISOR/5.0"})
+        req = urllib.request.Request(full_url, headers={"User-Agent": "NUBLE-ADVISOR/5.0"})
         with urllib.request.urlopen(req, timeout=5) as response:
             return json.loads(response.read().decode())
     except Exception as e:
@@ -837,7 +837,7 @@ def call_claude(prompt: str, system: str = None, temperature: float = 0.7) -> st
     try:
         url = "https://api.anthropic.com/v1/messages"
         
-        default_system = f"""You are KYPERIAN, an elite AI wealth advisor for {CONFIG['owner']['name']}.
+        default_system = f"""You are NUBLE, an elite AI wealth advisor for {CONFIG['owner']['name']}.
 
 Your personality:
 - Professional but friendly, like a trusted Goldman Sachs private banker
@@ -1149,7 +1149,7 @@ def generate_daily_digest() -> str:
     
     dominant_regime = max(regimes, key=regimes.get) if regimes else "UNKNOWN"
     
-    digest = f"""📊 KYPERIAN DAILY DIGEST
+    digest = f"""📊 NUBLE DAILY DIGEST
 {datetime.now(timezone.utc).strftime('%B %d, %Y')}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1192,7 +1192,7 @@ Have a great evening! I'll monitor overnight. 🌙
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
-    Main Lambda handler for KYPERIAN ADVISOR.
+    Main Lambda handler for NUBLE ADVISOR.
     
     Endpoints:
     - GET /                     Health check and info
@@ -1390,7 +1390,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             except:
                 body = {}
             
-            message = body.get('message', 'Test message from KYPERIAN ADVISOR')
+            message = body.get('message', 'Test message from NUBLE ADVISOR')
             
             success = send_telegram(message)
             
@@ -1444,7 +1444,7 @@ if __name__ == "__main__":
     import os
     
     # Test dashboard
-    print("Testing KYPERIAN ADVISOR...")
+    print("Testing NUBLE ADVISOR...")
     
     result = analyze_symbol("AAPL")
     print(f"\nAAPL Analysis:")

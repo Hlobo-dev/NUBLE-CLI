@@ -2,7 +2,7 @@
 """
 REAL Baseline Comparison Test
 
-This tests the ACTUAL KYPERIAN ML strategy against buy-and-hold SPY.
+This tests the ACTUAL NUBLE ML strategy against buy-and-hold SPY.
 Uses REAL market data, REAL signal generation, REAL validation.
 
 NO MOCKS. NO SYNTHETIC DATA. NO FAKE STRATEGIES.
@@ -48,7 +48,7 @@ def load_real_data(symbol: str, period: str = 'test') -> pd.DataFrame:
 
 def run_real_ml_strategy(symbol: str, data: pd.DataFrame) -> pd.Series:
     """
-    Run the ACTUAL KYPERIAN ML strategy on real data.
+    Run the ACTUAL NUBLE ML strategy on real data.
     
     This uses your REAL EnhancedSignalGenerator.
     """
@@ -204,7 +204,7 @@ def print_metrics(metrics: dict):
 
 
 def test_single_symbol(symbol: str) -> dict:
-    """Test KYPERIAN vs buy-and-hold for a single symbol."""
+    """Test NUBLE vs buy-and-hold for a single symbol."""
     print(f"\n{'='*60}")
     print(f"TESTING: {symbol}")
     print(f"{'='*60}")
@@ -243,7 +243,7 @@ def test_single_symbol(symbol: str) -> dict:
     
     # Calculate metrics
     bh_metrics = calculate_metrics(bh_aligned, f"{symbol} Buy-and-Hold")
-    strat_metrics = calculate_metrics(strat_aligned, f"{symbol} KYPERIAN ML")
+    strat_metrics = calculate_metrics(strat_aligned, f"{symbol} NUBLE ML")
     
     print_metrics(bh_metrics)
     print_metrics(strat_metrics)
@@ -260,10 +260,10 @@ def test_single_symbol(symbol: str) -> dict:
     print(f"    Sharpe difference:     {sharpe_diff:+.2f}")
     
     if alpha > 0:
-        print(f"    ✅ KYPERIAN OUTPERFORMS by {alpha:.1%}")
+        print(f"    ✅ NUBLE OUTPERFORMS by {alpha:.1%}")
         outperforms = True
     else:
-        print(f"    ❌ KYPERIAN UNDERPERFORMS by {abs(alpha):.1%}")
+        print(f"    ❌ NUBLE UNDERPERFORMS by {abs(alpha):.1%}")
         outperforms = False
     
     return {
@@ -279,7 +279,7 @@ def test_single_symbol(symbol: str) -> dict:
 def test_portfolio() -> dict:
     """Test equal-weight portfolio of validated symbols vs SPY."""
     print(f"\n{'='*70}")
-    print(f"PORTFOLIO TEST: KYPERIAN vs SPY")
+    print(f"PORTFOLIO TEST: NUBLE vs SPY")
     print(f"{'='*70}")
     
     # Validated symbols from your institutional audit
@@ -326,7 +326,7 @@ def test_portfolio() -> dict:
     
     # Calculate metrics
     spy_metrics = calculate_metrics(spy_aligned, "SPY Buy-and-Hold")
-    port_metrics = calculate_metrics(port_aligned, "KYPERIAN Portfolio")
+    port_metrics = calculate_metrics(port_aligned, "NUBLE Portfolio")
     
     print_metrics(spy_metrics)
     print_metrics(port_metrics)
@@ -343,9 +343,9 @@ def test_portfolio() -> dict:
     print(f"    Sharpe diff: {sharpe_diff:+.2f}")
     
     if alpha > 0:
-        print(f"\n    ✅ KYPERIAN PORTFOLIO BEATS SPY by {alpha:.1%}")
+        print(f"\n    ✅ NUBLE PORTFOLIO BEATS SPY by {alpha:.1%}")
     else:
-        print(f"\n    ❌ KYPERIAN PORTFOLIO LOSES TO SPY by {abs(alpha):.1%}")
+        print(f"\n    ❌ NUBLE PORTFOLIO LOSES TO SPY by {abs(alpha):.1%}")
     
     return {
         'portfolio': port_metrics,
@@ -359,7 +359,7 @@ def test_portfolio() -> dict:
 def run_full_baseline_test():
     """Run complete baseline comparison."""
     print("="*70)
-    print("KYPERIAN vs BUY-AND-HOLD: REAL DATA, REAL STRATEGY")
+    print("NUBLE vs BUY-AND-HOLD: REAL DATA, REAL STRATEGY")
     print("="*70)
     print(f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("Using: EnhancedSignalGenerator from src/institutional/signals/")
@@ -400,7 +400,7 @@ def run_full_baseline_test():
     
     if 'error' not in portfolio_result:
         print(f"\nPortfolio vs SPY:")
-        print(f"  KYPERIAN Return: {portfolio_result['portfolio']['total_return']:+.1%}")
+        print(f"  NUBLE Return: {portfolio_result['portfolio']['total_return']:+.1%}")
         print(f"  SPY Return:      {portfolio_result['benchmark']['total_return']:+.1%}")
         print(f"  Alpha:           {portfolio_result['alpha']:+.1%}")
         print(f"  Sharpe diff:     {portfolio_result['sharpe_diff']:+.2f}")
@@ -423,15 +423,15 @@ def run_full_baseline_test():
         print(f"Sharpe vs SPY: {portfolio_sharpe:+.2f}")
         
         if portfolio_alpha > 0.05 and portfolio_sharpe_abs > 0.3:
-            print("\n✅ VERDICT: KYPERIAN HAS REAL EDGE OVER BUY-AND-HOLD")
+            print("\n✅ VERDICT: NUBLE HAS REAL EDGE OVER BUY-AND-HOLD")
             print("   Alpha > 5% AND Sharpe > 0.3")
             verdict = "PASS"
         elif portfolio_alpha > 0:
-            print("\n⚠️ VERDICT: KYPERIAN MARGINALLY BETTER THAN BUY-AND-HOLD")
+            print("\n⚠️ VERDICT: NUBLE MARGINALLY BETTER THAN BUY-AND-HOLD")
             print("   Positive alpha but below 5%")
             verdict = "MARGINAL"
         else:
-            print("\n❌ VERDICT: KYPERIAN DOES NOT BEAT BUY-AND-HOLD")
+            print("\n❌ VERDICT: NUBLE DOES NOT BEAT BUY-AND-HOLD")
             print("   Strategy underperformed passive investing")
             verdict = "FAIL"
     

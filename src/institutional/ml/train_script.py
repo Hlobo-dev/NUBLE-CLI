@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-KYPERIAN Model Training Script
+NUBLE Model Training Script
 ==============================
 
 Production training script for financial ML models.
@@ -178,7 +178,7 @@ def train_model(
     Returns:
         Training metrics
     """
-    save_dir = save_dir or Path.home() / '.kyperian' / 'models'
+    save_dir = save_dir or Path.home() / '.nuble' / 'models'
     save_dir.mkdir(parents=True, exist_ok=True)
     
     device = next(model.parameters()).device
@@ -336,7 +336,7 @@ def train_model(
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Train KYPERIAN ML models')
+    parser = argparse.ArgumentParser(description='Train NUBLE ML models')
     parser.add_argument(
         '--symbols', nargs='+', 
         default=['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA'],
@@ -359,7 +359,7 @@ def main():
     logger.info(f"Using device: {device}")
     
     # Output directory
-    output_dir = Path(args.output_dir) if args.output_dir else Path.home() / '.kyperian' / 'models'
+    output_dir = Path(args.output_dir) if args.output_dir else Path.home() / '.nuble' / 'models'
     output_dir.mkdir(parents=True, exist_ok=True)
     
     # Fetch data

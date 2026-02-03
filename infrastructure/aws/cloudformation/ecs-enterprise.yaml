@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: |
-  KYPERIAN ELITE - Enterprise ECS Fargate Cluster
+  NUBLE ELITE - Enterprise ECS Fargate Cluster
   ================================================
   High-performance container orchestration with:
   - Multi-AZ deployment for high availability
@@ -35,7 +35,7 @@ Parameters:
 
   ContainerImage:
     Type: String
-    Description: Docker image URI for the KYPERIAN application
+    Description: Docker image URI for the NUBLE application
 
   ContainerCpu:
     Type: Number
@@ -86,7 +86,7 @@ Resources:
   ECSCluster:
     Type: AWS::ECS::Cluster
     Properties:
-      ClusterName: !Sub kyperian-${Environment}
+      ClusterName: !Sub nuble-${Environment}
       
       ClusterSettings:
         - Name: containerInsights
@@ -120,10 +120,10 @@ Resources:
   ServiceDiscoveryNamespace:
     Type: AWS::ServiceDiscovery::PrivateDnsNamespace
     Properties:
-      Name: !Sub kyperian.${Environment}.local
+      Name: !Sub nuble.${Environment}.local
       Vpc:
         Fn::ImportValue: !Sub ${NetworkStackName}-VpcId
-      Description: Private DNS namespace for KYPERIAN services
+      Description: Private DNS namespace for NUBLE services
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -152,7 +152,7 @@ Resources:
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
-      Family: !Sub kyperian-${Environment}-mtf-engine
+      Family: !Sub nuble-${Environment}-mtf-engine
       Cpu: !Ref ContainerCpu
       Memory: !Ref ContainerMemory
       NetworkMode: awsvpc
@@ -166,7 +166,7 @@ Resources:
         OperatingSystemFamily: LINUX
       
       ContainerDefinitions:
-        - Name: kyperian-mtf-engine
+        - Name: nuble-mtf-engine
           Image: !Ref ContainerImage
           Essential: true
           
@@ -181,19 +181,19 @@ Resources:
             - Name: PORT
               Value: '8000'
             - Name: POWERTOOLS_SERVICE_NAME
-              Value: kyperian-mtf-engine
+              Value: nuble-mtf-engine
             - Name: POWERTOOLS_METRICS_NAMESPACE
-              Value: KYPERIAN
+              Value: NUBLE
             - Name: AWS_XRAY_DAEMON_ADDRESS
               Value: '127.0.0.1:2000'
           
           Secrets:
             - Name: DYNAMODB_SIGNALS_TABLE
-              ValueFrom: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/kyperian/dynamodb/signals-table
+              ValueFrom: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/nuble/dynamodb/signals-table
             - Name: DYNAMODB_DECISIONS_TABLE
-              ValueFrom: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/kyperian/dynamodb/decisions-table
+              ValueFrom: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/nuble/dynamodb/decisions-table
             - Name: EVENTBRIDGE_BUS_NAME
-              ValueFrom: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/kyperian/eventbridge/bus-name
+              ValueFrom: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/nuble/eventbridge/bus-name
           
           LogConfiguration:
             LogDriver: awslogs
@@ -254,7 +254,7 @@ Resources:
       - ALBListener
       - ALBListenerRule
     Properties:
-      ServiceName: !Sub kyperian-${Environment}-mtf-engine
+      ServiceName: !Sub nuble-${Environment}-mtf-engine
       Cluster: !Ref ECSCluster
       TaskDefinition: !Ref TaskDefinition
       DesiredCount: !Ref DesiredCount
@@ -271,7 +271,7 @@ Resources:
             - Fn::ImportValue: !Sub ${NetworkStackName}-PrivateSubnet2
       
       LoadBalancers:
-        - ContainerName: kyperian-mtf-engine
+        - ContainerName: nuble-mtf-engine
           ContainerPort: 8000
           TargetGroupArn: !Ref TargetGroup
       
@@ -300,7 +300,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Security group for ECS tasks
-      GroupName: !Sub kyperian-${Environment}-ecs-sg
+      GroupName: !Sub nuble-${Environment}-ecs-sg
       VpcId:
         Fn::ImportValue: !Sub ${NetworkStackName}-VpcId
       SecurityGroupIngress:
@@ -320,7 +320,7 @@ Resources:
           CidrIp: 0.0.0.0/0
       Tags:
         - Key: Name
-          Value: !Sub kyperian-${Environment}-ecs-sg
+          Value: !Sub nuble-${Environment}-ecs-sg
 
   # ============================================================
   # APPLICATION LOAD BALANCER
@@ -329,7 +329,7 @@ Resources:
   ApplicationLoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
-      Name: !Sub kyperian-${Environment}-alb
+      Name: !Sub nuble-${Environment}-alb
       Type: application
       Scheme: internet-facing
       IpAddressType: ipv4
@@ -357,7 +357,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Security group for Application Load Balancer
-      GroupName: !Sub kyperian-${Environment}-alb-sg
+      GroupName: !Sub nuble-${Environment}-alb-sg
       VpcId:
         Fn::ImportValue: !Sub ${NetworkStackName}-VpcId
       SecurityGroupIngress:
@@ -377,12 +377,12 @@ Resources:
           CidrIp: 0.0.0.0/0
       Tags:
         - Key: Name
-          Value: !Sub kyperian-${Environment}-alb-sg
+          Value: !Sub nuble-${Environment}-alb-sg
 
   TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
-      Name: !Sub kyperian-${Environment}-tg
+      Name: !Sub nuble-${Environment}-tg
       VpcId:
         Fn::ImportValue: !Sub ${NetworkStackName}-VpcId
       Port: 8000
@@ -453,7 +453,7 @@ Resources:
   CPUScalingPolicy:
     Type: AWS::ApplicationAutoScaling::ScalingPolicy
     Properties:
-      PolicyName: !Sub kyperian-${Environment}-cpu-scaling
+      PolicyName: !Sub nuble-${Environment}-cpu-scaling
       PolicyType: TargetTrackingScaling
       ScalingTargetId: !Ref AutoScalingTarget
       TargetTrackingScalingPolicyConfiguration:
@@ -467,7 +467,7 @@ Resources:
   MemoryScalingPolicy:
     Type: AWS::ApplicationAutoScaling::ScalingPolicy
     Properties:
-      PolicyName: !Sub kyperian-${Environment}-memory-scaling
+      PolicyName: !Sub nuble-${Environment}-memory-scaling
       PolicyType: TargetTrackingScaling
       ScalingTargetId: !Ref AutoScalingTarget
       TargetTrackingScalingPolicyConfiguration:
@@ -481,7 +481,7 @@ Resources:
   RequestScalingPolicy:
     Type: AWS::ApplicationAutoScaling::ScalingPolicy
     Properties:
-      PolicyName: !Sub kyperian-${Environment}-request-scaling
+      PolicyName: !Sub nuble-${Environment}-request-scaling
       PolicyType: TargetTrackingScaling
       ScalingTargetId: !Ref AutoScalingTarget
       TargetTrackingScalingPolicyConfiguration:
@@ -499,7 +499,7 @@ Resources:
   TaskExecutionRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub kyperian-${Environment}-task-execution
+      RoleName: !Sub nuble-${Environment}-task-execution
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -520,12 +520,12 @@ Resources:
                   - ssm:GetParameter
                   - ssm:GetParametersByPath
                 Resource:
-                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/kyperian/*
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/nuble/*
               - Effect: Allow
                 Action:
                   - secretsmanager:GetSecretValue
                 Resource:
-                  - !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:kyperian/*
+                  - !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:nuble/*
               - Effect: Allow
                 Action:
                   - kms:Decrypt
@@ -537,7 +537,7 @@ Resources:
   TaskRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub kyperian-${Environment}-task
+      RoleName: !Sub nuble-${Environment}-task
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -623,7 +623,7 @@ Resources:
   AutoScalingRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub kyperian-${Environment}-autoscaling
+      RoleName: !Sub nuble-${Environment}-autoscaling
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -641,7 +641,7 @@ Resources:
   TaskLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub /ecs/kyperian-${Environment}
+      LogGroupName: !Sub /ecs/nuble-${Environment}
       RetentionInDays: 30
       Tags:
         - Key: Environment
@@ -654,7 +654,7 @@ Resources:
   CPUAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub kyperian-${Environment}-ecs-cpu-high
+      AlarmName: !Sub nuble-${Environment}-ecs-cpu-high
       AlarmDescription: ECS CPU utilization is high
       MetricName: CPUUtilization
       Namespace: AWS/ECS
@@ -673,7 +673,7 @@ Resources:
   MemoryAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub kyperian-${Environment}-ecs-memory-high
+      AlarmName: !Sub nuble-${Environment}-ecs-memory-high
       AlarmDescription: ECS memory utilization is high
       MetricName: MemoryUtilization
       Namespace: AWS/ECS
@@ -692,7 +692,7 @@ Resources:
   RunningTasksAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub kyperian-${Environment}-ecs-tasks-low
+      AlarmName: !Sub nuble-${Environment}-ecs-tasks-low
       AlarmDescription: ECS running tasks below minimum
       MetricName: RunningTaskCount
       Namespace: ECS/ContainerInsights
@@ -711,7 +711,7 @@ Resources:
   ALBHealthyHostsAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub kyperian-${Environment}-alb-unhealthy
+      AlarmName: !Sub nuble-${Environment}-alb-unhealthy
       AlarmDescription: ALB has unhealthy targets
       MetricName: UnHealthyHostCount
       Namespace: AWS/ApplicationELB
@@ -730,7 +730,7 @@ Resources:
   ALBLatencyAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub kyperian-${Environment}-alb-latency
+      AlarmName: !Sub nuble-${Environment}-alb-latency
       AlarmDescription: ALB target response time is high
       MetricName: TargetResponseTime
       Namespace: AWS/ApplicationELB
@@ -795,7 +795,7 @@ Outputs:
 
   ServiceDiscoveryEndpoint:
     Description: Service Discovery endpoint
-    Value: !Sub mtf-engine.kyperian.${Environment}.local
+    Value: !Sub mtf-engine.nuble.${Environment}.local
     Export:
       Name: !Sub ${AWS::StackName}-ServiceDiscoveryEndpoint
 

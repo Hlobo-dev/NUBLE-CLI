@@ -1,8 +1,8 @@
 """
-ML Integration Layer for KYPERIAN
+ML Integration Layer for NUBLE
 ==================================
 
-Connects PyTorch ML models to the main KYPERIAN system:
+Connects PyTorch ML models to the main NUBLE system:
 - Model management and inference
 - Real-time prediction pipeline
 - Integration with orchestrator
@@ -64,12 +64,12 @@ class PredictionOutput:
 
 class MLPredictor:
     """
-    Production ML predictor for KYPERIAN.
+    Production ML predictor for NUBLE.
     
     Manages multiple models and provides unified prediction interface.
     """
     
-    DEFAULT_MODEL_DIR = Path.home() / '.kyperian' / 'models'
+    DEFAULT_MODEL_DIR = Path.home() / '.nuble' / 'models'
     
     def __init__(
         self,
@@ -356,7 +356,7 @@ class MLPredictor:
 
 class MLIntegration:
     """
-    Integration layer for connecting ML to KYPERIAN orchestrator.
+    Integration layer for connecting ML to NUBLE orchestrator.
     """
     
     def __init__(self, predictor: Optional[MLPredictor] = None):

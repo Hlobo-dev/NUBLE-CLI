@@ -1,5 +1,5 @@
 """
-KYPERIAN ULTIMATE DECISION ENGINE - V4.0
+NUBLE ULTIMATE DECISION ENGINE - V4.0
 ==========================================
 
 The most advanced institutional-grade trading decision engine.
@@ -20,7 +20,7 @@ Layer Architecture:
 
 Risk Layer: VETO power for position/drawdown/correlation/volatility
 
-Author: KYPERIAN ELITE
+Author: NUBLE ELITE
 Version: 4.0.0 (Ultimate)
 Date: February 2026
 """
@@ -53,14 +53,14 @@ logger.setLevel(logging.INFO)
 # Environment
 POLYGON_API_KEY = os.environ.get('POLYGON_API_KEY', '')
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
-SIGNALS_TABLE = os.environ.get('DYNAMODB_SIGNALS_TABLE', 'kyperian-production-signals')
-DECISIONS_TABLE = os.environ.get('DYNAMODB_DECISIONS_TABLE', 'kyperian-production-decisions')
-TRADES_TABLE = os.environ.get('DYNAMODB_TRADES_TABLE', 'kyperian-production-trades')
+SIGNALS_TABLE = os.environ.get('DYNAMODB_SIGNALS_TABLE', 'nuble-production-signals')
+DECISIONS_TABLE = os.environ.get('DYNAMODB_DECISIONS_TABLE', 'nuble-production-decisions')
+TRADES_TABLE = os.environ.get('DYNAMODB_TRADES_TABLE', 'nuble-production-trades')
 
 # Engine Configuration
 CONFIG = {
     "version": "4.0.0",
-    "name": "KYPERIAN Ultimate Decision Engine",
+    "name": "NUBLE Ultimate Decision Engine",
     
     # Layer weights (must sum to 1.0)
     "weights": {
@@ -284,7 +284,7 @@ def polygon_request(endpoint: str, params: Dict = None) -> Dict:
     full_url = f"{url}?{query_string}"
     
     try:
-        req = urllib.request.Request(full_url, headers={"User-Agent": "KYPERIAN/4.0"})
+        req = urllib.request.Request(full_url, headers={"User-Agent": "NUBLE/4.0"})
         with urllib.request.urlopen(req, timeout=5) as response:
             return json.loads(response.read().decode())
     except urllib.error.HTTPError as e:

@@ -1,4 +1,4 @@
-"""KYPERIAN Signal Validator Lambda Handler"""
+"""NUBLE Signal Validator Lambda Handler"""
 
 import json
 import os
@@ -12,9 +12,9 @@ import boto3
 from botocore.config import Config
 
 ENVIRONMENT = os.environ.get('ENVIRONMENT', 'production')
-SIGNALS_TABLE = os.environ.get('DYNAMODB_SIGNALS_TABLE', f'kyperian-{ENVIRONMENT}-signals')
-DECISIONS_TABLE = os.environ.get('DYNAMODB_DECISIONS_TABLE', f'kyperian-{ENVIRONMENT}-decisions')
-EVENTBRIDGE_BUS = os.environ.get('EVENTBRIDGE_BUS_NAME', f'kyperian-{ENVIRONMENT}-signals')
+SIGNALS_TABLE = os.environ.get('DYNAMODB_SIGNALS_TABLE', f'nuble-{ENVIRONMENT}-signals')
+DECISIONS_TABLE = os.environ.get('DYNAMODB_DECISIONS_TABLE', f'nuble-{ENVIRONMENT}-decisions')
+EVENTBRIDGE_BUS = os.environ.get('EVENTBRIDGE_BUS_NAME', f'nuble-{ENVIRONMENT}-signals')
 
 VALID_TIMEFRAMES = ['1m', '5m', '15m', '30m', '1h', '4h', '1D', '1W', '1M']
 TIMEFRAME_WEIGHTS = {'1m': 1, '5m': 2, '15m': 3, '30m': 4, '1h': 5, '4h': 6, '1D': 7, '1W': 8, '1M': 9}
@@ -104,7 +104,7 @@ def store_signal(signal, signal_id):
 def publish_event(signal, signal_id):
     try:
         eventbridge.put_events(Entries=[{
-            'Source': 'kyperian.signal.validator',
+            'Source': 'nuble.signal.validator',
             'DetailType': 'SignalValidated',
             'Detail': json.dumps({
                 'signal_id': signal_id,
@@ -159,7 +159,7 @@ def handle_webhook(event):
 def handle_health(event):
     return json_response(200, {
         'status': 'healthy',
-        'service': 'kyperian-signal-validator',
+        'service': 'nuble-signal-validator',
         'environment': ENVIRONMENT,
         'timestamp': datetime.now(timezone.utc).isoformat()
     })

@@ -166,7 +166,7 @@ EXTENDED_SCENARIOS = [
 
 async def run_extended_scenarios():
     """Run all extended scenarios with strict validation."""
-    from kyperian.agents.orchestrator import OrchestratorAgent
+    from nuble.agents.orchestrator import OrchestratorAgent
     
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:

@@ -13,7 +13,7 @@ Components Integrated:
 
 This creates a complete institutional-grade ML pipeline for systematic trading.
 
-Author: Kyperian Institutional ML
+Author: Nuble Institutional ML
 License: Proprietary
 """
 

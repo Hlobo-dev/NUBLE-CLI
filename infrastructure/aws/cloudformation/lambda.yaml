@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: 'KYPERIAN ELITE - Lambda Signal Validator (Target <10ms)'
+Description: 'NUBLE ELITE - Lambda Signal Validator (Target <10ms)'
 
 Parameters:
   Environment:
@@ -19,14 +19,14 @@ Globals:
     Environment:
       Variables:
         ENVIRONMENT: !Ref Environment
-        POWERTOOLS_SERVICE_NAME: kyperian-signal-validator
+        POWERTOOLS_SERVICE_NAME: nuble-signal-validator
 
 Resources:
   # ============ Lambda Function ============
   SignalValidatorFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub kyperian-${Environment}-signal-validator
+      FunctionName: !Sub nuble-${Environment}-signal-validator
       Description: Ultra-fast signal validation for TradingView webhooks
       CodeUri: ../lambda/signal_validator/
       Handler: handler.lambda_handler
@@ -47,7 +47,7 @@ Resources:
         Variables:
           ENVIRONMENT: !Ref Environment
           EVENTBRIDGE_BUS_NAME: !Ref SignalEventBus
-          REDIS_HOST: '{{resolve:ssm:/kyperian/redis/host}}'
+          REDIS_HOST: '{{resolve:ssm:/nuble/redis/host}}'
           DYNAMODB_TABLE: !Ref SignalHistoryTable
       
       Policies:
@@ -61,7 +61,7 @@ Resources:
             - Effect: Allow
               Action:
                 - ssm:GetParameter
-              Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/kyperian/*
+              Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/nuble/*
       
       Tags:
         Environment: !Ref Environment
@@ -79,18 +79,18 @@ Resources:
   SignalEventBus:
     Type: AWS::Events::EventBus
     Properties:
-      Name: !Sub kyperian-${Environment}-signals
+      Name: !Sub nuble-${Environment}-signals
 
   # Rule to route signals to ECS
   SignalToECSRule:
     Type: AWS::Events::Rule
     Properties:
-      Name: !Sub kyperian-${Environment}-signal-to-ecs
+      Name: !Sub nuble-${Environment}-signal-to-ecs
       EventBusName: !Ref SignalEventBus
       State: ENABLED
       EventPattern:
         source:
-          - kyperian.signal.validator
+          - nuble.signal.validator
         detail-type:
           - SignalValidated
       Targets:
@@ -102,7 +102,7 @@ Resources:
   SignalHistoryTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub kyperian-${Environment}-signals
+      TableName: !Sub nuble-${Environment}-signals
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: pk
@@ -139,7 +139,7 @@ Resources:
   DecisionHistoryTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub kyperian-${Environment}-decisions
+      TableName: !Sub nuble-${Environment}-decisions
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: pk
@@ -162,7 +162,7 @@ Resources:
   LatencyAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub kyperian-${Environment}-lambda-latency
+      AlarmName: !Sub nuble-${Environment}-lambda-latency
       MetricName: Duration
       Namespace: AWS/Lambda
       Dimensions:
@@ -179,7 +179,7 @@ Resources:
   ErrorRateAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub kyperian-${Environment}-lambda-errors
+      AlarmName: !Sub nuble-${Environment}-lambda-errors
       MetricName: Errors
       Namespace: AWS/Lambda
       Dimensions:

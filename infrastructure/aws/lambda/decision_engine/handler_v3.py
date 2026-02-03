@@ -1,5 +1,5 @@
 """
-KYPERIAN ULTIMATE DECISION ENGINE V5 - THE APEX PREDATOR
+NUBLE ULTIMATE DECISION ENGINE V5 - THE APEX PREDATOR
 ===========================================================
 
 The most advanced institutional-grade trading decision engine in existence.
@@ -9,7 +9,7 @@ This is not a toy. This is not a demo. This is the real thing.
 
 Architecture:
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                    KYPERIAN V5 - APEX DECISION ENGINE                       │
+│                    NUBLE V5 - APEX DECISION ENGINE                       │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │  LAYER 1: TECHNICAL (35%)           │  LAYER 2: INTELLIGENCE (30%)         │
 │  ├─ LuxAlgo MTF Signals (40%)       │  ├─ HMM Regime Detection (35%)       │
@@ -44,7 +44,7 @@ API Endpoints:
 - POST /query        - Ask Claude about a symbol
 - POST /monitor      - Trigger autonomous check
 
-Author: KYPERIAN ELITE - Principal Staff Engineer
+Author: NUBLE ELITE - Principal Staff Engineer
 Version: 5.0.0 (APEX)
 Date: February 2026
 """
@@ -82,12 +82,12 @@ logger.setLevel(logging.INFO)
 # Environment
 POLYGON_API_KEY = os.environ.get('POLYGON_API_KEY', '')
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
-SIGNALS_TABLE = os.environ.get('DYNAMODB_SIGNALS_TABLE', 'kyperian-production-signals')
-DECISIONS_TABLE = os.environ.get('DYNAMODB_DECISIONS_TABLE', 'kyperian-production-decisions')
+SIGNALS_TABLE = os.environ.get('DYNAMODB_SIGNALS_TABLE', 'nuble-production-signals')
+DECISIONS_TABLE = os.environ.get('DYNAMODB_DECISIONS_TABLE', 'nuble-production-decisions')
 
 CONFIG = {
     "version": "5.0.0",
-    "name": "KYPERIAN APEX Decision Engine",
+    "name": "NUBLE APEX Decision Engine",
     "codename": "THE APEX PREDATOR",
     "data_points": 30,
     
@@ -232,7 +232,7 @@ def polygon_request(endpoint: str, params: Dict = None) -> Dict:
     full_url = f"{url}?{query}"
     
     try:
-        req = urllib.request.Request(full_url, headers={"User-Agent": "KYPERIAN/5.0"})
+        req = urllib.request.Request(full_url, headers={"User-Agent": "NUBLE/5.0"})
         with urllib.request.urlopen(req, timeout=5) as resp:
             return json.loads(resp.read().decode())
     except urllib.error.HTTPError as e:

@@ -1,9 +1,9 @@
-# KYPERIAN ML Trading System - Final Audit Report
+# NUBLE ML Trading System - Final Audit Report
 
 ## Executive Summary
 
 **Date:** February 1, 2026  
-**System:** KYPERIAN Institutional ML Trading System  
+**System:** NUBLE Institutional ML Trading System  
 **Status:** ✅ CONDITIONALLY APPROVED FOR PRODUCTION
 
 ---

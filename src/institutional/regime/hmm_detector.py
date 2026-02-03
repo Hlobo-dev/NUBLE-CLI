@@ -29,7 +29,7 @@ References:
 [3] Kim, C.J. (1994). "Dynamic Linear Models with Markov-Switching." 
     Journal of Econometrics.
 
-Author: KYPERIAN Institutional
+Author: NUBLE Institutional
 Version: 2.0.0
 """
 

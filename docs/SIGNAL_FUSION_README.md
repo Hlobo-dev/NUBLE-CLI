@@ -1,4 +1,4 @@
-# 🚀 KYPERIAN ELITE: Signal Fusion System
+# 🚀 NUBLE ELITE: Signal Fusion System
 
 ## The World's Most Intelligent Multi-Source Trading System
 
@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-KYPERIAN Elite is a **multi-source signal fusion system** that combines:
+NUBLE Elite is a **multi-source signal fusion system** that combines:
 
 | Source | Weight | Description |
 |--------|--------|-------------|
@@ -24,7 +24,7 @@ KYPERIAN Elite is a **multi-source signal fusion system** that combines:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                    KYPERIAN ELITE: SIGNAL FUSION ARCHITECTURE                │
+│                    NUBLE ELITE: SIGNAL FUSION ARCHITECTURE                │
 │                                                                              │
 │  ┌──────────────────────────────────────────────────────────────────────┐   │
 │  │                         SIGNAL SOURCES                                │   │
@@ -78,7 +78,7 @@ KYPERIAN Elite is a **multi-source signal fusion system** that combines:
 ## 📁 New Files Created
 
 ```
-src/kyperian/
+src/nuble/
 ├── signals/
 │   ├── __init__.py                    # Signal fusion exports
 │   ├── base_source.py                 # Base class for signal sources
@@ -147,8 +147,8 @@ For SELL signals:
 ### 2. Start the API Server
 
 ```bash
-cd KYPERIAN-CLI
-python -m uvicorn kyperian.api.main:app --host 0.0.0.0 --port 8000
+cd NUBLE-CLI
+python -m uvicorn nuble.api.main:app --host 0.0.0.0 --port 8000
 ```
 
 ### 3. Test the Webhook
@@ -200,14 +200,14 @@ curl "http://localhost:8000/fusion/ETHUSD?regime=BULL&sentiment=0.3"
 ## 🧪 Running Tests
 
 ```bash
-cd KYPERIAN-CLI
+cd NUBLE-CLI
 python tests/test_luxalgo_integration.py
 ```
 
 Expected output:
 ```
 ============================================================
-KYPERIAN LUXALGO INTEGRATION TESTS
+NUBLE LUXALGO INTEGRATION TESTS
 ============================================================
 
 ✅ Webhook parsing tests PASSED
@@ -234,7 +234,7 @@ TEST SUMMARY
 ### Basic Usage
 
 ```python
-from kyperian.signals import (
+from nuble.signals import (
     SignalFusionEngine,
     get_signal_store,
     parse_luxalgo_webhook
@@ -273,8 +273,8 @@ if fused.is_actionable:
 ### With Continuous Learning
 
 ```python
-from kyperian.signals import SignalFusionEngine
-from kyperian.learning import PredictionTracker, WeightAdjuster
+from nuble.signals import SignalFusionEngine
+from nuble.learning import PredictionTracker, WeightAdjuster
 
 # Setup
 engine = SignalFusionEngine()
@@ -420,8 +420,8 @@ adjuster = WeightAdjuster(
 
 ## 📄 License
 
-Proprietary - KYPERIAN Institutional
+Proprietary - NUBLE Institutional
 
 ---
 
-*Built with 🧠 by KYPERIAN Elite*
+*Built with 🧠 by NUBLE Elite*

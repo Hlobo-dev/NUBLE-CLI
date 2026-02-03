@@ -6,7 +6,7 @@ with the validated ML trading model.
 """
 
 import sys
-sys.path.insert(0, '/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI')
+sys.path.insert(0, '/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI')
 
 import asyncio
 import pandas as pd
@@ -15,10 +15,10 @@ from datetime import datetime
 
 print("Loading modules...")
 
-from src.kyperian.news.client import StockNewsClient
-from src.kyperian.news.sentiment import SentimentAnalyzer, quick_sentiment
-from src.kyperian.news.pipeline import NewsPipeline
-from src.kyperian.news.integrator import NewsSignalIntegrator
+from src.nuble.news.client import StockNewsClient
+from src.nuble.news.sentiment import SentimentAnalyzer, quick_sentiment
+from src.nuble.news.pipeline import NewsPipeline
+from src.nuble.news.integrator import NewsSignalIntegrator
 
 print("Modules loaded successfully!")
 
@@ -234,7 +234,7 @@ async def test_signal_integration():
 async def main():
     """Run all tests."""
     print("=" * 60)
-    print("KYPERIAN NEWS INTEGRATION TEST")
+    print("NUBLE NEWS INTEGRATION TEST")
     print("=" * 60)
     print(f"Timestamp: {datetime.now().isoformat()}")
     print("=" * 60)

@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'KYPERIAN ELITE - ElastiCache Redis for Ultra-Low Latency Caching'
+Description: 'NUBLE ELITE - ElastiCache Redis for Ultra-Low Latency Caching'
 
 Parameters:
   Environment:
@@ -31,7 +31,7 @@ Resources:
   CacheSubnetGroup:
     Type: AWS::ElastiCache::SubnetGroup
     Properties:
-      Description: Subnet group for KYPERIAN Redis cache
+      Description: Subnet group for NUBLE Redis cache
       SubnetIds:
         - Fn::ImportValue: !Sub ${NetworkStackName}-PrivateSubnet1
         - Fn::ImportValue: !Sub ${NetworkStackName}-PrivateSubnet2
@@ -43,7 +43,7 @@ Resources:
   CacheParameterGroup:
     Type: AWS::ElastiCache::ParameterGroup
     Properties:
-      Description: Custom parameters for KYPERIAN Redis
+      Description: Custom parameters for NUBLE Redis
       CacheParameterGroupFamily: redis7
       Properties:
         # Optimize for low latency
@@ -58,8 +58,8 @@ Resources:
   RedisReplicationGroup:
     Type: AWS::ElastiCache::ReplicationGroup
     Properties:
-      ReplicationGroupId: !Sub kyperian-${Environment}-redis
-      ReplicationGroupDescription: KYPERIAN signal cache with automatic failover
+      ReplicationGroupId: !Sub nuble-${Environment}-redis
+      ReplicationGroupDescription: NUBLE signal cache with automatic failover
       AutomaticFailoverEnabled: true
       MultiAZEnabled: true
       CacheNodeType: !Ref CacheNodeType
@@ -84,26 +84,26 @@ Resources:
         - Key: Environment
           Value: !Ref Environment
         - Key: Service
-          Value: kyperian-cache
+          Value: nuble-cache
 
   # ============ SSM Parameter for Redis Endpoint ============
   RedisHostParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /kyperian/redis/host
+      Name: /nuble/redis/host
       Type: String
       Value: !GetAtt RedisReplicationGroup.PrimaryEndPoint.Address
-      Description: Redis primary endpoint for KYPERIAN
+      Description: Redis primary endpoint for NUBLE
       Tags:
         Environment: !Ref Environment
 
   RedisPortParameter:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /kyperian/redis/port
+      Name: /nuble/redis/port
       Type: String
       Value: !GetAtt RedisReplicationGroup.PrimaryEndPoint.Port
-      Description: Redis port for KYPERIAN
+      Description: Redis port for NUBLE
       Tags:
         Environment: !Ref Environment
 
@@ -111,7 +111,7 @@ Resources:
   CPUAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub kyperian-${Environment}-redis-cpu
+      AlarmName: !Sub nuble-${Environment}-redis-cpu
       AlarmDescription: Redis CPU utilization alarm
       MetricName: CPUUtilization
       Namespace: AWS/ElastiCache
@@ -128,7 +128,7 @@ Resources:
   MemoryAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub kyperian-${Environment}-redis-memory
+      AlarmName: !Sub nuble-${Environment}-redis-memory
       AlarmDescription: Redis memory utilization alarm
       MetricName: DatabaseMemoryUsagePercentage
       Namespace: AWS/ElastiCache
@@ -145,7 +145,7 @@ Resources:
   ConnectionsAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub kyperian-${Environment}-redis-connections
+      AlarmName: !Sub nuble-${Environment}-redis-connections
       AlarmDescription: Redis current connections alarm
       MetricName: CurrConnections
       Namespace: AWS/ElastiCache

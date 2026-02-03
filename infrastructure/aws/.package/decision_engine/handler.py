@@ -1,5 +1,5 @@
 """
-KYPERIAN ELITE - Decision Engine Lambda
+NUBLE ELITE - Decision Engine Lambda
 =========================================
 Multi-Timeframe Signal Fusion + Notification System
 
@@ -10,7 +10,7 @@ This is the BRAIN that connects everything:
 - Sends Telegram/Discord notifications for high-confidence setups
 - Generates position sizing and risk management recommendations
 
-Author: KYPERIAN ELITE System
+Author: NUBLE ELITE System
 Version: 1.0.0
 """
 
@@ -48,8 +48,8 @@ BOTO_CONFIG = Config(
 # ============================================================
 
 # Environment variables
-SIGNALS_TABLE = os.environ.get('DYNAMODB_SIGNALS_TABLE', 'kyperian-production-signals')
-DECISIONS_TABLE = os.environ.get('DYNAMODB_DECISIONS_TABLE', 'kyperian-production-decisions')
+SIGNALS_TABLE = os.environ.get('DYNAMODB_SIGNALS_TABLE', 'nuble-production-signals')
+DECISIONS_TABLE = os.environ.get('DYNAMODB_DECISIONS_TABLE', 'nuble-production-decisions')
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '')
 TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID', '')
 DISCORD_WEBHOOK_URL = os.environ.get('DISCORD_WEBHOOK_URL', '')
@@ -514,7 +514,7 @@ def format_telegram_alert(result: AlignmentResult) -> str:
     signals_text = "\n".join(signal_lines)
     
     message = f"""
-{emoji} <b>KYPERIAN SIGNAL ALERT</b> {emoji}
+{emoji} <b>NUBLE SIGNAL ALERT</b> {emoji}
 
 <b>{result.symbol}</b> {dir_emoji} <b>{result.direction.value}</b>
 
@@ -602,7 +602,7 @@ def format_discord_embed(result: AlignmentResult) -> Dict:
         'color': color,
         'fields': fields,
         'footer': {
-            'text': f"Confidence: {result.confidence:.0f}% | KYPERIAN ELITE",
+            'text': f"Confidence: {result.confidence:.0f}% | NUBLE ELITE",
         },
         'timestamp': result.timestamp.isoformat(),
     }
@@ -737,7 +737,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             logger.info("Scheduled alignment check")
             symbols_to_check = MONITORED_SYMBOLS
             
-        elif source == 'kyperian.signals':
+        elif source == 'nuble.signals':
             # New signal arrived
             detail = event.get('detail', {})
             symbol = detail.get('symbol')
@@ -876,7 +876,7 @@ def handle_api_request(event: Dict[str, Any]) -> Dict[str, Any]:
         'statusCode': 200,
         'headers': headers,
         'body': json.dumps({
-            'service': 'KYPERIAN Decision Engine',
+            'service': 'NUBLE Decision Engine',
             'version': '1.0.0',
             'endpoints': [
                 '/dashboard - Get all symbol alignments',

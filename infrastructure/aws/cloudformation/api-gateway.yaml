@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'KYPERIAN ELITE - API Gateway with WAF and Rate Limiting'
+Description: 'NUBLE ELITE - API Gateway with WAF and Rate Limiting'
 
 Parameters:
   Environment:
@@ -16,10 +16,10 @@ Parameters:
 
 Resources:
   # ============ API Gateway ============
-  KyperianAPI:
+  NubleAPI:
     Type: AWS::ApiGatewayV2::Api
     Properties:
-      Name: !Sub kyperian-${Environment}-api
+      Name: !Sub nuble-${Environment}-api
       ProtocolType: HTTP
       CorsConfiguration:
         AllowOrigins:
@@ -40,7 +40,7 @@ Resources:
   SignalValidatorIntegration:
     Type: AWS::ApiGatewayV2::Integration
     Properties:
-      ApiId: !Ref KyperianAPI
+      ApiId: !Ref NubleAPI
       IntegrationType: AWS_PROXY
       IntegrationUri: !Ref SignalValidatorLambdaArn
       PayloadFormatVersion: '2.0'
@@ -50,7 +50,7 @@ Resources:
   WebhookRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref KyperianAPI
+      ApiId: !Ref NubleAPI
       RouteKey: POST /webhook
       AuthorizationType: NONE
       Target: !Sub integrations/${SignalValidatorIntegration}
@@ -58,7 +58,7 @@ Resources:
   WebhookMTFRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref KyperianAPI
+      ApiId: !Ref NubleAPI
       RouteKey: POST /webhook/mtf
       AuthorizationType: NONE
       Target: !Sub integrations/${SignalValidatorIntegration}
@@ -66,7 +66,7 @@ Resources:
   HealthRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref KyperianAPI
+      ApiId: !Ref NubleAPI
       RouteKey: GET /health
       AuthorizationType: NONE
       Target: !Sub integrations/${SignalValidatorIntegration}
@@ -75,7 +75,7 @@ Resources:
   ProductionStage:
     Type: AWS::ApiGatewayV2::Stage
     Properties:
-      ApiId: !Ref KyperianAPI
+      ApiId: !Ref NubleAPI
       StageName: !Ref Environment
       AutoDeploy: true
       DefaultRouteSettings:
@@ -95,21 +95,21 @@ Resources:
   APIGatewayLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub /aws/apigateway/kyperian-${Environment}
+      LogGroupName: !Sub /aws/apigateway/nuble-${Environment}
       RetentionInDays: 30
 
   # ============ WAF ============
   WebACL:
     Type: AWS::WAFv2::WebACL
     Properties:
-      Name: !Sub kyperian-${Environment}-waf
+      Name: !Sub nuble-${Environment}-waf
       Scope: REGIONAL
       DefaultAction:
         Allow: {}
       VisibilityConfig:
         SampledRequestsEnabled: true
         CloudWatchMetricsEnabled: true
-        MetricName: !Sub kyperian-${Environment}-waf
+        MetricName: !Sub nuble-${Environment}-waf
       Rules:
         - Name: RateLimitRule
           Priority: 1
@@ -154,7 +154,7 @@ Resources:
   WebACLAssociation:
     Type: AWS::WAFv2::WebACLAssociation
     Properties:
-      ResourceArn: !Sub arn:aws:apigateway:${AWS::Region}::/apis/${KyperianAPI}/stages/${Environment}
+      ResourceArn: !Sub arn:aws:apigateway:${AWS::Region}::/apis/${NubleAPI}/stages/${Environment}
       WebACLArn: !GetAtt WebACL.Arn
 
   # ============ API Key (Optional) ============
@@ -163,13 +163,13 @@ Resources:
 Outputs:
   ApiEndpoint:
     Description: API Gateway endpoint URL
-    Value: !Sub https://${KyperianAPI}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
+    Value: !Sub https://${NubleAPI}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
     Export:
       Name: !Sub ${AWS::StackName}-ApiEndpoint
 
   ApiId:
     Description: API Gateway ID
-    Value: !Ref KyperianAPI
+    Value: !Ref NubleAPI
     Export:
       Name: !Sub ${AWS::StackName}-ApiId
 

@@ -1,12 +1,12 @@
 """
-KYPERIAN V6 - THE APEX PREDATOR
+NUBLE V6 - THE APEX PREDATOR
 ================================
 The most advanced institutional-grade trading decision engine in existence.
 
 40+ years of quant trading wisdom. 60+ real data points. Zero compromises.
 Now with FULL crypto support via CryptoNews API!
 
-This engine integrates EVERYTHING from the KYPERIAN codebase:
+This engine integrates EVERYTHING from the NUBLE codebase:
 
 DATA SOURCES INTEGRATED (60+ Real Data Points):
 ├── LAYER 1: TECHNICAL (35%)
@@ -78,7 +78,7 @@ SUPPORTED ASSETS:
 ├── STOCKS: NVDA, AAPL, MSFT, TSLA, META, GOOGL, AMD, etc.
 └── CRYPTO: BTC, ETH, SOL, XRP, ADA, DOT, AVAX, LINK, etc.
 
-Author: KYPERIAN ELITE - Principal Staff Engineer (40yr exp)
+Author: NUBLE ELITE - Principal Staff Engineer (40yr exp)
 Version: 6.1.0 (THE APEX PREDATOR + CRYPTO)
 Date: February 2026
 """
@@ -119,7 +119,7 @@ POLYGON_API_KEY = os.environ.get('POLYGON_API_KEY', '')
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
 STOCKNEWS_API_KEY = os.environ.get('STOCKNEWS_API_KEY', '')  # StockNews API for stocks
 CRYPTONEWS_API_KEY = os.environ.get('CRYPTONEWS_API_KEY', '')  # CryptoNews API for crypto assets
-SIGNALS_TABLE = os.environ.get('DYNAMODB_SIGNALS_TABLE', 'kyperian-production-signals')
+SIGNALS_TABLE = os.environ.get('DYNAMODB_SIGNALS_TABLE', 'nuble-production-signals')
 
 # Known Crypto Tickers (for auto-detection)
 CRYPTO_TICKERS = {
@@ -133,13 +133,13 @@ CRYPTO_TICKERS = {
     # Stablecoins (skip sentiment for these)
     "USDT", "USDC", "DAI", "BUSD", "TUSD",
 }
-DECISIONS_TABLE = os.environ.get('DYNAMODB_DECISIONS_TABLE', 'kyperian-production-decisions')
-TRADES_TABLE = os.environ.get('DYNAMODB_TRADES_TABLE', 'kyperian-production-trades')
+DECISIONS_TABLE = os.environ.get('DYNAMODB_DECISIONS_TABLE', 'nuble-production-decisions')
+TRADES_TABLE = os.environ.get('DYNAMODB_TRADES_TABLE', 'nuble-production-trades')
 
 # The DNA of the system
 CONFIG = {
     "version": "6.0.0",
-    "name": "KYPERIAN V6 APEX PREDATOR",
+    "name": "NUBLE V6 APEX PREDATOR",
     "codename": "THE APEX PREDATOR",
     "description": "The most advanced decision engine in existence",
     "data_points_target": 50,
@@ -622,7 +622,7 @@ def polygon_request(endpoint: str, params: Dict = None, cache_key: str = None) -
     try:
         req = urllib.request.Request(
             full_url, 
-            headers={"User-Agent": "KYPERIAN/6.0"}
+            headers={"User-Agent": "NUBLE/6.0"}
         )
         with urllib.request.urlopen(req, timeout=5) as resp:
             data = json.loads(resp.read().decode())
@@ -976,7 +976,7 @@ def stocknews_request(endpoint: str, params: Dict = None, cache_key: str = None)
         query_string = "&".join(f"{k}={v}" for k, v in params.items())
         url = f"{base_url}{endpoint}?{query_string}"
         
-        req = urllib.request.Request(url, headers={"User-Agent": "KYPERIAN/6.0"})
+        req = urllib.request.Request(url, headers={"User-Agent": "NUBLE/6.0"})
         with urllib.request.urlopen(req, timeout=5) as response:
             data = json.loads(response.read().decode())
             
@@ -1260,7 +1260,7 @@ def cryptonews_request(endpoint: str, params: Dict = None, cache_key: str = None
         query_string = "&".join(f"{k}={v}" for k, v in params.items())
         url = f"{base_url}{endpoint}?{query_string}"
         
-        req = urllib.request.Request(url, headers={"User-Agent": "KYPERIAN/6.0"})
+        req = urllib.request.Request(url, headers={"User-Agent": "NUBLE/6.0"})
         with urllib.request.urlopen(req, timeout=5) as response:
             data = json.loads(response.read().decode())
             
@@ -3270,7 +3270,7 @@ def make_all_decisions() -> List[Dict[str, Any]]:
 
 def lambda_handler(event, context):
     """
-    Main Lambda handler for KYPERIAN V6 APEX PREDATOR.
+    Main Lambda handler for NUBLE V6 APEX PREDATOR.
     
     Endpoints:
     - GET /                     Health check with architecture info
@@ -3424,7 +3424,7 @@ if __name__ == "__main__":
     import sys
     
     print("=" * 60)
-    print("KYPERIAN V6 - THE APEX PREDATOR")
+    print("NUBLE V6 - THE APEX PREDATOR")
     print("=" * 60)
     
     symbol = sys.argv[1] if len(sys.argv) > 1 else "AAPL"

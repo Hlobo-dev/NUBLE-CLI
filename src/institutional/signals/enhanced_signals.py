@@ -761,7 +761,7 @@ def run_signal_test():
     from pathlib import Path
     
     # Check for real data
-    data_dir = Path("/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI/data/test")
+    data_dir = Path("/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI/data/test")
     
     test_symbols = ['AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMD']
     available_data = {}

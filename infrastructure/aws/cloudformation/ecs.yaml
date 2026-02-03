@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'KYPERIAN ELITE - ECS Fargate Cluster with Auto-Scaling'
+Description: 'NUBLE ELITE - ECS Fargate Cluster with Auto-Scaling'
 
 Parameters:
   Environment:
@@ -16,7 +16,7 @@ Parameters:
   
   ContainerImage:
     Type: String
-    Description: Docker image URI for the KYPERIAN application
+    Description: Docker image URI for the NUBLE application
   
   DesiredCount:
     Type: Number
@@ -37,7 +37,7 @@ Resources:
   ECSCluster:
     Type: AWS::ECS::Cluster
     Properties:
-      ClusterName: !Sub kyperian-${Environment}
+      ClusterName: !Sub nuble-${Environment}
       ClusterSettings:
         - Name: containerInsights
           Value: enabled
@@ -58,7 +58,7 @@ Resources:
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
-      Family: !Sub kyperian-${Environment}
+      Family: !Sub nuble-${Environment}
       Cpu: '512'
       Memory: '1024'
       NetworkMode: awsvpc
@@ -67,7 +67,7 @@ Resources:
       ExecutionRoleArn: !GetAtt TaskExecutionRole.Arn
       TaskRoleArn: !GetAtt TaskRole.Arn
       ContainerDefinitions:
-        - Name: kyperian-app
+        - Name: nuble-app
           Image: !Ref ContainerImage
           Essential: true
           PortMappings:
@@ -80,15 +80,15 @@ Resources:
               Value: '8000'
           Secrets:
             - Name: REDIS_HOST
-              ValueFrom: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/kyperian/redis/host
+              ValueFrom: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/nuble/redis/host
             - Name: DYNAMODB_TABLE
-              ValueFrom: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/kyperian/dynamodb/signals-table
+              ValueFrom: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/nuble/dynamodb/signals-table
           LogConfiguration:
             LogDriver: awslogs
             Options:
               awslogs-group: !Ref LogGroup
               awslogs-region: !Ref AWS::Region
-              awslogs-stream-prefix: kyperian
+              awslogs-stream-prefix: nuble
           HealthCheck:
             Command:
               - CMD-SHELL
@@ -106,7 +106,7 @@ Resources:
     Type: AWS::ECS::Service
     DependsOn: ALBListener
     Properties:
-      ServiceName: !Sub kyperian-${Environment}-service
+      ServiceName: !Sub nuble-${Environment}-service
       Cluster: !Ref ECSCluster
       TaskDefinition: !Ref TaskDefinition
       DesiredCount: !Ref DesiredCount
@@ -120,7 +120,7 @@ Resources:
             - Fn::ImportValue: !Sub ${NetworkStackName}-PrivateSubnet1
             - Fn::ImportValue: !Sub ${NetworkStackName}-PrivateSubnet2
       LoadBalancers:
-        - ContainerName: kyperian-app
+        - ContainerName: nuble-app
           ContainerPort: 8000
           TargetGroupArn: !Ref TargetGroup
       HealthCheckGracePeriodSeconds: 120
@@ -138,7 +138,7 @@ Resources:
   ApplicationLoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
-      Name: !Sub kyperian-${Environment}-alb
+      Name: !Sub nuble-${Environment}-alb
       Type: application
       Scheme: internet-facing
       SecurityGroups:
@@ -153,7 +153,7 @@ Resources:
   TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
-      Name: !Sub kyperian-${Environment}-tg
+      Name: !Sub nuble-${Environment}-tg
       VpcId:
         Fn::ImportValue: !Sub ${NetworkStackName}-VpcId
       Port: 8000
@@ -212,7 +212,7 @@ Resources:
   CPUScalingPolicy:
     Type: AWS::ApplicationAutoScaling::ScalingPolicy
     Properties:
-      PolicyName: !Sub kyperian-${Environment}-cpu-scaling
+      PolicyName: !Sub nuble-${Environment}-cpu-scaling
       PolicyType: TargetTrackingScaling
       ScalingTargetId: !Ref AutoScalingTarget
       TargetTrackingScalingPolicyConfiguration:
@@ -226,7 +226,7 @@ Resources:
   MemoryScalingPolicy:
     Type: AWS::ApplicationAutoScaling::ScalingPolicy
     Properties:
-      PolicyName: !Sub kyperian-${Environment}-memory-scaling
+      PolicyName: !Sub nuble-${Environment}-memory-scaling
       PolicyType: TargetTrackingScaling
       ScalingTargetId: !Ref AutoScalingTarget
       TargetTrackingScalingPolicyConfiguration:
@@ -240,7 +240,7 @@ Resources:
   RequestScalingPolicy:
     Type: AWS::ApplicationAutoScaling::ScalingPolicy
     Properties:
-      PolicyName: !Sub kyperian-${Environment}-request-scaling
+      PolicyName: !Sub nuble-${Environment}-request-scaling
       PolicyType: TargetTrackingScaling
       ScalingTargetId: !Ref AutoScalingTarget
       TargetTrackingScalingPolicyConfiguration:
@@ -255,7 +255,7 @@ Resources:
   TaskExecutionRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub kyperian-${Environment}-task-execution
+      RoleName: !Sub nuble-${Environment}-task-execution
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -275,13 +275,13 @@ Resources:
                   - ssm:GetParameters
                   - secretsmanager:GetSecretValue
                 Resource:
-                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/kyperian/*
-                  - !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:kyperian/*
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/nuble/*
+                  - !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:nuble/*
 
   TaskRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub kyperian-${Environment}-task
+      RoleName: !Sub nuble-${Environment}-task
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -322,7 +322,7 @@ Resources:
   AutoScalingRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub kyperian-${Environment}-autoscaling
+      RoleName: !Sub nuble-${Environment}-autoscaling
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -337,7 +337,7 @@ Resources:
   LogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub /ecs/kyperian-${Environment}
+      LogGroupName: !Sub /ecs/nuble-${Environment}
       RetentionInDays: 30
 
 Outputs:

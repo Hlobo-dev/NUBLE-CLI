@@ -172,7 +172,7 @@ async def train_all_validated(
     failed = 0
     
     print("\n" + "="*70)
-    print("KYPERIAN Pre-Trained Model Training")
+    print("NUBLE Pre-Trained Model Training")
     print("="*70)
     print(f"Training {len(sorted_symbols)} models with validated alpha")
     print(f"Save: {save}")

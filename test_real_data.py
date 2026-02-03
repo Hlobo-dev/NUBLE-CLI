@@ -25,7 +25,7 @@ async def main():
     api_key = os.environ.get('POLYGON_API_KEY', 'JHKwAdyIOeExkYOxh3LwTopmqqVVFeBY')
     
     print("\n" + "="*70)
-    print("  KYPERIAN ML - REAL DATA VALIDATION")
+    print("  NUBLE ML - REAL DATA VALIDATION")
     print("="*70)
     print("\nThis is the moment of truth.")
     print("Training on REAL market data and validating on OUT-OF-SAMPLE data.\n")

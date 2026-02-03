@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-KYPERIAN Elite - Comprehensive Test Suite
+NUBLE Elite - Comprehensive Test Suite
 
 Tests all components of the multi-agent cognitive system.
 """
@@ -21,7 +21,7 @@ def test_base_components():
     print("="*60)
     
     try:
-        from kyperian.agents.base import (
+        from nuble.agents.base import (
             AgentType, AgentTask, AgentResult, TaskPriority
         )
         
@@ -72,7 +72,7 @@ def test_specialized_agents():
     print("="*60)
     
     try:
-        from kyperian.agents import (
+        from nuble.agents import (
             MarketAnalystAgent,
             QuantAnalystAgent,
             NewsAnalystAgent,
@@ -124,7 +124,7 @@ def test_orchestrator():
     print("="*60)
     
     try:
-        from kyperian.agents import OrchestratorAgent, OrchestratorConfig
+        from nuble.agents import OrchestratorAgent, OrchestratorConfig
         
         # Create with config
         config = OrchestratorConfig(
@@ -153,7 +153,7 @@ def test_orchestrator():
         print(f"✓ Symbol extraction: {symbols}")
         
         # Test simple planning (without Claude)
-        from kyperian.agents.base import AgentType
+        from nuble.agents.base import AgentType
         context_mock = type('Context', (), {
             'user_profile': {'risk_tolerance': 'moderate'},
             'active_symbols': []
@@ -180,7 +180,7 @@ def test_memory_manager():
     print("="*60)
     
     try:
-        from kyperian.memory import MemoryManager, UserProfile, Conversation, Prediction
+        from nuble.memory import MemoryManager, UserProfile, Conversation, Prediction
         import tempfile
         import os
         
@@ -284,7 +284,7 @@ async def test_agent_execution():
     print("="*60)
     
     try:
-        from kyperian.agents import MarketAnalystAgent, AgentTask, AgentType
+        from nuble.agents import MarketAnalystAgent, AgentTask, AgentType
         
         agent = MarketAnalystAgent()
         
@@ -334,7 +334,7 @@ async def test_full_orchestration():
     print("="*60)
     
     try:
-        from kyperian.agents import OrchestratorAgent
+        from nuble.agents import OrchestratorAgent
         
         orchestrator = OrchestratorAgent()
         
@@ -381,12 +381,12 @@ def test_api_components():
             print("⚠️ FastAPI not installed - skipping API tests")
             return True
         
-        from kyperian.api.main import create_app
+        from nuble.api.main import create_app
         
         app = create_app(enable_memory=True, enable_cors=True)
         
         assert app is not None
-        assert app.title == "KYPERIAN Elite API"
+        assert app.title == "NUBLE Elite API"
         print("✓ API app created successfully")
         
         # Check routes
@@ -410,7 +410,7 @@ def test_api_components():
 def main():
     """Run all tests."""
     print("\n" + "="*70)
-    print("   KYPERIAN ELITE - MULTI-AGENT COGNITIVE SYSTEM")
+    print("   NUBLE ELITE - MULTI-AGENT COGNITIVE SYSTEM")
     print("   Comprehensive Test Suite")
     print("="*70)
     
@@ -451,10 +451,10 @@ def main():
     print("="*70)
     
     if passed == total:
-        print("\n🎉 ALL TESTS PASSED! KYPERIAN ELITE IS READY!")
+        print("\n🎉 ALL TESTS PASSED! NUBLE ELITE IS READY!")
         print("\nNext Steps:")
         print("  1. Set ANTHROPIC_API_KEY environment variable")
-        print("  2. Run: python -m kyperian.api.main")
+        print("  2. Run: python -m nuble.api.main")
         print("  3. Open: http://localhost:8000/docs")
         print("\n" + "="*70)
         return 0

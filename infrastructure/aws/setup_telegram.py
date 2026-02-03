@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-KYPERIAN ELITE - Telegram Bot Setup Helper
+NUBLE ELITE - Telegram Bot Setup Helper
 ==========================================
 This script helps you set up Telegram notifications for signal alerts.
 
@@ -33,7 +33,7 @@ class Colors:
 def print_header():
     print(f"""
 {Colors.CYAN}╔════════════════════════════════════════════════════════════╗
-║         KYPERIAN ELITE - Telegram Setup Helper              ║
+║         NUBLE ELITE - Telegram Setup Helper              ║
 ╚════════════════════════════════════════════════════════════╝{Colors.END}
 """)
 
@@ -101,9 +101,9 @@ def update_lambda_env(token: str, chat_id: str) -> bool:
         # Get current configuration
         result = subprocess.run([
             'aws', 'lambda', 'get-function-configuration',
-            '--function-name', 'kyperian-production-decision-engine',
+            '--function-name', 'nuble-production-decision-engine',
             '--region', 'us-east-1',
-            '--profile', 'kyperian',
+            '--profile', 'nuble',
             '--output', 'json',
         ], capture_output=True, text=True)
         
@@ -121,10 +121,10 @@ def update_lambda_env(token: str, chat_id: str) -> bool:
         # Update Lambda
         result = subprocess.run([
             'aws', 'lambda', 'update-function-configuration',
-            '--function-name', 'kyperian-production-decision-engine',
+            '--function-name', 'nuble-production-decision-engine',
             '--environment', f'Variables={json.dumps(env_vars)}',
             '--region', 'us-east-1',
-            '--profile', 'kyperian',
+            '--profile', 'nuble',
             '--output', 'json',
         ], capture_output=True, text=True)
         
@@ -181,7 +181,7 @@ def main():
     print_step(3, "Testing Connection")
     
     test_message = """
-🚀 <b>KYPERIAN ELITE</b> - Connection Test
+🚀 <b>NUBLE ELITE</b> - Connection Test
 
 ✅ Telegram notifications are now configured!
 
@@ -212,10 +212,10 @@ You will receive alerts when:
             print("\n  Run this command manually:")
             print(f"""
   aws lambda update-function-configuration \\
-      --function-name kyperian-production-decision-engine \\
+      --function-name nuble-production-decision-engine \\
       --environment 'Variables={{TELEGRAM_BOT_TOKEN={token},TELEGRAM_CHAT_ID={chat_id}}}' \\
       --region us-east-1 \\
-      --profile kyperian
+      --profile nuble
             """)
     
     # Summary

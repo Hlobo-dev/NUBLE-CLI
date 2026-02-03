@@ -1,10 +1,10 @@
 """
-KYPERIAN Crypto Module Complete Test
+NUBLE Crypto Module Complete Test
 Tests all crypto components: CryptoNews API, CoinDesk API, Crypto Analyzer
 """
 
 import sys
-sys.path.insert(0, "/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI")
+sys.path.insert(0, "/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI")
 
 import time
 from datetime import datetime
@@ -42,7 +42,7 @@ def test_cryptonews_api():
     print("=" * 70)
     
     try:
-        from src.kyperian.news.crypto_client import CryptoNewsClient
+        from src.nuble.news.crypto_client import CryptoNewsClient
         
         client = CryptoNewsClient()
         
@@ -97,7 +97,7 @@ def test_coindesk_api():
     print("=" * 70)
     
     try:
-        from src.kyperian.news.coindesk_client import CoinDeskClient
+        from src.nuble.news.coindesk_client import CoinDeskClient
         
         client = CoinDeskClient()
         
@@ -157,7 +157,7 @@ def test_crypto_analyzer():
     print("=" * 70)
     
     try:
-        from src.kyperian.assets.crypto_analyzer import CryptoAnalyzer, CryptoSignal
+        from src.nuble.assets.crypto_analyzer import CryptoAnalyzer, CryptoSignal
         
         # Initialize without FinBERT for speed
         print("\n🔧 Initializing analyzer (keyword sentiment)...")
@@ -215,7 +215,7 @@ def test_crypto_analyzer_with_finbert():
     print("=" * 70)
     
     try:
-        from src.kyperian.assets.crypto_analyzer import CryptoAnalyzer
+        from src.nuble.assets.crypto_analyzer import CryptoAnalyzer
         
         print("\n🔧 Initializing analyzer with FinBERT...")
         print("   (This may take a moment to load the model)")
@@ -254,7 +254,7 @@ def test_asset_detector():
     print("=" * 70)
     
     try:
-        from src.kyperian.assets.detector import AssetDetector, AssetClass
+        from src.nuble.assets.detector import AssetDetector, AssetClass
         
         detector = AssetDetector()
         
@@ -329,7 +329,7 @@ def print_summary():
 def main():
     """Run all crypto tests"""
     print("=" * 70)
-    print("🚀 KYPERIAN CRYPTO MODULE - COMPLETE TEST SUITE")
+    print("🚀 NUBLE CRYPTO MODULE - COMPLETE TEST SUITE")
     print("=" * 70)
     print(f"📅 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 70)

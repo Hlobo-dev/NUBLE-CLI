@@ -16,7 +16,7 @@ Adaptive Parameters:
 """
 
 import sys
-sys.path.insert(0, '/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI')
+sys.path.insert(0, '/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI')
 
 import numpy as np
 import pandas as pd
@@ -356,7 +356,7 @@ def validate_regime_adaptive(symbol: str) -> Dict[str, Any]:
     
     # Load data
     df = pd.read_csv(
-        f'/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI/data/train/{symbol}.csv',
+        f'/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI/data/train/{symbol}.csv',
         index_col=0, parse_dates=True
     )
     logger.info(f"Data: {len(df)} rows")

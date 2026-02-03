@@ -1,4 +1,4 @@
-# KYPERIAN Unified CLI - Implementation Summary
+# NUBLE Unified CLI - Implementation Summary
 
 ## ✅ IMPLEMENTATION COMPLETE
 
@@ -21,7 +21,7 @@ Both phases implemented and tested successfully:
 ## Phase 1: Unified CLI Experience ✅
 
 ### Phase 1.1: Unified Services Layer
-**File:** `src/kyperian/services.py` (~900 lines)
+**File:** `src/nuble/services.py` (~900 lines)
 
 Created `UnifiedServices` class that bridges all three subsystems:
 - **Market Data**: Polygon.io, Alpha Vantage, Finnhub integration
@@ -38,7 +38,7 @@ Key Features:
 - Unified response format (`UnifiedResponse`)
 
 ### Phase 1.2: Smart Query Router
-**File:** `src/kyperian/router.py` (~350 lines)
+**File:** `src/nuble/router.py` (~350 lines)
 
 Created `SmartRouter` that directs queries to the right service:
 
@@ -56,7 +56,7 @@ Created `SmartRouter` that directs queries to the right service:
 - Deep analysis: "Analyze NVDA's competitive position"
 
 ### Phase 1.3: Enhanced Manager
-**File:** `src/kyperian/manager.py` (updated, ~515 lines)
+**File:** `src/nuble/manager.py` (updated, ~515 lines)
 
 Updated `Manager` class with:
 - Integration with `UnifiedServices`
@@ -74,7 +74,7 @@ New Methods:
 - `_fast_filings_search()` - SEC filings list
 
 ### Phase 1.4: Enhanced CLI
-**File:** `src/kyperian/cli.py` (updated, ~130 lines)
+**File:** `src/nuble/cli.py` (updated, ~130 lines)
 
 Updated CLI with:
 - New `/status` command for system health
@@ -141,15 +141,15 @@ Created directory structure with registry.json for model metadata.
 ## Files Created/Modified
 
 ### New Files Created:
-1. `src/kyperian/services.py` - Unified services layer
-2. `src/kyperian/router.py` - Smart query router
+1. `src/nuble/services.py` - Unified services layer
+2. `src/nuble/router.py` - Smart query router
 3. `src/institutional/ml/registry.py` - Pre-trained model registry
 4. `src/institutional/ml/training/train_pretrained.py` - Training script
 5. `src/institutional/models/pretrained/registry.json` - Model metadata
 
 ### Files Modified:
-1. `src/kyperian/manager.py` - Added fast-path handling
-2. `src/kyperian/cli.py` - Added quick commands
+1. `src/nuble/manager.py` - Added fast-path handling
+2. `src/nuble/cli.py` - Added quick commands
 
 ---
 
@@ -210,7 +210,7 @@ Planning...
 ## Architecture
 
 ```
-KYPERIAN CLI
+NUBLE CLI
      │
      ▼
 ┌─────────────┐
@@ -240,9 +240,9 @@ KYPERIAN CLI
 
 1. **Test Unified CLI:**
    ```bash
-   cd /Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI
+   cd /Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI
    source .venv/bin/activate
-   python -m kyperian
+   python -m nuble
    # Try: AAPL, predict SLV, RSI for TSLA, /status
    ```
 

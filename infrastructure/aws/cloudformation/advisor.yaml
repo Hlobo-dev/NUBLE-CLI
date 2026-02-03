@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'KYPERIAN ADVISOR - Autonomous AI Wealth Manager Infrastructure'
+Description: 'NUBLE ADVISOR - Autonomous AI Wealth Manager Infrastructure'
 
 Parameters:
   Environment:
@@ -40,7 +40,7 @@ Resources:
   PortfolioTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub 'kyperian-${Environment}-portfolio'
+      TableName: !Sub 'nuble-${Environment}-portfolio'
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: pk
@@ -59,12 +59,12 @@ Resources:
         - Key: Environment
           Value: !Ref Environment
         - Key: Project
-          Value: KYPERIAN
+          Value: NUBLE
 
   ConversationsTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub 'kyperian-${Environment}-conversations'
+      TableName: !Sub 'nuble-${Environment}-conversations'
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: pk
@@ -83,12 +83,12 @@ Resources:
         - Key: Environment
           Value: !Ref Environment
         - Key: Project
-          Value: KYPERIAN
+          Value: NUBLE
 
   TradesTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub 'kyperian-${Environment}-trades'
+      TableName: !Sub 'nuble-${Environment}-trades'
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: pk
@@ -120,7 +120,7 @@ Resources:
         - Key: Environment
           Value: !Ref Environment
         - Key: Project
-          Value: KYPERIAN
+          Value: NUBLE
 
   # ============================================================
   # IAM ROLES
@@ -129,7 +129,7 @@ Resources:
   AdvisorLambdaRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub 'kyperian-${Environment}-advisor-role'
+      RoleName: !Sub 'nuble-${Environment}-advisor-role'
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -153,13 +153,13 @@ Resources:
                   - dynamodb:Query
                   - dynamodb:Scan
                 Resource:
-                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/kyperian-${Environment}-*'
-                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/kyperian-${Environment}-*/index/*'
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/nuble-${Environment}-*'
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/nuble-${Environment}-*/index/*'
       Tags:
         - Key: Environment
           Value: !Ref Environment
         - Key: Project
-          Value: KYPERIAN
+          Value: NUBLE
 
   # ============================================================
   # LAMBDA FUNCTIONS
@@ -168,8 +168,8 @@ Resources:
   AdvisorFunction:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Sub 'kyperian-${Environment}-advisor'
-      Description: 'KYPERIAN ADVISOR - Autonomous AI Wealth Manager'
+      FunctionName: !Sub 'nuble-${Environment}-advisor'
+      Description: 'NUBLE ADVISOR - Autonomous AI Wealth Manager'
       Runtime: python3.11
       Handler: handler.lambda_handler
       Role: !GetAtt AdvisorLambdaRole.Arn
@@ -186,8 +186,8 @@ Resources:
           ANTHROPIC_API_KEY: !Ref AnthropicApiKey
           TELEGRAM_BOT_TOKEN: !Ref TelegramBotToken
           TELEGRAM_CHAT_ID: !Ref TelegramChatId
-          DYNAMODB_SIGNALS_TABLE: !Sub 'kyperian-${Environment}-signals'
-          DYNAMODB_DECISIONS_TABLE: !Sub 'kyperian-${Environment}-decisions'
+          DYNAMODB_SIGNALS_TABLE: !Sub 'nuble-${Environment}-signals'
+          DYNAMODB_DECISIONS_TABLE: !Sub 'nuble-${Environment}-decisions'
           DYNAMODB_TRADES_TABLE: !Ref TradesTable
           DYNAMODB_PORTFOLIO_TABLE: !Ref PortfolioTable
           DYNAMODB_CONVERSATIONS_TABLE: !Ref ConversationsTable
@@ -196,13 +196,13 @@ Resources:
         - Key: Environment
           Value: !Ref Environment
         - Key: Project
-          Value: KYPERIAN
+          Value: NUBLE
 
   TelegramBotFunction:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Sub 'kyperian-${Environment}-telegram-bot'
-      Description: 'KYPERIAN Telegram Bot Handler'
+      FunctionName: !Sub 'nuble-${Environment}-telegram-bot'
+      Description: 'NUBLE Telegram Bot Handler'
       Runtime: python3.11
       Handler: handler.lambda_handler
       Role: !GetAtt AdvisorLambdaRole.Arn
@@ -224,7 +224,7 @@ Resources:
         - Key: Environment
           Value: !Ref Environment
         - Key: Project
-          Value: KYPERIAN
+          Value: NUBLE
 
   # ============================================================
   # API GATEWAY
@@ -233,9 +233,9 @@ Resources:
   AdvisorApi:
     Type: AWS::ApiGatewayV2::Api
     Properties:
-      Name: !Sub 'kyperian-${Environment}-advisor-api'
+      Name: !Sub 'nuble-${Environment}-advisor-api'
       ProtocolType: HTTP
-      Description: 'KYPERIAN ADVISOR API'
+      Description: 'NUBLE ADVISOR API'
       CorsConfiguration:
         AllowOrigins:
           - '*'
@@ -247,7 +247,7 @@ Resources:
           - '*'
       Tags:
         Environment: !Ref Environment
-        Project: KYPERIAN
+        Project: NUBLE
 
   AdvisorApiStage:
     Type: AWS::ApiGatewayV2::Stage
@@ -257,7 +257,7 @@ Resources:
       AutoDeploy: true
       Tags:
         Environment: !Ref Environment
-        Project: KYPERIAN
+        Project: NUBLE
 
   AdvisorApiIntegration:
     Type: AWS::ApiGatewayV2::Integration
@@ -327,7 +327,7 @@ Resources:
   MonitoringSchedule:
     Type: AWS::Events::Rule
     Properties:
-      Name: !Sub 'kyperian-${Environment}-monitor-schedule'
+      Name: !Sub 'nuble-${Environment}-monitor-schedule'
       Description: 'Run autonomous monitoring every 5 minutes'
       ScheduleExpression: 'rate(5 minutes)'
       State: ENABLED
@@ -348,7 +348,7 @@ Resources:
   DigestSchedule:
     Type: AWS::Events::Rule
     Properties:
-      Name: !Sub 'kyperian-${Environment}-digest-schedule'
+      Name: !Sub 'nuble-${Environment}-digest-schedule'
       Description: 'Send daily digest at 4pm ET'
       ScheduleExpression: 'cron(0 21 ? * MON-FRI *)'  # 9pm UTC = 4pm ET
       State: ENABLED
@@ -369,7 +369,7 @@ Resources:
   MorningSchedule:
     Type: AWS::Events::Rule
     Properties:
-      Name: !Sub 'kyperian-${Environment}-morning-schedule'
+      Name: !Sub 'nuble-${Environment}-morning-schedule'
       Description: 'Send morning briefing at 8am ET'
       ScheduleExpression: 'cron(0 13 ? * MON-FRI *)'  # 1pm UTC = 8am ET
       State: ENABLED
@@ -393,7 +393,7 @@ Resources:
   AdvisorErrorAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub 'kyperian-${Environment}-advisor-errors'
+      AlarmName: !Sub 'nuble-${Environment}-advisor-errors'
       AlarmDescription: 'Alert when Advisor function has errors'
       MetricName: Errors
       Namespace: AWS/Lambda
@@ -409,7 +409,7 @@ Resources:
   AdvisorDurationAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub 'kyperian-${Environment}-advisor-duration'
+      AlarmName: !Sub 'nuble-${Environment}-advisor-duration'
       AlarmDescription: 'Alert when Advisor function is slow'
       MetricName: Duration
       Namespace: AWS/Lambda
@@ -424,28 +424,28 @@ Resources:
 
 Outputs:
   AdvisorApiUrl:
-    Description: 'KYPERIAN ADVISOR API URL'
+    Description: 'NUBLE ADVISOR API URL'
     Value: !Sub 'https://${AdvisorApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}'
     Export:
-      Name: !Sub 'kyperian-${Environment}-advisor-api-url'
+      Name: !Sub 'nuble-${Environment}-advisor-api-url'
       
   TelegramWebhookUrl:
     Description: 'Telegram Bot Webhook URL'
     Value: !Sub 'https://${AdvisorApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/telegram/webhook'
     Export:
-      Name: !Sub 'kyperian-${Environment}-telegram-webhook-url'
+      Name: !Sub 'nuble-${Environment}-telegram-webhook-url'
 
   AdvisorFunctionArn:
     Description: 'Advisor Lambda ARN'
     Value: !GetAtt AdvisorFunction.Arn
     Export:
-      Name: !Sub 'kyperian-${Environment}-advisor-function-arn'
+      Name: !Sub 'nuble-${Environment}-advisor-function-arn'
 
   TelegramBotFunctionArn:
     Description: 'Telegram Bot Lambda ARN'
     Value: !GetAtt TelegramBotFunction.Arn
     Export:
-      Name: !Sub 'kyperian-${Environment}-telegram-function-arn'
+      Name: !Sub 'nuble-${Environment}-telegram-function-arn'
       
   PortfolioTableName:
     Description: 'Portfolio DynamoDB Table'

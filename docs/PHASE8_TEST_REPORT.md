@@ -1,7 +1,7 @@
 # PHASE 8: ADVERSARIAL VALIDATION TEST REPORT
 
 **Date:** February 1, 2026  
-**System:** KYPERIAN Institutional ML Trading System  
+**System:** NUBLE Institutional ML Trading System  
 **Tester:** Automated Phase 8 Suite
 
 ---
@@ -62,7 +62,7 @@ Pure mathematical verification without API calls.
 
 #### Final Results (After Fixes)
 
-| Metric | KYPERIAN Portfolio | SPY Buy-Hold | Difference |
+| Metric | NUBLE Portfolio | SPY Buy-Hold | Difference |
 |--------|-------------------|--------------|------------|
 | Total Return | **+194.7%** | +81.7% | **+113.0%** |
 | Annual Return | +42.4% | +21.6% | +20.8% |
@@ -71,7 +71,7 @@ Pure mathematical verification without API calls.
 | Max Drawdown | -29.0% | -19.0% | -10.0% |
 | Win Rate | 50.2% | 57.2% | -7.0% |
 
-**✅ VERDICT: KYPERIAN BEATS BUY-AND-HOLD**
+**✅ VERDICT: NUBLE BEATS BUY-AND-HOLD**
 - Alpha: +113.0% (over 3 years)
 - Risk-adjusted: Sharpe 1.70 vs 1.41
 

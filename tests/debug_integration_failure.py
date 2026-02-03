@@ -35,7 +35,7 @@ class IntegrationDebugger:
         print("="*60)
         
         try:
-            from src.kyperian.agents.orchestrator import OrchestratorAgent
+            from src.nuble.agents.orchestrator import OrchestratorAgent
             self.log("Import OrchestratorAgent", "OK")
         except Exception as e:
             self.log("Import OrchestratorAgent", "FAIL", str(e))
@@ -88,15 +88,15 @@ class IntegrationDebugger:
         print("="*60)
         
         agents_to_test = [
-            ("MarketAnalystAgent", "src.kyperian.agents.market_analyst"),
-            ("QuantAnalystAgent", "src.kyperian.agents.quant_analyst"),
-            ("NewsAnalystAgent", "src.kyperian.agents.news_analyst"),
-            ("FundamentalAnalystAgent", "src.kyperian.agents.fundamental_analyst"),
-            ("MacroAnalystAgent", "src.kyperian.agents.macro_analyst"),
-            ("RiskManagerAgent", "src.kyperian.agents.risk_manager"),
-            ("PortfolioOptimizerAgent", "src.kyperian.agents.portfolio_optimizer"),
-            ("CryptoSpecialistAgent", "src.kyperian.agents.crypto_specialist"),
-            ("EducatorAgent", "src.kyperian.agents.educator"),
+            ("MarketAnalystAgent", "src.nuble.agents.market_analyst"),
+            ("QuantAnalystAgent", "src.nuble.agents.quant_analyst"),
+            ("NewsAnalystAgent", "src.nuble.agents.news_analyst"),
+            ("FundamentalAnalystAgent", "src.nuble.agents.fundamental_analyst"),
+            ("MacroAnalystAgent", "src.nuble.agents.macro_analyst"),
+            ("RiskManagerAgent", "src.nuble.agents.risk_manager"),
+            ("PortfolioOptimizerAgent", "src.nuble.agents.portfolio_optimizer"),
+            ("CryptoSpecialistAgent", "src.nuble.agents.crypto_specialist"),
+            ("EducatorAgent", "src.nuble.agents.educator"),
         ]
         
         for agent_name, module_path in agents_to_test:
@@ -178,7 +178,7 @@ class IntegrationDebugger:
         print("="*60)
         
         try:
-            from src.kyperian.agents.orchestrator import OrchestratorAgent
+            from src.nuble.agents.orchestrator import OrchestratorAgent
             o = OrchestratorAgent(api_key=self.api_key)
             
             result = await o.process(

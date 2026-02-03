@@ -15,7 +15,7 @@ Goal: Sharpe > 0.4, PBO < 50%
 """
 
 import sys
-sys.path.insert(0, '/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI')
+sys.path.insert(0, '/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI')
 
 print("Imports loading...")
 import pandas as pd
@@ -35,7 +35,7 @@ print("Imports successful")
 
 def load_data(symbol: str) -> pd.DataFrame:
     """Load CSV data from train folder"""
-    path = Path(f'/Users/humbertolobo/Desktop/bolt.new-main/KYPERIAN-CLI/data/train/{symbol}.csv')
+    path = Path(f'/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI/data/train/{symbol}.csv')
     if not path.exists():
         return None
     df = pd.read_csv(path)

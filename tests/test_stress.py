@@ -33,7 +33,7 @@ if not api_key:
     sys.exit(1)
 print(f"API Key: ...{api_key[-4:]}")
 
-from kyperian.agents.orchestrator import OrchestratorAgent
+from nuble.agents.orchestrator import OrchestratorAgent
 
 def create_orchestrator():
     """Create a fresh orchestrator instance."""
