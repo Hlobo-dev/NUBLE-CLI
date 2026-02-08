@@ -141,7 +141,7 @@ class MarketAnalystAgent(SpecializedAgent):
             )
     
     async def _analyze_symbol(self, symbol: str, query: str) -> Dict[str, Any]:
-        """Perform full analysis on a symbol."""
+        """Perform full analysis on a symbol using all data sources."""
         result = {
             'symbol': symbol,
             'timestamp': datetime.now().isoformat()
@@ -177,17 +177,136 @@ class MarketAnalystAgent(SpecializedAgent):
             trend = self._analyze_trend(historical)
             result['trend'] = trend
         
-        # Calculate overall signal
+        # StockNews PRO — News sentiment for this symbol
+        news_sentiment = self._get_stocknews_sentiment(symbol)
+        if news_sentiment:
+            result['news_sentiment'] = news_sentiment
+        
+        # StockNews PRO — Analyst ratings for this symbol
+        analyst_ratings = self._get_analyst_ratings(symbol)
+        if analyst_ratings:
+            result['analyst_ratings'] = analyst_ratings
+        
+        # StockNews PRO — Check earnings calendar
+        earnings_info = self._get_earnings_info(symbol)
+        if earnings_info:
+            result['upcoming_earnings'] = earnings_info
+        
+        # Calculate overall signal (now includes news + analyst data)
         signal = self._calculate_signal(result)
         result['signal'] = signal
         result['confidence'] = signal.get('confidence', 0.5)
         
         return result
     
+    def _get_stocknews_sentiment(self, symbol: str) -> Dict:
+        """StockNews PRO — Get quantitative sentiment + ranked news."""
+        if not HAS_REQUESTS:
+            return {}
+        stocknews_key = os.environ.get('STOCKNEWS_API_KEY', 'zzad9pmlwttixx0fnsenstctzgdk7ysx0ctkgrk0')
+        result = {}
+        
+        # /stat — Quantitative sentiment over 7 days
+        try:
+            resp = requests.get("https://stocknewsapi.com/api/v1/stat", params={
+                'tickers': symbol, 'date': 'last7days', 'page': 1,
+                'token': stocknews_key
+            }, timeout=8)
+            if resp.status_code == 200:
+                stat = resp.json().get('data', {})
+                if stat:
+                    result['sentiment_stats_7d'] = stat
+        except Exception:
+            pass
+        
+        # /api/v1 — Ticker news sorted by rank with sentiment
+        try:
+            resp = requests.get("https://stocknewsapi.com/api/v1", params={
+                'tickers': symbol, 'items': 8, 'sortby': 'rank',
+                'extra-fields': 'id,eventid,rankscore',
+                'token': stocknews_key
+            }, timeout=8)
+            if resp.status_code == 200:
+                articles = resp.json().get('data', [])
+                if articles:
+                    pos = sum(1 for a in articles if str(a.get('sentiment', '')).lower() in ('positive', 'bullish'))
+                    neg = sum(1 for a in articles if str(a.get('sentiment', '')).lower() in ('negative', 'bearish'))
+                    total = len(articles)
+                    score = (pos - neg) / total if total > 0 else 0
+                    
+                    result['score'] = round(score, 2)
+                    result['label'] = 'BULLISH' if score > 0.2 else 'BEARISH' if score < -0.2 else 'NEUTRAL'
+                    result['positive'] = pos
+                    result['negative'] = neg
+                    result['article_count'] = total
+                    result['top_headlines'] = [a.get('title', '') for a in articles[:3]]
+        except Exception:
+            pass
+        
+        if result:
+            result['data_source'] = 'stocknews_pro'
+        return result
+    
+    def _get_analyst_ratings(self, symbol: str) -> Dict:
+        """StockNews PRO — /ratings for analyst upgrades/downgrades + price targets."""
+        if not HAS_REQUESTS:
+            return {}
+        stocknews_key = os.environ.get('STOCKNEWS_API_KEY', 'zzad9pmlwttixx0fnsenstctzgdk7ysx0ctkgrk0')
+        try:
+            resp = requests.get("https://stocknewsapi.com/api/v1/ratings", params={
+                'items': 20, 'page': 1, 'token': stocknews_key
+            }, timeout=8)
+            if resp.status_code == 200:
+                ratings = resp.json().get('data', [])
+                symbol_ratings = []
+                for r in ratings:
+                    if r.get('ticker', '').upper() == symbol.upper():
+                        symbol_ratings.append({
+                            'action': r.get('action', ''),
+                            'rating_from': r.get('rating_from', ''),
+                            'rating_to': r.get('rating_to', ''),
+                            'target_from': r.get('target_from', ''),
+                            'target_to': r.get('target_to', ''),
+                            'analyst': r.get('analyst', ''),
+                            'analyst_company': r.get('analyst_company', ''),
+                            'date': r.get('date', ''),
+                        })
+                if symbol_ratings:
+                    return {
+                        'ratings': symbol_ratings,
+                        'latest_action': symbol_ratings[0].get('action', ''),
+                        'data_source': 'stocknews_ratings'
+                    }
+        except Exception:
+            pass
+        return {}
+    
+    def _get_earnings_info(self, symbol: str) -> Dict:
+        """StockNews PRO — /earnings-calendar for upcoming earnings date."""
+        if not HAS_REQUESTS:
+            return {}
+        stocknews_key = os.environ.get('STOCKNEWS_API_KEY', 'zzad9pmlwttixx0fnsenstctzgdk7ysx0ctkgrk0')
+        try:
+            resp = requests.get("https://stocknewsapi.com/api/v1/earnings-calendar", params={
+                'page': 1, 'items': 50, 'token': stocknews_key
+            }, timeout=8)
+            if resp.status_code == 200:
+                earnings = resp.json().get('data', [])
+                for e in earnings:
+                    if e.get('ticker', '').upper() == symbol.upper():
+                        return {
+                            'date': e.get('date', ''),
+                            'time': e.get('time', ''),
+                            'data_source': 'stocknews_earnings_calendar'
+                        }
+        except Exception:
+            pass
+        return {}
+    
     async def _get_quote(self, symbol: str) -> Optional[Dict]:
         """Get real-time quote from Polygon."""
         if not HAS_REQUESTS:
-            return self._mock_quote(symbol)
+            return self._real_quote(symbol)
         
         try:
             url = f"{self.base_url}/v2/aggs/ticker/{symbol}/prev"
@@ -212,12 +331,12 @@ class MarketAnalystAgent(SpecializedAgent):
         except Exception as e:
             logger.warning(f"Quote fetch failed for {symbol}: {e}")
         
-        return self._mock_quote(symbol)
+        return self._real_quote(symbol)
     
     async def _get_historical(self, symbol: str, days: int = 90) -> List[Dict]:
         """Get historical OHLCV data."""
         if not HAS_REQUESTS:
-            return self._mock_historical(symbol, days)
+            return self._real_historical(symbol, days)
         
         try:
             end_date = datetime.now()
@@ -247,12 +366,12 @@ class MarketAnalystAgent(SpecializedAgent):
         except Exception as e:
             logger.warning(f"Historical fetch failed for {symbol}: {e}")
         
-        return self._mock_historical(symbol, days)
+        return self._real_historical(symbol, days)
     
     def _calculate_technicals(self, data: List[Dict]) -> Dict[str, Any]:
         """Calculate 50+ technical indicators."""
         if not data or not HAS_NUMPY:
-            return self._mock_technicals()
+            return self._real_technicals(data[0]['symbol'] if data else 'SPY')
         
         closes = np.array([d['close'] for d in data if d['close']])
         highs = np.array([d['high'] for d in data if d['high']])
@@ -260,7 +379,7 @@ class MarketAnalystAgent(SpecializedAgent):
         volumes = np.array([d['volume'] for d in data if d['volume']])
         
         if len(closes) < 20:
-            return self._mock_technicals()
+            return self._real_technicals(data[0]['symbol'] if data else 'SPY')
         
         # Moving Averages
         sma_5 = np.mean(closes[-5:]) if len(closes) >= 5 else None
@@ -600,12 +719,14 @@ class MarketAnalystAgent(SpecializedAgent):
         }
     
     def _calculate_signal(self, analysis: Dict) -> Dict[str, Any]:
-        """Calculate overall trading signal."""
+        """Calculate overall trading signal including news + analyst data."""
         signals = []
         
         technicals = analysis.get('technicals', {})
         trend = analysis.get('trend', {})
         patterns = analysis.get('patterns', {})
+        news_sentiment = analysis.get('news_sentiment', {})
+        analyst_ratings = analysis.get('analyst_ratings', {})
         
         # RSI signal
         rsi = technicals.get('oscillators', {}).get('rsi')
@@ -644,6 +765,33 @@ class MarketAnalystAgent(SpecializedAgent):
                 signals.append(('PATTERN', pattern['pattern'], 0.5))
             elif 'BEARISH' in pattern['pattern']:
                 signals.append(('PATTERN', pattern['pattern'], -0.5))
+        
+        # StockNews PRO — News sentiment signal
+        news_score = news_sentiment.get('score', 0)
+        if news_score:
+            news_label = news_sentiment.get('label', 'NEUTRAL')
+            if news_score > 0.2:
+                signals.append(('NEWS_SENTIMENT', f'BULLISH ({news_label})', min(0.6, news_score)))
+            elif news_score < -0.2:
+                signals.append(('NEWS_SENTIMENT', f'BEARISH ({news_label})', max(-0.6, news_score)))
+            else:
+                signals.append(('NEWS_SENTIMENT', 'NEUTRAL', 0))
+        
+        # StockNews PRO — Analyst ratings signal
+        if analyst_ratings and analyst_ratings.get('ratings'):
+            latest = analyst_ratings['ratings'][0]
+            action = str(latest.get('action', '')).lower()
+            if 'upgrade' in action:
+                signals.append(('ANALYST_RATING', f"UPGRADE by {latest.get('analyst_company', '')}", 0.7))
+            elif 'downgrade' in action:
+                signals.append(('ANALYST_RATING', f"DOWNGRADE by {latest.get('analyst_company', '')}", -0.7))
+            elif 'initiated' in action or 'buy' in action:
+                signals.append(('ANALYST_RATING', f"INITIATED by {latest.get('analyst_company', '')}", 0.5))
+        
+        # Earnings proximity warning
+        earnings = analysis.get('upcoming_earnings', {})
+        if earnings and earnings.get('date'):
+            signals.append(('EARNINGS_RISK', f"Earnings on {earnings['date']}", 0))
         
         # Calculate aggregate
         if signals:
@@ -694,71 +842,214 @@ class MarketAnalystAgent(SpecializedAgent):
         
         return list(symbols)[:3]
     
-    def _mock_quote(self, symbol: str) -> Dict:
-        """Generate mock quote data."""
-        import random
-        base_price = {
-            'AAPL': 178.50, 'MSFT': 378.25, 'GOOGL': 141.80, 'AMZN': 178.50,
-            'META': 505.75, 'NVDA': 875.30, 'TSLA': 248.50, 'AMD': 158.25
-        }.get(symbol, 150.00)
-        
-        noise = random.uniform(-0.02, 0.02)
-        close = base_price * (1 + noise)
-        
-        return {
-            'symbol': symbol,
-            'open': round(close * 0.995, 2),
-            'high': round(close * 1.01, 2),
-            'low': round(close * 0.99, 2),
-            'close': round(close, 2),
-            'volume': random.randint(10000000, 50000000),
-            'change_pct': round(noise * 100, 2)
-        }
+    def _real_quote(self, symbol: str) -> Dict:
+        """Fetch real quote data from Polygon."""
+        polygon_key = os.environ.get('POLYGON_API_KEY', 'JHKwAdyIOeExkYOxh3LwTopmqqVVFeBY')
+        try:
+            url = f"https://api.polygon.io/v2/aggs/ticker/{symbol}/prev"
+            resp = requests.get(url, params={'apiKey': polygon_key}, timeout=10)
+            if resp.status_code == 200:
+                results = resp.json().get('results', [])
+                if results:
+                    r = results[0]
+                    change_pct = ((r['c'] - r['o']) / r['o']) * 100 if r['o'] else 0
+                    return {
+                        'symbol': symbol,
+                        'open': r['o'],
+                        'high': r['h'],
+                        'low': r['l'],
+                        'close': r['c'],
+                        'volume': r.get('v', 0),
+                        'change_pct': round(change_pct, 2),
+                        'data_source': 'polygon_live'
+                    }
+        except Exception as e:
+            logger.warning(f"Quote fetch failed for {symbol}: {e}")
+        return {'symbol': symbol, 'error': 'Quote unavailable', 'data_source': 'polygon_error'}
     
-    def _mock_historical(self, symbol: str, days: int) -> List[Dict]:
-        """Generate mock historical data."""
-        import random
-        
-        base_price = 150.0
-        data = []
-        
-        for i in range(days):
-            date = (datetime.now() - timedelta(days=days-i)).strftime('%Y-%m-%d')
-            change = random.uniform(-0.03, 0.03)
-            base_price *= (1 + change)
-            
-            data.append({
-                'date': date,
-                'open': round(base_price * 0.998, 2),
-                'high': round(base_price * 1.015, 2),
-                'low': round(base_price * 0.985, 2),
-                'close': round(base_price, 2),
-                'volume': random.randint(5000000, 30000000)
-            })
-        
-        return data
+    def _real_historical(self, symbol: str, days: int) -> List[Dict]:
+        """Fetch real historical data from Polygon."""
+        polygon_key = os.environ.get('POLYGON_API_KEY', 'JHKwAdyIOeExkYOxh3LwTopmqqVVFeBY')
+        try:
+            end_date = datetime.now().strftime('%Y-%m-%d')
+            start_date = (datetime.now() - timedelta(days=days + 10)).strftime('%Y-%m-%d')
+            url = f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/day/{start_date}/{end_date}"
+            resp = requests.get(url, params={'apiKey': polygon_key, 'sort': 'asc'}, timeout=10)
+            if resp.status_code == 200:
+                results = resp.json().get('results', [])
+                data = []
+                for r in results:
+                    data.append({
+                        'date': datetime.fromtimestamp(r['t'] / 1000).strftime('%Y-%m-%d'),
+                        'open': r['o'],
+                        'high': r['h'],
+                        'low': r['l'],
+                        'close': r['c'],
+                        'volume': r.get('v', 0)
+                    })
+                return data
+        except Exception as e:
+            logger.warning(f"Historical fetch failed for {symbol}: {e}")
+        return []
     
-    def _mock_technicals(self) -> Dict:
-        """Generate mock technical indicators."""
-        return {
-            'current_price': 175.50,
-            'moving_averages': {
-                'sma_5': 174.25, 'sma_10': 173.50, 'sma_20': 171.80,
-                'sma_50': 168.25, 'sma_200': 162.50,
-                'ema_12': 173.80, 'ema_26': 171.25
-            },
-            'oscillators': {
-                'rsi': 58.5, 'macd': 2.55, 'stochastic_k': 65.2, 'mfi': 52.8
-            },
-            'volatility': {
-                'atr': 3.25, 'atr_pct': 1.85,
-                'bb_upper': 182.50, 'bb_middle': 171.80, 'bb_lower': 161.10,
-                'bb_width': 0.125
-            },
-            'volume': {
-                'current': 25000000, 'avg_20d': 22000000, 'ratio': 1.14
-            }
-        }
+    def _real_technicals(self, symbol: str) -> Dict:
+        """Calculate real technical indicators from Polygon server-side API + historical data."""
+        import numpy as np
+        polygon_key = os.environ.get('POLYGON_API_KEY', 'JHKwAdyIOeExkYOxh3LwTopmqqVVFeBY')
+        
+        # 1. Try Polygon server-side indicators first (more accurate)
+        server_rsi = None
+        server_sma_20 = None
+        server_sma_50 = None
+        server_sma_200 = None
+        server_ema_12 = None
+        server_ema_26 = None
+        server_macd = None
+        server_macd_signal = None
+        server_macd_hist = None
+        
+        def _pg(url, params=None):
+            p = {'apiKey': polygon_key}
+            if params:
+                p.update(params)
+            try:
+                resp = requests.get(url, params=p, timeout=10)
+                if resp.status_code == 200:
+                    return resp.json()
+            except Exception:
+                pass
+            return {}
+        
+        # RSI
+        rsi_data = _pg(f"https://api.polygon.io/v1/indicators/rsi/{symbol}",
+                       {'timespan': 'day', 'window': 14, 'series_type': 'close', 'order': 'desc', 'limit': 1})
+        rsi_vals = rsi_data.get('results', {}).get('values', [])
+        if rsi_vals:
+            server_rsi = rsi_vals[0].get('value')
+        
+        # SMAs
+        for window, attr_name in [(20, 'server_sma_20'), (50, 'server_sma_50'), (200, 'server_sma_200')]:
+            sma_data = _pg(f"https://api.polygon.io/v1/indicators/sma/{symbol}",
+                           {'timespan': 'day', 'window': window, 'series_type': 'close', 'order': 'desc', 'limit': 1})
+            sma_vals = sma_data.get('results', {}).get('values', [])
+            if sma_vals:
+                locals()[attr_name] = sma_vals[0].get('value')
+        
+        # Actually assign since locals() trick may not persist
+        for window in [20, 50, 200]:
+            sma_data = _pg(f"https://api.polygon.io/v1/indicators/sma/{symbol}",
+                           {'timespan': 'day', 'window': window, 'series_type': 'close', 'order': 'desc', 'limit': 1})
+            sma_vals = sma_data.get('results', {}).get('values', [])
+            if sma_vals:
+                val = sma_vals[0].get('value')
+                if window == 20: server_sma_20 = val
+                elif window == 50: server_sma_50 = val
+                elif window == 200: server_sma_200 = val
+        
+        # EMAs
+        for window in [12, 26]:
+            ema_data = _pg(f"https://api.polygon.io/v1/indicators/ema/{symbol}",
+                           {'timespan': 'day', 'window': window, 'series_type': 'close', 'order': 'desc', 'limit': 1})
+            ema_vals = ema_data.get('results', {}).get('values', [])
+            if ema_vals:
+                val = ema_vals[0].get('value')
+                if window == 12: server_ema_12 = val
+                elif window == 26: server_ema_26 = val
+        
+        # MACD
+        macd_data = _pg(f"https://api.polygon.io/v1/indicators/macd/{symbol}",
+                        {'timespan': 'day', 'short_window': 12, 'long_window': 26,
+                         'signal_window': 9, 'series_type': 'close', 'order': 'desc', 'limit': 1})
+        macd_vals = macd_data.get('results', {}).get('values', [])
+        if macd_vals:
+            server_macd = macd_vals[0].get('value')
+            server_macd_signal = macd_vals[0].get('signal')
+            server_macd_hist = macd_vals[0].get('histogram')
+        
+        # 2. Get historical data for volume, ATR, Bollinger Bands, etc.
+        try:
+            end_date = datetime.now().strftime('%Y-%m-%d')
+            start_date = (datetime.now() - timedelta(days=300)).strftime('%Y-%m-%d')
+            url = f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/day/{start_date}/{end_date}"
+            resp = requests.get(url, params={'apiKey': polygon_key, 'sort': 'asc'}, timeout=10)
+            if resp.status_code == 200:
+                results = resp.json().get('results', [])
+                if len(results) >= 50:
+                    closes = np.array([r['c'] for r in results])
+                    volumes = np.array([r.get('v', 0) for r in results])
+                    highs = np.array([r['h'] for r in results])
+                    lows = np.array([r['l'] for r in results])
+                    
+                    current_price = float(closes[-1])
+                    
+                    # Use server-side values if available, else calculate manually
+                    sma_5 = float(np.mean(closes[-5:]))
+                    sma_10 = float(np.mean(closes[-10:]))
+                    sma_20 = float(server_sma_20) if server_sma_20 else float(np.mean(closes[-20:]))
+                    sma_50 = float(server_sma_50) if server_sma_50 else float(np.mean(closes[-50:]))
+                    sma_200 = float(server_sma_200) if server_sma_200 else (float(np.mean(closes[-200:])) if len(closes) >= 200 else float(np.mean(closes)))
+                    
+                    ema_12 = float(server_ema_12) if server_ema_12 else None
+                    ema_26 = float(server_ema_26) if server_ema_26 else None
+                    
+                    rsi = float(server_rsi) if server_rsi else None
+                    if rsi is None:
+                        returns = np.diff(closes) / closes[:-1]
+                        gains = np.where(returns > 0, returns, 0)
+                        losses = np.where(returns < 0, -returns, 0)
+                        avg_gain = np.mean(gains[-14:]) if len(gains) >= 14 else np.mean(gains)
+                        avg_loss = np.mean(losses[-14:]) if len(losses) >= 14 else np.mean(losses)
+                        rs = avg_gain / avg_loss if avg_loss > 0 else 100
+                        rsi = float(100 - (100 / (1 + rs)))
+                    
+                    macd = float(server_macd) if server_macd else (ema_12 - ema_26 if ema_12 and ema_26 else None)
+                    
+                    # ATR
+                    tr = np.maximum(highs[-14:] - lows[-14:],
+                                    np.maximum(np.abs(highs[-14:] - closes[-15:-1]),
+                                               np.abs(lows[-14:] - closes[-15:-1])))
+                    atr = float(np.mean(tr))
+                    
+                    # Bollinger Bands
+                    bb_middle = sma_20
+                    bb_std = float(np.std(closes[-20:]))
+                    bb_upper = bb_middle + 2 * bb_std
+                    bb_lower = bb_middle - 2 * bb_std
+                    bb_width = (bb_upper - bb_lower) / bb_middle if bb_middle > 0 else 0
+                    
+                    return {
+                        'current_price': current_price,
+                        'moving_averages': {
+                            'sma_5': round(sma_5, 2), 'sma_10': round(sma_10, 2),
+                            'sma_20': round(sma_20, 2), 'sma_50': round(sma_50, 2),
+                            'sma_200': round(sma_200, 2),
+                            'ema_12': round(ema_12, 2) if ema_12 else None,
+                            'ema_26': round(ema_26, 2) if ema_26 else None,
+                        },
+                        'oscillators': {
+                            'rsi': round(rsi, 1),
+                            'macd': round(macd, 4) if macd else None,
+                            'macd_signal': round(float(server_macd_signal), 4) if server_macd_signal else None,
+                            'macd_histogram': round(float(server_macd_hist), 4) if server_macd_hist else None,
+                        },
+                        'volatility': {
+                            'atr': round(atr, 2),
+                            'atr_pct': round(atr / current_price * 100, 2) if current_price > 0 else 0,
+                            'bb_upper': round(bb_upper, 2),
+                            'bb_middle': round(bb_middle, 2),
+                            'bb_lower': round(bb_lower, 2),
+                            'bb_width': round(bb_width, 4),
+                        },
+                        'volume': {
+                            'current': int(volumes[-1]),
+                            'avg_20d': int(np.mean(volumes[-20:])),
+                            'ratio': round(float(volumes[-1] / np.mean(volumes[-20:])), 2) if np.mean(volumes[-20:]) > 0 else 1.0,
+                        },
+                        'data_source': 'polygon_indicators + polygon_historical'
+                    }
+        except Exception as e:
+            logger.warning(f"Technicals calculation failed for {symbol}: {e}")
+        return {'error': 'Technicals unavailable', 'data_source': 'polygon_error'}
 
 
 __all__ = ['MarketAnalystAgent']

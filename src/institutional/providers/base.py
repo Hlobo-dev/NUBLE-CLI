@@ -9,8 +9,14 @@ from dataclasses import dataclass, field
 from datetime import datetime, date
 from enum import Enum
 import asyncio
-import aiohttp
 import time
+
+try:
+    import aiohttp
+    HAS_AIOHTTP = True
+except ImportError:
+    aiohttp = None  # type: ignore
+    HAS_AIOHTTP = False
 
 
 class DataType(Enum):
@@ -266,7 +272,7 @@ class BaseProvider(ABC):
         self.base_url = kwargs.get("base_url", "")
         self.timeout = kwargs.get("timeout", 30)
         self.rate_limiter = RateLimiter(kwargs.get("rate_limit", 60))
-        self._session: Optional[aiohttp.ClientSession] = None
+        self._session = None  # aiohttp.ClientSession, created lazily
     
     @property
     @abstractmethod
@@ -280,8 +286,10 @@ class BaseProvider(ABC):
         """List of data types this provider supports"""
         pass
     
-    async def _get_session(self) -> aiohttp.ClientSession:
+    async def _get_session(self):
         """Get or create aiohttp session"""
+        if not HAS_AIOHTTP:
+            raise ImportError("aiohttp is required for async HTTP requests. Install with: pip install aiohttp")
         if self._session is None or self._session.closed:
             timeout = aiohttp.ClientTimeout(total=self.timeout)
             self._session = aiohttp.ClientSession(timeout=timeout)
@@ -337,7 +345,7 @@ class BaseProvider(ABC):
                     "rate_limit_remaining": response.headers.get("X-RateLimit-Remaining"),
                 }
                 
-        except aiohttp.ClientError as e:
+        except (aiohttp.ClientError if HAS_AIOHTTP else Exception) as e:
             return {
                 "error": str(e),
                 "latency_ms": int((time.time() - start_time) * 1000)

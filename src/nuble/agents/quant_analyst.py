@@ -72,7 +72,7 @@ class QuantAnalystAgent(SpecializedAgent):
         self.description = "ML signals and quantitative analysis"
         
         # Polygon API for market data
-        self.polygon_key = os.getenv('POLYGON_API_KEY')
+        self.polygon_key = os.getenv('POLYGON_API_KEY', 'JHKwAdyIOeExkYOxh3LwTopmqqVVFeBY')
     
     def get_capabilities(self) -> Dict[str, Any]:
         return {
@@ -181,8 +181,99 @@ class QuantAnalystAgent(SpecializedAgent):
         # Fallback: use technical analysis from real data
         return await self._technical_fallback_signal(symbol)
     
+    def _polygon_get(self, url: str, params: Dict = None) -> Dict:
+        """Helper for Polygon API calls."""
+        p = {'apiKey': self.polygon_key}
+        if params:
+            p.update(params)
+        try:
+            import requests
+            resp = requests.get(url, params=p, timeout=12)
+            if resp.status_code == 200:
+                return resp.json()
+        except Exception as e:
+            logger.warning(f"Polygon call failed: {e}")
+        return {}
+    
+    def _get_polygon_indicator(self, symbol: str, indicator: str, window: int = 14) -> Optional[float]:
+        """Get server-side indicator from Polygon (sma, ema, rsi, macd)."""
+        data = self._polygon_get(
+            f"https://api.polygon.io/v1/indicators/{indicator}/{symbol}",
+            {'timespan': 'day', 'window': window, 'series_type': 'close', 'order': 'desc', 'limit': 1}
+        )
+        values = data.get('results', {}).get('values', [])
+        if values:
+            return values[0].get('value')
+        return None
+    
+    def _get_news_sentiment_factor(self, symbol: str) -> float:
+        """Get news sentiment as a quantitative factor (-1 to +1) using premium endpoints."""
+        import requests
+        stocknews_key = os.getenv('STOCKNEWS_API_KEY', 'zzad9pmlwttixx0fnsenstctzgdk7ysx0ctkgrk0')
+        sentiment_score = 0.0
+        sources_used = 0
+        
+        # 1. StockNews PRO — /stat endpoint for quantitative sentiment over 7 days
+        try:
+            resp = requests.get("https://stocknewsapi.com/api/v1/stat", params={
+                'tickers': symbol, 'date': 'last7days', 'page': 1,
+                'token': stocknews_key
+            }, timeout=8)
+            if resp.status_code == 200:
+                data = resp.json().get('data', {})
+                if data:
+                    # The stat endpoint returns sentiment breakdown
+                    total = data.get('total', 0)
+                    positive = data.get('positive', 0) or data.get('Positive', 0)
+                    negative = data.get('negative', 0) or data.get('Negative', 0)
+                    if total and total > 0:
+                        stat_score = (positive - negative) / total
+                        sentiment_score += stat_score
+                        sources_used += 1
+        except Exception:
+            pass
+        
+        # 2. StockNews PRO — Ticker news with sentiment labels (fallback/supplement)
+        try:
+            resp = requests.get("https://stocknewsapi.com/api/v1", params={
+                'tickers': symbol, 'items': 10, 'sortby': 'rank',
+                'extra-fields': 'id,eventid,rankscore',
+                'token': stocknews_key
+            }, timeout=8)
+            if resp.status_code == 200:
+                articles = resp.json().get('data', [])
+                if articles:
+                    pos = sum(1 for a in articles if str(a.get('sentiment', '')).lower() in ('positive', 'bullish'))
+                    neg = sum(1 for a in articles if str(a.get('sentiment', '')).lower() in ('negative', 'bearish'))
+                    total = len(articles)
+                    ticker_score = (pos - neg) / total if total > 0 else 0
+                    sentiment_score += ticker_score
+                    sources_used += 1
+        except Exception:
+            pass
+        
+        # 3. StockNews PRO — Check if symbol has upcoming earnings (risk factor)
+        try:
+            resp = requests.get("https://stocknewsapi.com/api/v1/earnings-calendar", params={
+                'page': 1, 'items': 50, 'token': stocknews_key
+            }, timeout=8)
+            if resp.status_code == 200:
+                earnings = resp.json().get('data', [])
+                for e in earnings:
+                    if e.get('ticker', '').upper() == symbol.upper():
+                        # Reduce confidence due to upcoming earnings uncertainty
+                        sentiment_score -= 0.1
+                        break
+        except Exception:
+            pass
+        
+        # Average across sources
+        if sources_used > 0:
+            return max(-1.0, min(1.0, sentiment_score / sources_used))
+        return 0.0
+    
     async def _technical_fallback_signal(self, symbol: str) -> Dict:
-        """Generate signal from technical analysis when ML unavailable."""
+        """Generate signal from Polygon server-side indicators + historical data."""
         import requests
         
         if not self.polygon_key:
@@ -190,78 +281,114 @@ class QuantAnalystAgent(SpecializedAgent):
         
         try:
             from datetime import timedelta
+            
+            # 1. Get Polygon server-side indicators (more accurate than manual)
+            rsi = self._get_polygon_indicator(symbol, 'rsi', 14)
+            sma_20 = self._get_polygon_indicator(symbol, 'sma', 20)
+            sma_50 = self._get_polygon_indicator(symbol, 'sma', 50)
+            ema_12 = self._get_polygon_indicator(symbol, 'ema', 12)
+            ema_26 = self._get_polygon_indicator(symbol, 'ema', 26)
+            
+            # MACD from Polygon
+            macd_data = self._polygon_get(
+                f"https://api.polygon.io/v1/indicators/macd/{symbol}",
+                {'timespan': 'day', 'short_window': 12, 'long_window': 26,
+                 'signal_window': 9, 'series_type': 'close', 'order': 'desc', 'limit': 1}
+            )
+            macd_val = None
+            macd_signal = None
+            macd_histogram = None
+            macd_values = macd_data.get('results', {}).get('values', [])
+            if macd_values:
+                macd_val = macd_values[0].get('value')
+                macd_signal = macd_values[0].get('signal')
+                macd_histogram = macd_values[0].get('histogram')
+            
+            # 2. Get historical data for momentum & volatility
             end_date = datetime.now().strftime('%Y-%m-%d')
             start_date = (datetime.now() - timedelta(days=60)).strftime('%Y-%m-%d')
             
             url = f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/day/{start_date}/{end_date}"
-            response = requests.get(url, params={'apiKey': self.polygon_key, 'limit': 60}, timeout=10)
+            response = requests.get(url, params={'apiKey': self.polygon_key, 'sort': 'asc'}, timeout=10)
             
-            if response.status_code != 200:
+            closes = None
+            returns = None
+            if response.status_code == 200:
+                results = response.json().get('results', [])
+                if len(results) >= 20:
+                    closes = np.array([r['c'] for r in results])
+                    returns = np.diff(closes) / closes[:-1]
+            
+            # Fallback RSI if server-side failed
+            if rsi is None and returns is not None and len(returns) >= 14:
+                gains = np.where(returns > 0, returns, 0)
+                losses = np.where(returns < 0, -returns, 0)
+                avg_gain = np.mean(gains[-14:])
+                avg_loss = np.mean(losses[-14:])
+                rs = avg_gain / avg_loss if avg_loss > 0 else 100
+                rsi = 100 - (100 / (1 + rs))
+            
+            if rsi is None:
                 return self._minimal_fallback_signal(symbol)
             
-            data = response.json()
-            results = data.get('results', [])
+            # 3. News sentiment factor
+            news_factor = self._get_news_sentiment_factor(symbol)
             
-            if len(results) < 20:
-                return self._minimal_fallback_signal(symbol)
+            # 4. Calculate momentum & volatility
+            momentum_5d = 0
+            momentum_20d = 0
+            volatility = 0.2
             
-            closes = np.array([r['c'] for r in results])
+            if closes is not None and len(closes) > 20:
+                momentum_5d = (closes[-1] - closes[-6]) / closes[-6]
+                momentum_20d = (closes[-1] - closes[-21]) / closes[-21]
+            if returns is not None and len(returns) >= 20:
+                volatility = float(np.std(returns[-20:]) * np.sqrt(252))
             
-            # Calculate indicators
-            returns = np.diff(closes) / closes[:-1]
-            
-            # RSI
-            gains = np.where(returns > 0, returns, 0)
-            losses = np.where(returns < 0, -returns, 0)
-            avg_gain = np.mean(gains[-14:])
-            avg_loss = np.mean(losses[-14:])
-            rs = avg_gain / avg_loss if avg_loss > 0 else 100
-            rsi = 100 - (100 / (1 + rs))
-            
-            # Momentum
-            momentum_5d = (closes[-1] - closes[-6]) / closes[-6] if len(closes) > 5 else 0
-            momentum_20d = (closes[-1] - closes[-21]) / closes[-21] if len(closes) > 20 else 0
-            
-            # Volatility
-            volatility = np.std(returns[-20:]) * np.sqrt(252)
-            
-            # Trend
-            sma_20 = np.mean(closes[-20:])
-            sma_50 = np.mean(closes[-50:]) if len(closes) >= 50 else sma_20
-            trend_strength = (sma_20 - sma_50) / sma_50 if sma_50 > 0 else 0
-            
-            # Generate signal from technicals
+            # 5. Multi-factor signal generation
             bullish_score = 0
+            total_factors = 8
+            
             if rsi < 40: bullish_score += 1
             if rsi < 30: bullish_score += 1
             if momentum_5d > 0: bullish_score += 1
             if momentum_20d > 0: bullish_score += 1
-            if closes[-1] > sma_20: bullish_score += 1
-            if sma_20 > sma_50: bullish_score += 1
+            if closes is not None and sma_20 and closes[-1] > sma_20: bullish_score += 1
+            if sma_20 and sma_50 and sma_20 > sma_50: bullish_score += 1
+            if macd_histogram and macd_histogram > 0: bullish_score += 1
+            if news_factor > 0.1: bullish_score += 1
             
-            if bullish_score >= 4:
+            if bullish_score >= 5:
                 primary_signal = 'LONG'
             elif bullish_score <= 2:
                 primary_signal = 'SHORT'
             else:
                 primary_signal = 'NEUTRAL'
             
-            # Confidence based on indicator agreement
-            confidence = min(0.9, 0.4 + (abs(bullish_score - 3) * 0.1))
+            confidence = min(0.9, 0.4 + (abs(bullish_score - 4) * 0.08))
             
             return {
                 'symbol': symbol,
                 'primary_signal': primary_signal,
                 'confidence': round(confidence, 3),
-                'model_used': 'technical_fallback',
+                'model_used': 'polygon_indicators + news_sentiment',
                 'features': {
-                    'rsi': round(rsi, 2),
+                    'rsi': round(float(rsi), 2) if rsi else None,
+                    'sma_20': round(float(sma_20), 2) if sma_20 else None,
+                    'sma_50': round(float(sma_50), 2) if sma_50 else None,
+                    'ema_12': round(float(ema_12), 2) if ema_12 else None,
+                    'ema_26': round(float(ema_26), 2) if ema_26 else None,
+                    'macd': round(float(macd_val), 4) if macd_val else None,
+                    'macd_signal': round(float(macd_signal), 4) if macd_signal else None,
+                    'macd_histogram': round(float(macd_histogram), 4) if macd_histogram else None,
                     'momentum_5d': round(momentum_5d * 100, 2),
                     'momentum_20d': round(momentum_20d * 100, 2),
                     'volatility': round(volatility, 3),
-                    'trend_strength': round(trend_strength * 100, 2)
+                    'news_sentiment_factor': round(news_factor, 2),
                 },
                 'bullish_score': bullish_score,
+                'total_factors': total_factors,
+                'data_sources': ['polygon_sma', 'polygon_ema', 'polygon_rsi', 'polygon_macd', 'stocknews_sentiment'],
                 'timestamp': datetime.now().isoformat()
             }
             
@@ -379,7 +506,7 @@ class QuantAnalystAgent(SpecializedAgent):
             }
     
     async def _analyze_factors(self, symbols: List[str]) -> Dict:
-        """Analyze factor exposures using real market data."""
+        """Analyze factor exposures using real market data + Polygon indicators."""
         import requests
         
         if not self.polygon_key or not symbols:
@@ -390,7 +517,7 @@ class QuantAnalystAgent(SpecializedAgent):
             end_date = datetime.now().strftime('%Y-%m-%d')
             start_date = (datetime.now() - timedelta(days=252)).strftime('%Y-%m-%d')
             
-            # Get SPY for market beta calculation
+            # Get SPY for market beta
             spy_url = f"https://api.polygon.io/v2/aggs/ticker/SPY/range/1/day/{start_date}/{end_date}"
             spy_response = requests.get(spy_url, params={'apiKey': self.polygon_key}, timeout=10)
             
@@ -424,13 +551,31 @@ class QuantAnalystAgent(SpecializedAgent):
             
             avg_beta = sum(betas) / len(betas) if betas else 1.0
             
-            # Calculate other factor proxies from the data
+            # Momentum factor from Polygon SMA
+            spy_sma_50 = self._get_polygon_indicator('SPY', 'sma', 50)
+            spy_sma_200 = self._get_polygon_indicator('SPY', 'sma', 200)
+            
+            momentum = round(float((spy_closes[-1] - spy_closes[-20]) / spy_closes[-20]), 3) if len(spy_closes) > 20 else 0
+            
+            # RSI factor from Polygon
+            spy_rsi = self._get_polygon_indicator('SPY', 'rsi', 14)
+            
+            # News sentiment factor
+            news_factor = self._get_news_sentiment_factor(symbols[0]) if symbols else 0
+            
             factors = {
                 'market_beta': round(float(avg_beta), 3),
-                'momentum': round(float((spy_closes[-1] - spy_closes[-20]) / spy_closes[-20]), 3) if len(spy_closes) > 20 else 0,
+                'momentum': momentum,
                 'volatility': round(float(np.std(spy_returns) * np.sqrt(252)), 3),
-                'model': 'calculated',
-                'symbols_analyzed': len(betas)
+                'spy_rsi': round(float(spy_rsi), 1) if spy_rsi else None,
+                'spy_sma_50': round(float(spy_sma_50), 2) if spy_sma_50 else None,
+                'spy_sma_200': round(float(spy_sma_200), 2) if spy_sma_200 else None,
+                'spy_above_sma50': spy_closes[-1] > spy_sma_50 if spy_sma_50 else None,
+                'spy_above_sma200': spy_closes[-1] > spy_sma_200 if spy_sma_200 else None,
+                'news_sentiment': round(float(news_factor), 2),
+                'model': 'polygon_indicators + stocknews',
+                'symbols_analyzed': len(betas),
+                'data_sources': ['polygon_historical', 'polygon_sma', 'polygon_rsi', 'stocknews']
             }
             
             return factors

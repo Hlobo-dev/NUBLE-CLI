@@ -15,18 +15,34 @@ from typing import Dict, List, Optional, Any, Tuple
 
 logger = logging.getLogger(__name__)
 
+# Crypto ticker mapping to Polygon format
+CRYPTO_TICKERS = {
+    'BTC': 'X:BTCUSD', 'ETH': 'X:ETHUSD', 'SOL': 'X:SOLUSD',
+    'XRP': 'X:XRPUSD', 'ADA': 'X:ADAUSD', 'DOT': 'X:DOTUSD',
+    'DOGE': 'X:DOGEUSD', 'AVAX': 'X:AVAXUSD', 'LINK': 'X:LINKUSD',
+    'MATIC': 'X:MATICUSD', 'LTC': 'X:LTCUSD',
+}
+
+
+def _map_symbol(symbol: str) -> tuple:
+    """Map symbol to Polygon format. Returns (polygon_symbol, display_symbol, is_crypto)."""
+    sym = symbol.upper().replace('$', '')
+    if sym in CRYPTO_TICKERS:
+        return CRYPTO_TICKERS[sym], sym, True
+    return sym, sym, False
+
 
 def get_stock_quote(symbol: str) -> Dict[str, Any]:
     """Get real-time stock quote from Polygon.io."""
-    api_key = os.getenv('POLYGON_API_KEY')
+    api_key = os.getenv('POLYGON_API_KEY', 'JHKwAdyIOeExkYOxh3LwTopmqqVVFeBY')
     if not api_key:
         return {"error": "POLYGON_API_KEY not set"}
     
-    symbol = symbol.upper().replace('$', '')
+    polygon_symbol, display_symbol, is_crypto = _map_symbol(symbol)
     
     try:
         # Get previous day's data
-        url = f"https://api.polygon.io/v2/aggs/ticker/{symbol}/prev"
+        url = f"https://api.polygon.io/v2/aggs/ticker/{polygon_symbol}/prev"
         response = requests.get(url, params={'apiKey': api_key}, timeout=10)
         
         if response.status_code != 200:
@@ -34,25 +50,27 @@ def get_stock_quote(symbol: str) -> Dict[str, Any]:
         
         data = response.json()
         if not data.get('results'):
-            return {"error": f"No data for {symbol}"}
+            return {"error": f"No data for {display_symbol}"}
         
         result = data['results'][0]
         change = result['c'] - result['o']
         change_pct = (change / result['o']) * 100 if result['o'] else 0
         
-        # Get ticker details
-        details_url = f"https://api.polygon.io/v3/reference/tickers/{symbol}"
-        details_resp = requests.get(details_url, params={'apiKey': api_key}, timeout=10)
-        company_name = symbol
+        # Get ticker details (skip for crypto)
+        company_name = display_symbol
         market_cap = None
         
-        if details_resp.status_code == 200:
-            details = details_resp.json().get('results', {})
-            company_name = details.get('name', symbol)
-            market_cap = details.get('market_cap')
+        if not is_crypto:
+            details_url = f"https://api.polygon.io/v3/reference/tickers/{display_symbol}"
+            details_resp = requests.get(details_url, params={'apiKey': api_key}, timeout=10)
+            
+            if details_resp.status_code == 200:
+                details = details_resp.json().get('results', {})
+                company_name = details.get('name', display_symbol)
+                market_cap = details.get('market_cap')
         
         return {
-            "symbol": symbol,
+            "symbol": display_symbol,
             "company_name": company_name,
             "price": result['c'],
             "open": result['o'],
@@ -78,11 +96,11 @@ def get_technical_indicators(
     period: int = 14
 ) -> Dict[str, Any]:
     """Calculate technical indicators for a symbol."""
-    api_key = os.getenv('POLYGON_API_KEY')
+    api_key = os.getenv('POLYGON_API_KEY', 'JHKwAdyIOeExkYOxh3LwTopmqqVVFeBY')
     if not api_key:
         return {"error": "POLYGON_API_KEY not set"}
     
-    symbol = symbol.upper().replace('$', '')
+    polygon_symbol, display_symbol, is_crypto = _map_symbol(symbol)
     indicators = indicators or ['rsi', 'macd', 'bollinger', 'sma', 'ema']
     
     try:
@@ -90,8 +108,8 @@ def get_technical_indicators(
         end_date = datetime.now().strftime('%Y-%m-%d')
         start_date = (datetime.now() - timedelta(days=100)).strftime('%Y-%m-%d')
         
-        url = f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/day/{start_date}/{end_date}"
-        response = requests.get(url, params={'apiKey': api_key, 'limit': 100}, timeout=10)
+        url = f"https://api.polygon.io/v2/aggs/ticker/{polygon_symbol}/range/1/day/{start_date}/{end_date}"
+        response = requests.get(url, params={'apiKey': api_key, 'sort': 'asc'}, timeout=10)
         
         if response.status_code != 200:
             return {"error": f"API error: {response.status_code}"}
@@ -100,7 +118,7 @@ def get_technical_indicators(
         results = data.get('results', [])
         
         if len(results) < 20:
-            return {"error": f"Insufficient data for {symbol}"}
+            return {"error": f"Insufficient data for {display_symbol}"}
         
         # Convert to numpy arrays
         closes = np.array([r['c'] for r in results])
@@ -109,7 +127,7 @@ def get_technical_indicators(
         volumes = np.array([r['v'] for r in results])
         
         output = {
-            "symbol": symbol,
+            "symbol": display_symbol,
             "current_price": float(closes[-1]),
             "indicators": {},
             "timestamp": datetime.now().isoformat()
@@ -132,14 +150,14 @@ def get_technical_indicators(
                 "macd": round(float(macd[-1]), 4),
                 "signal": round(float(signal[-1]), 4),
                 "histogram": round(float(histogram[-1]), 4),
-                "bullish": histogram[-1] > 0 and histogram[-1] > histogram[-2]
+                "bullish": bool(histogram[-1] > 0 and histogram[-1] > histogram[-2])
             }
         
         # Bollinger Bands
         if 'bollinger' in indicators:
             upper, middle, lower = _calculate_bollinger(closes, 20, 2)
             current = closes[-1]
-            position = (current - lower[-1]) / (upper[-1] - lower[-1]) if (upper[-1] - lower[-1]) > 0 else 0.5
+            position = float((current - lower[-1]) / (upper[-1] - lower[-1])) if (upper[-1] - lower[-1]) > 0 else 0.5
             output["indicators"]["bollinger"] = {
                 "upper": round(float(upper[-1]), 2),
                 "middle": round(float(middle[-1]), 2),
@@ -167,7 +185,7 @@ def get_technical_indicators(
             output["indicators"]["ema"] = {
                 "ema_12": round(float(ema_12[-1]), 2),
                 "ema_26": round(float(ema_26[-1]), 2),
-                "bullish": ema_12[-1] > ema_26[-1]
+                "bullish": bool(ema_12[-1] > ema_26[-1])
             }
         
         # ATR (Average True Range)
@@ -235,17 +253,17 @@ def run_ml_prediction(
     horizon: str = "5d"
 ) -> Dict[str, Any]:
     """Run ML prediction models for a symbol."""
-    symbol = symbol.upper().replace('$', '')
+    polygon_symbol, display_symbol, is_crypto = _map_symbol(symbol)
     
     try:
         # Try to use the real ML predictor
         from ...institutional.ml import get_predictor
         
         predictor = get_predictor()
-        prediction = predictor.predict(symbol, model_name=model)
+        prediction = predictor.predict(display_symbol, model_name=model)
         
         return {
-            "symbol": symbol,
+            "symbol": display_symbol,
             "model": model,
             "horizon": horizon,
             "prediction": {
@@ -267,7 +285,7 @@ def run_ml_prediction(
         logger.warning(f"ML prediction failed: {e}, using fallback")
     
     # Fallback: use technical analysis for prediction
-    technicals = get_technical_indicators(symbol, ['rsi', 'macd', 'sma'])
+    technicals = get_technical_indicators(display_symbol, ['rsi', 'macd', 'sma'])
     
     if "error" in technicals:
         return technicals
@@ -291,7 +309,7 @@ def run_ml_prediction(
         stop = current_price * 0.98
     
     return {
-        "symbol": symbol,
+        "symbol": display_symbol,
         "model": "technical_fallback",
         "horizon": horizon,
         "prediction": {
@@ -313,17 +331,25 @@ def search_sec_filings(
     filing_type: str = "all"
 ) -> Dict[str, Any]:
     """Search SEC filings for relevant information."""
-    symbol = symbol.upper().replace('$', '')
+    polygon_symbol, display_symbol, is_crypto = _map_symbol(symbol)
+    
+    if is_crypto:
+        return {
+            "symbol": display_symbol,
+            "query": query,
+            "error": "SEC filings not available for crypto assets",
+            "timestamp": datetime.now().isoformat()
+        }
     
     try:
         # Try to use TENK integration
         from ...institutional.filings.search import FilingsSearch
         
         search = FilingsSearch()
-        results = search.search(symbol, query, filing_type=filing_type if filing_type != "all" else None)
+        results = search.search(display_symbol, query, filing_type=filing_type if filing_type != "all" else None)
         
         return {
-            "symbol": symbol,
+            "symbol": display_symbol,
             "query": query,
             "filing_type": filing_type,
             "results": results[:5],  # Top 5 results
@@ -338,12 +364,12 @@ def search_sec_filings(
     
     # Fallback: basic SEC EDGAR API
     try:
-        cik_url = f"https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK={symbol}&type=10&dateb=&owner=include&count=10&output=json"
+        cik_url = f"https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK={display_symbol}&type=10&dateb=&owner=include&count=10&output=json"
         response = requests.get(cik_url, timeout=10, headers={'User-Agent': 'NUBLE/1.0'})
         
         if response.status_code == 200:
             return {
-                "symbol": symbol,
+                "symbol": display_symbol,
                 "query": query,
                 "note": "Full filing search unavailable, showing recent filings",
                 "filings": response.json().get('filings', {}).get('recent', {}),
@@ -353,7 +379,7 @@ def search_sec_filings(
         pass
     
     return {
-        "symbol": symbol,
+        "symbol": display_symbol,
         "query": query,
         "error": "SEC filings search not available",
         "suggestion": "Try asking about specific risk factors or financial metrics"
@@ -365,16 +391,16 @@ def get_news_sentiment(
     days: int = 7
 ) -> Dict[str, Any]:
     """Get news and sentiment for a symbol using Lambda API."""
-    symbol = symbol.upper().replace('$', '')
+    polygon_symbol, display_symbol, is_crypto = _map_symbol(symbol)
     
     try:
         from ..lambda_client import get_lambda_client, analyze_symbol
         
         client = get_lambda_client()
-        analysis = client.get_analysis(symbol)
+        analysis = client.get_analysis(display_symbol)
         
         return {
-            "symbol": symbol,
+            "symbol": display_symbol,
             "sentiment": {
                 "score": analysis.sentiment_score,
                 "label": analysis.sentiment_label,
@@ -392,12 +418,12 @@ def get_news_sentiment(
         logger.warning(f"Lambda analysis failed: {e}")
     
     # Fallback: Polygon news
-    api_key = os.getenv('POLYGON_API_KEY')
+    api_key = os.getenv('POLYGON_API_KEY', 'JHKwAdyIOeExkYOxh3LwTopmqqVVFeBY')
     if api_key:
         try:
             url = f"https://api.polygon.io/v2/reference/news"
             response = requests.get(url, params={
-                'ticker': symbol,
+                'ticker': polygon_symbol,
                 'limit': 10,
                 'apiKey': api_key
             }, timeout=10)
@@ -405,7 +431,7 @@ def get_news_sentiment(
             if response.status_code == 200:
                 news = response.json().get('results', [])
                 return {
-                    "symbol": symbol,
+                    "symbol": display_symbol,
                     "news": [{
                         "title": n.get('title'),
                         "published": n.get('published_utc'),
@@ -419,7 +445,7 @@ def get_news_sentiment(
             pass
     
     return {
-        "symbol": symbol,
+        "symbol": display_symbol,
         "error": "News/sentiment analysis not available",
         "days": days
     }
@@ -430,8 +456,8 @@ def analyze_risk(
     position_size: float = None
 ) -> Dict[str, Any]:
     """Analyze risk metrics for a symbol."""
-    symbol = symbol.upper().replace('$', '')
-    api_key = os.getenv('POLYGON_API_KEY')
+    polygon_symbol, display_symbol, is_crypto = _map_symbol(symbol)
+    api_key = os.getenv('POLYGON_API_KEY', 'JHKwAdyIOeExkYOxh3LwTopmqqVVFeBY')
     
     if not api_key:
         return {"error": "POLYGON_API_KEY not set"}
@@ -441,8 +467,8 @@ def analyze_risk(
         end_date = datetime.now().strftime('%Y-%m-%d')
         start_date = (datetime.now() - timedelta(days=252)).strftime('%Y-%m-%d')
         
-        url = f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/day/{start_date}/{end_date}"
-        response = requests.get(url, params={'apiKey': api_key, 'limit': 252}, timeout=10)
+        url = f"https://api.polygon.io/v2/aggs/ticker/{polygon_symbol}/range/1/day/{start_date}/{end_date}"
+        response = requests.get(url, params={'apiKey': api_key, 'sort': 'asc'}, timeout=10)
         
         if response.status_code != 200:
             return {"error": f"API error: {response.status_code}"}
@@ -451,7 +477,7 @@ def analyze_risk(
         results = data.get('results', [])
         
         if len(results) < 30:
-            return {"error": f"Insufficient data for {symbol}"}
+            return {"error": f"Insufficient data for {display_symbol}"}
         
         closes = np.array([r['c'] for r in results])
         returns = np.diff(closes) / closes[:-1]
@@ -491,7 +517,7 @@ def analyze_risk(
             beta = 1.0
         
         risk_result = {
-            "symbol": symbol,
+            "symbol": display_symbol,
             "metrics": {
                 "daily_volatility": round(float(daily_vol), 4),
                 "annual_volatility": round(float(annual_vol), 4),
@@ -517,23 +543,30 @@ def analyze_risk(
         return risk_result
         
     except Exception as e:
-        logger.error(f"Risk analysis failed for {symbol}: {e}")
+        logger.error(f"Risk analysis failed for {display_symbol}: {e}")
         return {"error": str(e)}
 
 
 def get_options_flow(symbol: str) -> Dict[str, Any]:
     """Get options flow data for a symbol."""
-    symbol = symbol.upper().replace('$', '')
-    api_key = os.getenv('POLYGON_API_KEY')
+    polygon_symbol, display_symbol, is_crypto = _map_symbol(symbol)
+    api_key = os.getenv('POLYGON_API_KEY', 'JHKwAdyIOeExkYOxh3LwTopmqqVVFeBY')
     
     if not api_key:
         return {"error": "POLYGON_API_KEY not set"}
+    
+    if is_crypto:
+        return {
+            "symbol": display_symbol,
+            "error": "Options flow not available for crypto assets",
+            "timestamp": datetime.now().isoformat()
+        }
     
     try:
         # Get options contracts
         url = f"https://api.polygon.io/v3/reference/options/contracts"
         response = requests.get(url, params={
-            'underlying_ticker': symbol,
+            'underlying_ticker': display_symbol,
             'limit': 50,
             'apiKey': api_key
         }, timeout=10)
@@ -550,7 +583,7 @@ def get_options_flow(symbol: str) -> Dict[str, Any]:
         pc_ratio = len(puts) / len(calls) if len(calls) > 0 else 1.0
         
         return {
-            "symbol": symbol,
+            "symbol": display_symbol,
             "total_contracts": len(contracts),
             "calls": len(calls),
             "puts": len(puts),
@@ -561,7 +594,7 @@ def get_options_flow(symbol: str) -> Dict[str, Any]:
         }
         
     except Exception as e:
-        logger.error(f"Options flow failed for {symbol}: {e}")
+        logger.error(f"Options flow failed for {display_symbol}: {e}")
         return {"error": str(e)}
 
 
@@ -580,7 +613,7 @@ def get_market_regime(symbol: str = "SPY") -> Dict[str, Any]:
         pass
     
     # Fallback: use VIX and technicals
-    api_key = os.getenv('POLYGON_API_KEY')
+    api_key = os.getenv('POLYGON_API_KEY', 'JHKwAdyIOeExkYOxh3LwTopmqqVVFeBY')
     
     if not api_key:
         return {"error": "POLYGON_API_KEY not set"}
@@ -642,16 +675,17 @@ def compare_stocks(
     if not symbols or len(symbols) < 2:
         return {"error": "Need at least 2 symbols to compare"}
     
-    symbols = [s.upper().replace('$', '') for s in symbols[:5]]  # Max 5
+    # Map symbols for display (actual mapping happens inside each sub-call)
+    display_symbols = [_map_symbol(s)[1] for s in symbols[:5]]  # Max 5
     metrics = metrics or ['performance', 'technicals', 'risk']
     
     comparison = {
-        "symbols": symbols,
+        "symbols": display_symbols,
         "comparison": {},
         "timestamp": datetime.now().isoformat()
     }
     
-    for symbol in symbols:
+    for symbol in display_symbols:
         comparison["comparison"][symbol] = {}
         
         # Get quote
@@ -717,7 +751,8 @@ def _calculate_rsi(prices: np.ndarray, period: int = 14) -> np.ndarray:
         avg_gain[i] = (avg_gain[i-1] * (period - 1) + gains[i-1]) / period
         avg_loss[i] = (avg_loss[i-1] * (period - 1) + losses[i-1]) / period
     
-    rs = np.where(avg_loss != 0, avg_gain / avg_loss, 100)
+    with np.errstate(divide='ignore', invalid='ignore'):
+        rs = np.where(avg_loss != 0, avg_gain / avg_loss, 100)
     rsi = 100 - (100 / (1 + rs))
     
     return rsi

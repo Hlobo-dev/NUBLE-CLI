@@ -7,11 +7,17 @@ API Key: fci3fvhrbxocelhel4ddc7zbmgsxnq1zmwrkxgq2
 Documentation: https://cryptonews-api.com/documentation
 """
 
-import aiohttp
 import asyncio
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
 import logging
+
+try:
+    import aiohttp
+    HAS_AIOHTTP = True
+except ImportError:
+    aiohttp = None  # type: ignore
+    HAS_AIOHTTP = False
 
 logger = logging.getLogger(__name__)
 
@@ -38,10 +44,12 @@ class CryptoNewsClient:
     
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or self.API_KEY
-        self._session: Optional[aiohttp.ClientSession] = None
+        self._session = None  # aiohttp.ClientSession, created lazily
         
-    async def _get_session(self) -> aiohttp.ClientSession:
+    async def _get_session(self):
         """Get or create aiohttp session."""
+        if not HAS_AIOHTTP:
+            raise ImportError("aiohttp is required. Install with: pip install aiohttp")
         if self._session is None or self._session.closed:
             self._session = aiohttp.ClientSession()
         return self._session

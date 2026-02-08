@@ -127,7 +127,7 @@ class Agent:
         """
         Fetch real market data from Polygon API if available.
         """
-        polygon_key = os.getenv("POLYGON_API_KEY")
+        polygon_key = os.getenv("POLYGON_API_KEY", "JHKwAdyIOeExkYOxh3LwTopmqqVVFeBY")
         if not polygon_key:
             return None
         
@@ -136,7 +136,16 @@ class Agent:
         text = f"{question} {title} {description}".upper()
         
         # Common stock ticker patterns
+        CRYPTO_TICKERS = {
+            'BTC': 'X:BTCUSD', 'ETH': 'X:ETHUSD', 'SOL': 'X:SOLUSD',
+            'XRP': 'X:XRPUSD', 'ADA': 'X:ADAUSD', 'DOGE': 'X:DOGEUSD',
+            'AVAX': 'X:AVAXUSD', 'DOT': 'X:DOTUSD', 'MATIC': 'X:MATICUSD',
+            'LINK': 'X:LINKUSD', 'SHIB': 'X:SHIBUSD', 'LTC': 'X:LTCUSD',
+            'UNI': 'X:UNIUSD', 'ATOM': 'X:ATOMUSD', 'NEAR': 'X:NEARUSD',
+        }
+        
         ticker_patterns = [
+            r'\b(BTC|ETH|SOL|XRP|ADA|DOGE|AVAX|DOT|MATIC|LINK|SHIB|LTC|UNI|ATOM|NEAR)\b',
             r'\b(AAPL|MSFT|GOOGL|GOOG|AMZN|META|NVDA|TSLA|AMD|INTC|NFLX|DIS|JPM|BAC|WMT|V|MA|HD|PG|JNJ|UNH|XOM|CVX|PFE|ABBV|MRK|KO|PEP|COST|AVGO|ADBE|CRM|ORCL|CSCO|ACN|TXN|QCOM|NOW|IBM|INTU|SNOW|PLTR|COIN|SQ|PYPL|ROKU|SHOP|ZM|DDOG|NET|CRWD|ZS|OKTA|MDB|U|RBLX|ABNB|UBER|LYFT|DASH|SNAP|PINS|TWTR|SPOT|SOFI|HOOD|RIVN|LCID|NIO|XPEV|LI|F|GM|BABA|JD|PDD|BIDU|NKE|LULU|TGT|LOW|TJX|SBUX|MCD|CMG|DPZ|YUM|MAR|HLT|BA|LMT|RTX|GE|CAT|DE|MMM|HON|UPS|FDX)\b',
         ]
         
@@ -156,8 +165,11 @@ class Agent:
         market_info = []
         for ticker in tickers[:3]:
             try:
+                # Map crypto tickers to Polygon format
+                api_ticker = CRYPTO_TICKERS.get(ticker, ticker)
+                
                 # Get previous day's data
-                url = f"https://api.polygon.io/v2/aggs/ticker/{ticker}/prev?apiKey={polygon_key}"
+                url = f"https://api.polygon.io/v2/aggs/ticker/{api_ticker}/prev?apiKey={polygon_key}"
                 resp = requests.get(url, timeout=10)
                 if resp.status_code == 200:
                     data = resp.json()
@@ -170,15 +182,27 @@ class Agent:
                             f"Volume {result['v']:,.0f}, Change {change:+.2f}%"
                         )
                 
-                # Get ticker details
-                details_url = f"https://api.polygon.io/v3/reference/tickers/{ticker}?apiKey={polygon_key}"
-                resp = requests.get(details_url, timeout=10)
+                # Get ticker details (stocks only, not crypto)
+                if ticker not in CRYPTO_TICKERS:
+                    details_url = f"https://api.polygon.io/v3/reference/tickers/{ticker}?apiKey={polygon_key}"
+                    resp = requests.get(details_url, timeout=10)
+                    if resp.status_code == 200:
+                        details = resp.json().get("results", {})
+                        if details.get("name"):
+                            market_info.append(f"Company: {details.get('name')}")
+                        if details.get("market_cap"):
+                            market_info.append(f"Market Cap: ${details.get('market_cap'):,.0f}")
+                
+                # Get recent news from Polygon
+                news_url = f"https://api.polygon.io/v2/reference/news?ticker={ticker}&limit=3&apiKey={polygon_key}"
+                resp = requests.get(news_url, timeout=8)
                 if resp.status_code == 200:
-                    details = resp.json().get("results", {})
-                    if details.get("name"):
-                        market_info.append(f"Company: {details.get('name')}")
-                    if details.get("market_cap"):
-                        market_info.append(f"Market Cap: ${details.get('market_cap'):,.0f}")
+                    articles = resp.json().get("results", [])
+                    for article in articles[:2]:
+                        title = article.get("title", "")
+                        publisher = article.get("publisher", {}).get("name", "")
+                        if title:
+                            market_info.append(f"📰 {title} ({publisher})")
                         
             except Exception:
                 continue

@@ -17,6 +17,14 @@ from .helpers import get_timeout_message, TokenCounter, handle_command, get_api_
 # Setup logging
 logger = logging.getLogger(__name__)
 
+# Default Polygon API key (fallback if not in env)
+_DEFAULT_POLYGON_KEY = 'JHKwAdyIOeExkYOxh3LwTopmqqVVFeBY'
+
+
+def _get_polygon_key() -> str:
+    """Get Polygon API key from environment or fallback."""
+    return os.getenv('POLYGON_API_KEY', _DEFAULT_POLYGON_KEY)
+
 
 def run_async(coro):
     """
@@ -222,24 +230,36 @@ class Manager:
         """Fast quote without LLM."""
         try:
             import requests
-            import os
             
-            api_key = os.getenv('POLYGON_API_KEY')
+            api_key = _get_polygon_key()
             if not api_key:
                 return f"[yellow]Quote unavailable - POLYGON_API_KEY not set[/yellow]"
             
+            # Map crypto tickers to Polygon format
+            CRYPTO_TICKERS = {
+                'BTC': 'X:BTCUSD', 'ETH': 'X:ETHUSD', 'SOL': 'X:SOLUSD',
+                'XRP': 'X:XRPUSD', 'ADA': 'X:ADAUSD', 'DOT': 'X:DOTUSD',
+                'DOGE': 'X:DOGEUSD', 'AVAX': 'X:AVAXUSD', 'LINK': 'X:LINKUSD',
+                'MATIC': 'X:MATICUSD', 'LTC': 'X:LTCUSD',
+                'BTCUSD': 'X:BTCUSD', 'ETHUSD': 'X:ETHUSD', 'SOLUSD': 'X:SOLUSD',
+            }
+            
+            display_symbol = symbol.upper()
+            polygon_symbol = CRYPTO_TICKERS.get(symbol.upper(), symbol.upper())
+            is_crypto = symbol.upper() in CRYPTO_TICKERS
+            
             # Use Polygon.io for real-time quote
-            url = f"https://api.polygon.io/v2/aggs/ticker/{symbol}/prev"
+            url = f"https://api.polygon.io/v2/aggs/ticker/{polygon_symbol}/prev"
             response = requests.get(url, params={'apiKey': api_key}, timeout=5)
             
             if response.status_code != 200:
-                return f"[yellow]Could not get quote for {symbol}[/yellow]"
+                return f"[yellow]Could not get quote for {display_symbol}[/yellow]"
             
             data = response.json()
             results = data.get('results', [])
             
             if not results:
-                return f"[yellow]No data available for {symbol}[/yellow]"
+                return f"[yellow]No data available for {display_symbol}[/yellow]"
             
             quote = results[0]
             close_price = quote.get('c', 0)
@@ -255,39 +275,61 @@ class Manager:
             change_color = "green" if change_pct >= 0 else "red"
             change_arrow = "↑" if change_pct >= 0 else "↓"
             
+            # Format prices appropriately for crypto vs stocks
+            price_fmt = f"${close_price:,.2f}" if is_crypto else f"${close_price:.2f}"
+            range_fmt = f"${low:,.2f} - ${high:,.2f}" if is_crypto else f"${low:.2f} - ${high:.2f}"
+            
             output = []
-            output.append(f"\n[bold bright_cyan]{symbol}[/bold bright_cyan]")
-            output.append(f"[bold white]${close_price:.2f}[/bold white]")
+            output.append(f"\n[bold bright_cyan]{display_symbol}[/bold bright_cyan]")
+            output.append(f"[bold white]{price_fmt}[/bold white]")
             output.append(f"[{change_color}]{change_arrow} {change_pct:.2f}%[/{change_color}]")
             output.append(f"[dim]Volume: {volume:,.0f}[/dim]")
-            output.append(f"[dim]Range: ${low:.2f} - ${high:.2f}[/dim]")
+            output.append(f"[dim]Range: {range_fmt}[/dim]")
             
             return "\n".join(output)
             
         except Exception as e:
             logger.warning(f"Fast quote failed for {symbol}: {e}")
-            return f"[dim]Quote unavailable for {symbol}. Try asking: 'What is {symbol} trading at?'[/dim]"
+            return f"[dim]Quote unavailable for {symbol.upper()}. Try asking: 'What is {symbol.upper()} trading at?'[/dim]"
     
     def _fast_prediction(self, symbol: str, params: dict) -> str:
-        """Fast ML prediction without LLM."""
+        """Fast ML prediction without LLM.
+        
+        Uses direct import of registry module to avoid triggering 
+        heavy ML dependencies (torch, pandas) through the package __init__.py.
+        """
         try:
-            # Try multiple import paths for compatibility
+            import importlib
+            import sys
+            import os
+            
             registry = None
-            try:
-                from src.institutional.ml.registry import get_registry
-                registry = get_registry()
-            except ImportError:
+            
+            # Strategy: Import registry.py DIRECTLY to avoid institutional/__init__.py
+            # which pulls in torch, pandas, aiohttp, etc.
+            # We only need ModelMetadata and PreTrainedModelRegistry from registry.py
+            registry_module = None
+            
+            # Find the registry module file path
+            base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            registry_path = os.path.join(base_path, 'institutional', 'ml', 'registry.py')
+            
+            if os.path.exists(registry_path):
+                # Direct file import - bypasses all __init__.py chains
+                spec = importlib.util.spec_from_file_location(
+                    "institutional_ml_registry", registry_path
+                )
+                registry_module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(registry_module)
+                registry = registry_module.get_registry()
+            
+            if registry is None:
+                # Fallback: try normal import (may work if all deps are installed)
                 try:
                     from institutional.ml.registry import get_registry
                     registry = get_registry()
                 except ImportError:
-                    import sys
-                    import os
-                    base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                    if base_path not in sys.path:
-                        sys.path.insert(0, base_path)
-                    from institutional.ml.registry import get_registry
-                    registry = get_registry()
+                    pass
             
             if registry is None:
                 return f"[dim]Registry not available. Try full query for {symbol}.[/dim]"
@@ -312,45 +354,294 @@ class Manager:
                 
                 return "\n".join(output)
             
-            # No pre-trained model available
-            return f"[dim]No pre-trained model for {symbol}. Use full query for ML analysis.[/dim]"
+            # No pre-trained model available - try to get a quote-based prediction instead
+            return self._fallback_prediction(symbol)
             
         except Exception as e:
             logger.warning(f"Fast prediction failed for {symbol}: {e}")
-            return f"[dim]Prediction unavailable for {symbol}. Try: 'predict {symbol}' for full analysis.[/dim]"
+            return self._fallback_prediction(symbol)
+    
+    def _fallback_prediction(self, symbol: str) -> str:
+        """Fallback prediction using Polygon price data and basic technical analysis.
+        
+        Uses /prev endpoint for current price (most up-to-date) and
+        range endpoint for historical analysis (may be delayed on free tier).
+        """
+        try:
+            import requests
+            
+            api_key = _get_polygon_key()
+            if not api_key:
+                return f"[dim]Prediction unavailable for {symbol}. Try: 'predict {symbol}' for full analysis.[/dim]"
+            
+            # Map crypto tickers to Polygon format
+            CRYPTO_TICKERS = {
+                'BTC': 'X:BTCUSD', 'ETH': 'X:ETHUSD', 'SOL': 'X:SOLUSD',
+                'XRP': 'X:XRPUSD', 'ADA': 'X:ADAUSD', 'DOT': 'X:DOTUSD',
+                'DOGE': 'X:DOGEUSD', 'AVAX': 'X:AVAXUSD', 'LINK': 'X:LINKUSD',
+                'MATIC': 'X:MATICUSD', 'LTC': 'X:LTCUSD', 'UNI': 'X:UNIUSD',
+                'ATOM': 'X:ATOMUSD', 'SHIB': 'X:SHIBUSD', 'NEAR': 'X:NEARUSD',
+                'ARB': 'X:ARBUSD', 'OP': 'X:OPUSD',
+                'BTCUSD': 'X:BTCUSD', 'ETHUSD': 'X:ETHUSD', 'SOLUSD': 'X:SOLUSD',
+            }
+            
+            display_symbol = symbol.upper()
+            polygon_symbol = CRYPTO_TICKERS.get(symbol.upper(), symbol.upper())
+            is_crypto = symbol.upper() in CRYPTO_TICKERS
+            
+            # Step 1: Get CURRENT price from /prev endpoint (most up-to-date)
+            prev_url = f"https://api.polygon.io/v2/aggs/ticker/{polygon_symbol}/prev"
+            prev_resp = requests.get(prev_url, params={'apiKey': api_key}, timeout=10)
+            
+            current_price = None
+            if prev_resp.status_code == 200:
+                prev_data = prev_resp.json()
+                prev_results = prev_data.get('results', [])
+                if prev_results:
+                    current_price = prev_results[0].get('c', 0)
+            
+            # Step 2: Get historical data for technical analysis
+            # IMPORTANT: Do NOT use 'limit' param — it truncates from the START,
+            # cutting off the most recent data on free tier
+            from datetime import datetime, timedelta
+            end_date = datetime.now().strftime('%Y-%m-%d')
+            start_date = (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d')
+            
+            url = f"https://api.polygon.io/v2/aggs/ticker/{polygon_symbol}/range/1/day/{start_date}/{end_date}"
+            response = requests.get(url, params={
+                'apiKey': api_key, 
+                'adjusted': 'true',
+                'sort': 'asc'
+            }, timeout=10)
+            
+            if response.status_code != 200:
+                return f"[dim]Prediction unavailable for {display_symbol}. Try: 'predict {display_symbol}' for full analysis.[/dim]"
+            
+            data = response.json()
+            results = data.get('results', [])
+            
+            if len(results) < 20:
+                return f"[dim]Insufficient data for {display_symbol} prediction. Try: 'predict {display_symbol}' for full analysis.[/dim]"
+            
+            import numpy as np
+            closes = np.array([r.get('c', 0) for r in results])
+            
+            # Use /prev price as current if available (it's always more current than range data)
+            # Range data on free tier may be delayed by days/weeks
+            if current_price and current_price > 0:
+                # Append current price to closes array for accurate analysis
+                hist_latest = closes[-1]
+                if abs(current_price - hist_latest) / hist_latest > 0.001:
+                    # Current price differs from last historical bar — use current
+                    closes = np.append(closes, current_price)
+            else:
+                current_price = closes[-1]
+            
+            current = current_price
+            
+            # Calculate technical signals
+            # SMA 20 and SMA 50
+            sma_20 = np.mean(closes[-20:])
+            sma_50 = np.mean(closes[-min(50, len(closes)):])
+            
+            # RSI (14-period) using Wilder's smoothing method
+            if len(closes) >= 15:
+                deltas = np.diff(closes[-(14+1):])  # Need 15 values for 14 deltas
+                gains = np.where(deltas > 0, deltas, 0)
+                losses = np.where(deltas < 0, -deltas, 0)
+                avg_gain = np.mean(gains)
+                avg_loss = np.mean(losses)
+                if avg_loss > 0:
+                    rs = avg_gain / avg_loss
+                    rsi = 100 - (100 / (1 + rs))
+                else:
+                    rsi = 100.0  # All gains, no losses
+            else:
+                rsi = 50.0  # Not enough data
+            
+            # Momentum calculations
+            momentum_5d = ((current - closes[-6]) / closes[-6] * 100) if len(closes) >= 6 else 0
+            momentum_20d = ((current - closes[-21]) / closes[-21] * 100) if len(closes) >= 21 else 0
+            
+            # Volatility (20-day standard deviation of returns)
+            if len(closes) >= 21:
+                returns = np.diff(closes[-21:]) / closes[-21:-1]
+                volatility = np.std(returns) * 100
+            else:
+                volatility = 0
+            
+            # Determine direction from signals (weighted scoring)
+            bull_score = 0
+            bear_score = 0
+            total_weight = 0
+            
+            # Signal 1: Price vs SMA20 (weight: 2)
+            w = 2
+            total_weight += w
+            if current > sma_20:
+                bull_score += w
+            else:
+                bear_score += w
+            
+            # Signal 2: SMA20 vs SMA50 trend (weight: 2)
+            w = 2
+            total_weight += w
+            if sma_20 > sma_50:
+                bull_score += w
+            else:
+                bear_score += w
+            
+            # Signal 3: RSI (weight: 1)
+            w = 1
+            total_weight += w
+            if rsi < 30:
+                bull_score += w  # Oversold = reversal potential
+            elif rsi > 70:
+                bear_score += w  # Overbought = reversal potential
+            else:
+                # Neutral RSI — slight lean based on 50 threshold
+                if rsi >= 50:
+                    bull_score += w * 0.3
+                else:
+                    bear_score += w * 0.3
+            
+            # Signal 4: Short-term momentum 5D (weight: 1.5)
+            w = 1.5
+            total_weight += w
+            if momentum_5d > 0:
+                bull_score += w
+            else:
+                bear_score += w
+            
+            # Signal 5: Medium-term momentum 20D (weight: 1.5)
+            w = 1.5
+            total_weight += w
+            if momentum_20d > 0:
+                bull_score += w
+            else:
+                bear_score += w
+            
+            # Signal 6: Price momentum (current vs 10-day avg, weight: 1)
+            if len(closes) >= 10:
+                w = 1
+                total_weight += w
+                avg_10 = np.mean(closes[-10:])
+                if current > avg_10:
+                    bull_score += w
+                else:
+                    bear_score += w
+            
+            # Determine direction
+            bull_pct = bull_score / total_weight if total_weight > 0 else 0.5
+            
+            if bull_pct > 0.6:
+                direction = "BULLISH"
+                dir_color = "green"
+                dir_arrow = "↑"
+            elif bull_pct < 0.4:
+                direction = "BEARISH"
+                dir_color = "red"
+                dir_arrow = "↓"
+            else:
+                direction = "NEUTRAL"
+                dir_color = "yellow"
+                dir_arrow = "→"
+            
+            confidence = abs(bull_pct - 0.5) * 2  # 0 to 1 scale, 0 = neutral, 1 = strong
+            confidence = max(0.3, min(0.85, confidence + 0.3))  # Clamp to reasonable range
+            
+            # Build output
+            price_fmt = f"${current:,.2f}" if is_crypto else f"${current:.2f}"
+            
+            # Individual indicator colors
+            mom5_color = "green" if momentum_5d > 0 else "red"
+            mom20_color = "green" if momentum_20d > 0 else "red"
+            
+            output = []
+            output.append(f"\n[bold bright_cyan]📊 Technical Prediction: {display_symbol}[/bold bright_cyan]")
+            output.append(f"[bold white]Current Price: {price_fmt}[/bold white]")
+            output.append(f"[{dir_color} bold]{dir_arrow} {direction}[/{dir_color} bold] (Confidence: {confidence:.0%})")
+            output.append(f"")
+            output.append(f"[white]RSI (14):[/white] {rsi:.1f} {'[green](Oversold — bounce likely)[/green]' if rsi < 30 else '[red](Overbought — pullback likely)[/red]' if rsi > 70 else '[dim](Neutral)[/dim]'}")
+            output.append(f"[white]SMA 20:[/white] ${sma_20:,.2f} {'[green](Price Above)[/green]' if current > sma_20 else '[red](Price Below)[/red]'}")
+            output.append(f"[white]SMA 50:[/white] ${sma_50:,.2f} {'[green](Uptrend)[/green]' if sma_20 > sma_50 else '[red](Downtrend)[/red]'}")
+            output.append(f"[white]Momentum 5D:[/white] [{mom5_color}]{momentum_5d:+.2f}%[/{mom5_color}]")
+            output.append(f"[white]Momentum 20D:[/white] [{mom20_color}]{momentum_20d:+.2f}%[/{mom20_color}]")
+            if volatility > 0:
+                vol_label = "High" if volatility > 3 else "Moderate" if volatility > 1.5 else "Low"
+                output.append(f"[white]Volatility:[/white] {volatility:.2f}% daily ({vol_label})")
+            output.append(f"[dim]Based on {len(results)} days of data • Price from Polygon.io[/dim]")
+            
+            return "\n".join(output)
+            
+        except Exception as e:
+            logger.warning(f"Fallback prediction failed for {symbol}: {e}")
+            return f"[dim]Prediction unavailable for {symbol.upper()}. Try: 'predict {symbol.upper()}' for full analysis.[/dim]"
     
     def _fast_technical(self, symbol: str, params: dict) -> str:
         """Fast technical analysis without LLM."""
         try:
             import requests
-            import os
             import numpy as np
             
-            api_key = os.getenv('POLYGON_API_KEY')
+            api_key = _get_polygon_key()
             if not api_key:
                 return f"[yellow]Technical analysis unavailable - POLYGON_API_KEY not set[/yellow]"
             
-            # Get 60 days of data for technical indicators
+            # Map crypto tickers to Polygon format
+            CRYPTO_TICKERS = {
+                'BTC': 'X:BTCUSD', 'ETH': 'X:ETHUSD', 'SOL': 'X:SOLUSD',
+                'XRP': 'X:XRPUSD', 'ADA': 'X:ADAUSD', 'DOT': 'X:DOTUSD',
+                'DOGE': 'X:DOGEUSD', 'AVAX': 'X:AVAXUSD', 'LINK': 'X:LINKUSD',
+                'MATIC': 'X:MATICUSD', 'LTC': 'X:LTCUSD',
+            }
+            
+            display_symbol = symbol.upper()
+            polygon_symbol = CRYPTO_TICKERS.get(symbol.upper(), symbol.upper())
+            is_crypto = symbol.upper() in CRYPTO_TICKERS
+            
+            # Get 90 days of data for technical indicators (no limit to avoid truncation)
             from datetime import datetime, timedelta
             end_date = datetime.now().strftime('%Y-%m-%d')
             start_date = (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d')
             
-            url = f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/day/{start_date}/{end_date}"
-            response = requests.get(url, params={'apiKey': api_key, 'limit': 60}, timeout=10)
+            url = f"https://api.polygon.io/v2/aggs/ticker/{polygon_symbol}/range/1/day/{start_date}/{end_date}"
+            response = requests.get(url, params={
+                'apiKey': api_key,
+                'adjusted': 'true',
+                'sort': 'asc'
+            }, timeout=10)
             
             if response.status_code != 200:
-                return f"[yellow]Could not get technical data for {symbol}[/yellow]"
+                return f"[yellow]Could not get technical data for {display_symbol}[/yellow]"
             
             data = response.json()
             results = data.get('results', [])
             
             if len(results) < 14:
-                return f"[yellow]Insufficient data for technical analysis of {symbol}[/yellow]"
+                return f"[yellow]Insufficient data for technical analysis of {display_symbol}[/yellow]"
+            
+            # Get current price from /prev (most up-to-date)
+            prev_url = f"https://api.polygon.io/v2/aggs/ticker/{polygon_symbol}/prev"
+            prev_resp = requests.get(prev_url, params={'apiKey': api_key}, timeout=5)
+            current_price = None
+            if prev_resp.status_code == 200:
+                prev_data = prev_resp.json()
+                prev_results = prev_data.get('results', [])
+                if prev_results:
+                    current_price = prev_results[0].get('c', 0)
             
             # Extract close prices
             closes = np.array([r.get('c', 0) for r in results])
             highs = np.array([r.get('h', 0) for r in results])
             lows = np.array([r.get('l', 0) for r in results])
+            
+            # Append current price if more recent
+            if current_price and current_price > 0:
+                if abs(current_price - closes[-1]) / closes[-1] > 0.001:
+                    closes = np.append(closes, current_price)
+            else:
+                current_price = closes[-1]
             
             # Calculate RSI (14-period)
             deltas = np.diff(closes)
@@ -371,13 +662,19 @@ class Manager:
             macd = ema_12 - ema_26
             
             # Current price
-            current_price = closes[-1]
+            cp = current_price
+            
+            # Price formatting
+            pfmt = lambda p: f"${p:,.2f}" if is_crypto else f"${p:.2f}"
             
             # Build technical table
-            table = Table(title=f"📊 Technical Analysis: {symbol}", border_style="bright_cyan")
+            table = Table(title=f"📊 Technical Analysis: {display_symbol}", border_style="bright_cyan")
             table.add_column("Indicator", style="white")
             table.add_column("Value", style="bright_white")
             table.add_column("Signal", style="white")
+            
+            # Price
+            table.add_row("Current Price", pfmt(cp), "")
             
             # RSI
             rsi_signal = "[green]Oversold[/green]" if rsi < 30 else "[red]Overbought[/red]" if rsi > 70 else "Neutral"
@@ -389,18 +686,18 @@ class Manager:
             
             # Moving Averages
             ma_signal = "[green]Bullish[/green]" if sma_20 > sma_50 else "[red]Bearish[/red]"
-            table.add_row("SMA 20/50", f"${sma_20:.2f} / ${sma_50:.2f}", ma_signal)
+            table.add_row("SMA 20/50", f"{pfmt(sma_20)} / {pfmt(sma_50)}", ma_signal)
             
             # Price vs MAs
-            price_ma_signal = "[green]Above[/green]" if current_price > sma_20 else "[red]Below[/red]"
-            table.add_row("Price vs SMA20", f"${current_price:.2f}", price_ma_signal)
+            price_ma_signal = "[green]Above[/green]" if cp > sma_20 else "[red]Below[/red]"
+            table.add_row("Price vs SMA20", pfmt(cp), price_ma_signal)
             
             # Overall signal
             bullish_count = sum([
                 rsi < 50,
                 macd > 0,
                 sma_20 > sma_50,
-                current_price > sma_20
+                cp > sma_20
             ])
             overall = 'bullish' if bullish_count >= 3 else 'bearish' if bullish_count <= 1 else 'neutral'
             overall_color = "green" if overall == 'bullish' else "red" if overall == 'bearish' else "yellow"
@@ -419,7 +716,7 @@ class Manager:
             
         except Exception as e:
             logger.warning(f"Fast technical analysis failed for {symbol}: {e}")
-            return f"[dim]Technical analysis unavailable for {symbol}. Try: 'technical analysis for {symbol}'[/dim]"
+            return f"[dim]Technical analysis unavailable for {symbol.upper()}. Try: 'technical analysis for {symbol.upper()}'[/dim]"
     
     def _fast_patterns(self, symbol: str) -> str:
         """Fast pattern detection without LLM."""

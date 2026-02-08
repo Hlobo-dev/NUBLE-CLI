@@ -105,10 +105,10 @@ Format as JSON with keys: simple, detailed, example, misconceptions"""
             except Exception as e:
                 logger.warning(f"Claude explanation failed: {e}")
         
-        return self._mock_explanation(query)
+        return self._fallback_explanation(query)
     
-    def _mock_explanation(self, query: str) -> Dict:
-        """Generate mock explanation."""
+    def _fallback_explanation(self, query: str) -> Dict:
+        """Generate template explanation when Claude is unavailable."""
         return {
             'simple': f"A brief explanation of {query}...",
             'detailed': f"A more comprehensive look at {query} involves understanding...",

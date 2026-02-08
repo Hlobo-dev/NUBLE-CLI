@@ -1,4 +1,3 @@
-import random
 import tiktoken
 import json
 import os

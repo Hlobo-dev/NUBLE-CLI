@@ -23,7 +23,8 @@ dependencies = [
     "openai",
     "anthropic",
     "python-dotenv",
-    "numpy"
+    "numpy",
+    "aiohttp"
 ]
 
 [project.scripts]

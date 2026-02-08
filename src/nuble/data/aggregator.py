@@ -136,7 +136,7 @@ class DataAggregator:
     
     def __init__(self, polygon_api_key: str = None):
         """Initialize data aggregator."""
-        self.polygon_api_key = polygon_api_key or os.getenv("POLYGON_API_KEY")
+        self.polygon_api_key = polygon_api_key or os.getenv("POLYGON_API_KEY", "JHKwAdyIOeExkYOxh3LwTopmqqVVFeBY")
         
         # Lazy-loaded components
         self._polygon = None
@@ -540,7 +540,7 @@ class RealTimeDataStream:
     """
     
     def __init__(self, api_key: str = None):
-        self.api_key = api_key or os.getenv("POLYGON_API_KEY")
+        self.api_key = api_key or os.getenv("POLYGON_API_KEY", "JHKwAdyIOeExkYOxh3LwTopmqqVVFeBY")
         self._stream = None
         self._connected = False
         self._subscriptions = set()

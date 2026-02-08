@@ -95,8 +95,8 @@ class UnifiedServices:
         self._cache: Dict[str, Tuple[Any, datetime]] = {}
         self._cache_ttl = 60  # seconds
         
-        # API keys
-        self._polygon_key = os.getenv("POLYGON_API_KEY")
+        # API keys (with hardcoded fallbacks for Polygon)
+        self._polygon_key = os.getenv("POLYGON_API_KEY", "JHKwAdyIOeExkYOxh3LwTopmqqVVFeBY")
         self._anthropic_key = os.getenv("ANTHROPIC_API_KEY")
     
     async def initialize(self) -> Dict[ServiceType, ServiceStatus]:

@@ -62,8 +62,20 @@ def show_system_status():
         return
     
     try:
+        import asyncio
         services = get_services()
-        status = services.get_system_status()
+        
+        # Initialize services if not already done
+        try:
+            loop = asyncio.get_running_loop()
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(asyncio.run, services.initialize())
+                future.result(timeout=10)
+        except RuntimeError:
+            asyncio.run(services.initialize())
+        
+        status = services.get_status()
         
         # Build status table
         table = Table(title="🔧 NUBLE System Status", border_style="bright_cyan")
@@ -71,13 +83,10 @@ def show_system_status():
         table.add_column("Status", style="white")
         table.add_column("Details", style="dim")
         
-        components = status.get('components', {})
-        
-        for name, info in components.items():
-            status_icon = "✅" if info.get('status') == 'available' else "❌" if info.get('status') == 'error' else "⚪"
-            status_text = f"{status_icon} {info.get('status', 'unknown')}"
-            details = info.get('details', '-')
-            table.add_row(name.replace('_', ' ').title(), status_text, str(details)[:40])
+        for service_type, svc_status in status.items():
+            status_icon = "✅" if svc_status.available else "❌"
+            status_text = f"{status_icon} {'Available' if svc_status.available else 'Unavailable'}"
+            table.add_row(svc_status.name, status_text, str(svc_status.details)[:50])
         
         console.print(table)
         console.print()
