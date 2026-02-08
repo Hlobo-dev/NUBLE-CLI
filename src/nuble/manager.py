@@ -12,6 +12,7 @@ from rich.table import Table
 from rich.text import Text
 import time
 import threading
+import json
 from .helpers import get_timeout_message, TokenCounter, handle_command, get_api_key
 
 # Setup logging
@@ -19,6 +20,17 @@ logger = logging.getLogger(__name__)
 
 # Default Polygon API key (fallback if not in env)
 _DEFAULT_POLYGON_KEY = 'JHKwAdyIOeExkYOxh3LwTopmqqVVFeBY'
+
+# Crypto ticker → Polygon symbol mapping (single source of truth)
+CRYPTO_TICKERS = {
+    'BTC': 'X:BTCUSD', 'ETH': 'X:ETHUSD', 'SOL': 'X:SOLUSD',
+    'XRP': 'X:XRPUSD', 'ADA': 'X:ADAUSD', 'DOT': 'X:DOTUSD',
+    'DOGE': 'X:DOGEUSD', 'AVAX': 'X:AVAXUSD', 'LINK': 'X:LINKUSD',
+    'MATIC': 'X:MATICUSD', 'LTC': 'X:LTCUSD', 'UNI': 'X:UNIUSD',
+    'ATOM': 'X:ATOMUSD', 'SHIB': 'X:SHIBUSD', 'NEAR': 'X:NEARUSD',
+    'ARB': 'X:ARBUSD', 'OP': 'X:OPUSD',
+    'BTCUSD': 'X:BTCUSD', 'ETHUSD': 'X:ETHUSD', 'SOLUSD': 'X:SOLUSD',
+}
 
 
 def _get_polygon_key() -> str:
@@ -42,6 +54,25 @@ def run_async(coro):
     except RuntimeError:
         # No running event loop, we can use asyncio.run directly
         return asyncio.run(coro)
+
+
+# =========================================================================
+# APEX TIER: Multi-Agent Orchestrator Integration
+# =========================================================================
+# The Orchestrator runs 9 specialized agents (MarketAnalyst, NewsAnalyst,
+# RiskManager, FundamentalAnalyst, QuantAnalyst, MacroAnalyst,
+# PortfolioOptimizer, CryptoSpecialist, Educator) in parallel, plus the
+# UltimateDecisionEngine (28+ data points) and ML Predictor.
+# It runs on a background thread WHILE the Manager's own planning executes,
+# so there is zero added latency. Its results are injected into the final
+# answer prompt so Claude synthesizes ALL intelligence sources.
+# =========================================================================
+try:
+    from .agents.orchestrator import OrchestratorAgent, OrchestratorConfig
+    ORCHESTRATOR_AVAILABLE = True
+except ImportError:
+    ORCHESTRATOR_AVAILABLE = False
+    logger.info("Orchestrator not available — running single-brain mode")
 
 
 # ML Integration (optional, graceful fallback if not available)
@@ -76,7 +107,7 @@ except ImportError:
 
 
 class Manager:
-    def __init__(self, enable_ml: bool = True, enable_fast_path: bool = True, enable_decision_engine: bool = True):
+    def __init__(self, enable_ml: bool = True, enable_fast_path: bool = True, enable_decision_engine: bool = True, enable_apex: bool = True):
         self.tier = "free"
         api_key = get_api_key()
         self.agent = Agent(api_key=api_key)
@@ -122,6 +153,52 @@ class Manager:
             except Exception as e:
                 logger.warning(f"Failed to initialize unified services: {e}")
                 self.fast_path_enabled = False
+        
+        # =====================================================================
+        # APEX TIER: Multi-Agent Orchestrator (Dual-Brain Fusion)
+        # =====================================================================
+        # The Orchestrator provides a second intelligence path with 9 specialized
+        # agents running in parallel. It runs on a background thread during the
+        # Manager's own planning phase, so the user experiences zero added latency.
+        # Its deep analysis is injected into the final answer prompt, giving Claude
+        # access to: MarketAnalyst, NewsAnalyst, RiskManager, FundamentalAnalyst,
+        # QuantAnalyst, MacroAnalyst, PortfolioOptimizer, CryptoSpecialist, Educator,
+        # UltimateDecisionEngine (28+ data points), and ML Predictor (46M+ params).
+        # =====================================================================
+        # =====================================================================
+        # LEARNING SYSTEM: Wire prediction tracking + weight adjustment
+        # =====================================================================
+        self.learning_enabled = False
+        self.learning_hub = None
+        try:
+            from .learning.learning_hub import LearningHub
+            self.learning_hub = LearningHub()
+            self.learning_enabled = True
+            logger.info("Learning system initialized (prediction tracking + weight adjustment)")
+        except Exception as e:
+            logger.warning(f"Learning system not available: {e}")
+
+        self.apex_enabled = enable_apex and ORCHESTRATOR_AVAILABLE
+        self._orchestrator = None
+        
+        if self.apex_enabled:
+            try:
+                orchestrator_config = OrchestratorConfig(
+                    use_opus=True,
+                    max_parallel_agents=5,
+                    default_timeout=25,         # Slightly under Manager's own timeout
+                    enable_decision_engine=True,
+                    enable_ml_predictor=True,
+                    verbose_logging=False
+                )
+                self._orchestrator = OrchestratorAgent(
+                    api_key=api_key,
+                    config=orchestrator_config
+                )
+                logger.info("APEX TIER: Orchestrator initialized (9 agents + DecisionEngine + ML)")
+            except Exception as e:
+                logger.warning(f"APEX TIER: Orchestrator init failed (falling back to single-brain): {e}")
+                self.apex_enabled = False
     
     @property
     def services(self) -> 'UnifiedServices':
@@ -147,6 +224,170 @@ class Manager:
     def ml_integration(self):
         """Get ML integration instance."""
         return self._ml_integration
+    
+    @property
+    def orchestrator(self) -> 'OrchestratorAgent':
+        """Get Orchestrator instance for APEX tier."""
+        return self._orchestrator
+    
+    # =========================================================================
+    # APEX TIER: Background Orchestrator Execution
+    # =========================================================================
+    
+    def _launch_orchestrator_background(self, prompt: str) -> dict:
+        """
+        Launch the Orchestrator on a background thread.
+        
+        Returns a dict with:
+          - 'thread': the Thread object
+          - 'result': mutable list where result[0] will be set when done
+          - 'error': mutable list where error[0] will be set on failure
+          
+        The Orchestrator runs its full pipeline (9 agents in parallel +
+        DecisionEngine + ML Predictor + Lambda data + Claude synthesis)
+        while the Manager's own Claude planning executes concurrently.
+        
+        This is the key to zero-latency dual-brain fusion.
+        """
+        container = {
+            'result': [None],
+            'error': [None],
+            'completed': threading.Event()
+        }
+        
+        def _run_orchestrator():
+            try:
+                logger.info("APEX: Orchestrator background thread started")
+                orch_result = asyncio.run(
+                    self._orchestrator.process(
+                        user_message=prompt,
+                        conversation_id="apex_cli_session",
+                        user_context={}
+                    )
+                )
+                container['result'][0] = orch_result
+                logger.info(f"APEX: Orchestrator completed — agents used: {orch_result.get('agents_used', [])}")
+            except Exception as e:
+                container['error'][0] = str(e)
+                logger.warning(f"APEX: Orchestrator background failed (non-fatal): {e}")
+            finally:
+                container['completed'].set()
+        
+        thread = threading.Thread(target=_run_orchestrator, daemon=True)
+        thread.start()
+        container['thread'] = thread
+        
+        return container
+    
+    def _collect_orchestrator_result(self, container: dict, timeout: float = 35.0) -> str:
+        """
+        Wait for the Orchestrator background thread to complete and format
+        its results as an intelligence briefing for injection into the
+        final answer prompt.
+        
+        Returns a formatted string of the Orchestrator's analysis, or empty
+        string if it failed or timed out.
+        """
+        if container is None:
+            return ""
+        
+        # Wait for completion (with timeout)
+        container['completed'].wait(timeout=timeout)
+        
+        # Check for errors
+        if container['error'][0]:
+            logger.warning(f"APEX: Orchestrator returned error: {container['error'][0]}")
+            return ""
+        
+        result = container['result'][0]
+        if not result:
+            return ""
+        
+        # Format the Orchestrator's deep analysis into a structured briefing
+        parts = []
+        parts.append("=" * 70)
+        parts.append("APEX TIER: MULTI-AGENT DEEP ANALYSIS")
+        parts.append("(9 Specialized Agents + DecisionEngine + ML Predictor)")
+        parts.append("=" * 70)
+        
+        # Execution metadata
+        agents_used = result.get('agents_used', [])
+        exec_time = result.get('execution_time_seconds', 0)
+        confidence = result.get('confidence', 0)
+        parts.append(f"\nAgents Consulted: {', '.join(agents_used) if agents_used else 'None'}")
+        parts.append(f"Overall Confidence: {confidence:.1%}")
+        parts.append(f"Execution Time: {exec_time:.1f}s")
+        
+        # The Orchestrator's synthesized analysis (its Claude-generated response)
+        message = result.get('message', '')
+        if message:
+            parts.append(f"\n--- ORCHESTRATOR SYNTHESIS ---\n{message}")
+        
+        # Raw data from the synthesis layer
+        data = result.get('data', {})
+        
+        # Decision Engine results (most valuable)
+        decision_engine = data.get('decision_engine')
+        if decision_engine:
+            parts.append("\n--- ULTIMATE DECISION ENGINE (28+ Data Points) ---")
+            parts.append(f"Symbol: {decision_engine.get('symbol', 'N/A')}")
+            parts.append(f"Action: {decision_engine.get('action', 'N/A')}")
+            parts.append(f"Confidence: {decision_engine.get('confidence', 0):.1%}")
+            parts.append(f"Risk Score: {decision_engine.get('risk_score', 0.5):.2f}")
+            if decision_engine.get('risk_veto'):
+                parts.append("⚠️ RISK VETO ACTIVE — HIGH RISK CONDITIONS")
+            if decision_engine.get('entry_price') is not None:
+                parts.append(f"Entry: ${decision_engine.get('entry_price'):.2f}")
+            if decision_engine.get('stop_loss') is not None:
+                parts.append(f"Stop Loss: ${decision_engine.get('stop_loss'):.2f}")
+            if decision_engine.get('take_profit') is not None:
+                parts.append(f"Take Profit: ${decision_engine.get('take_profit'):.2f}")
+            if decision_engine.get('position_size') is not None:
+                parts.append(f"Position Size: {decision_engine.get('position_size'):.1%} of portfolio")
+            if decision_engine.get('reasoning'):
+                parts.append(f"Reasoning: {decision_engine.get('reasoning')}")
+            score_breakdown = decision_engine.get('score_breakdown', {})
+            if score_breakdown:
+                parts.append("Score Breakdown:")
+                for category, score in score_breakdown.items():
+                    if isinstance(score, (int, float)):
+                        parts.append(f"  {category}: {score:.2f}")
+                    else:
+                        parts.append(f"  {category}: {score}")
+        
+        # ML Predictions
+        ml_predictions = data.get('ml_predictions', {})
+        if ml_predictions:
+            parts.append("\n--- ML PREDICTOR (46M+ Parameters) ---")
+            for symbol, pred in ml_predictions.items():
+                parts.append(f"{symbol}: Direction={pred.get('direction', 'N/A')}, "
+                           f"Confidence={pred.get('confidence', 0):.1%}")
+                if pred.get('price_target'):
+                    parts.append(f"  Price Target: ${pred.get('price_target'):.2f}")
+        
+        # Individual agent outputs (condensed)
+        agent_outputs = data.get('agent_outputs', {})
+        if agent_outputs:
+            parts.append("\n--- INDIVIDUAL AGENT INTELLIGENCE ---")
+            for agent_name, agent_data in agent_outputs.items():
+                if isinstance(agent_data, dict):
+                    # Condense each agent's output to key findings
+                    agent_summary = json.dumps(agent_data, indent=None, default=str)
+                    # Truncate very long outputs to keep context window manageable
+                    if len(agent_summary) > 1500:
+                        agent_summary = agent_summary[:1500] + "... [truncated]"
+                    parts.append(f"\n[{agent_name.upper()}]: {agent_summary}")
+        
+        # Lambda intelligence (if orchestrator fetched it)
+        lambda_intel = data.get('lambda_intelligence', '')
+        if lambda_intel:
+            parts.append(f"\n--- LAMBDA REAL-TIME INTELLIGENCE ---\n{lambda_intel}")
+        
+        parts.append("\n" + "=" * 70)
+        parts.append("END APEX TIER ANALYSIS")
+        parts.append("=" * 70)
+        
+        return "\n".join(parts)
     
     def get_ml_prediction(self, symbol: str) -> str:
         """
@@ -217,9 +458,6 @@ class Manager:
                 return self._fast_sentiment(symbol)
             elif routed.intent == QueryIntent.FILINGS_SEARCH:
                 return self._fast_filings_search(symbol, routed.parameters)
-            # Check for trading decision intents
-            elif routed.intent in [QueryIntent.PREDICTION] and self.decision_engine_enabled:
-                return self._fast_decision(symbol, routed.parameters)
         except Exception as e:
             logger.warning(f"Fast path failed: {e}")
             return ""
@@ -234,15 +472,6 @@ class Manager:
             api_key = _get_polygon_key()
             if not api_key:
                 return f"[yellow]Quote unavailable - POLYGON_API_KEY not set[/yellow]"
-            
-            # Map crypto tickers to Polygon format
-            CRYPTO_TICKERS = {
-                'BTC': 'X:BTCUSD', 'ETH': 'X:ETHUSD', 'SOL': 'X:SOLUSD',
-                'XRP': 'X:XRPUSD', 'ADA': 'X:ADAUSD', 'DOT': 'X:DOTUSD',
-                'DOGE': 'X:DOGEUSD', 'AVAX': 'X:AVAXUSD', 'LINK': 'X:LINKUSD',
-                'MATIC': 'X:MATICUSD', 'LTC': 'X:LTCUSD',
-                'BTCUSD': 'X:BTCUSD', 'ETHUSD': 'X:ETHUSD', 'SOLUSD': 'X:SOLUSD',
-            }
             
             display_symbol = symbol.upper()
             polygon_symbol = CRYPTO_TICKERS.get(symbol.upper(), symbol.upper())
@@ -373,17 +602,6 @@ class Manager:
             api_key = _get_polygon_key()
             if not api_key:
                 return f"[dim]Prediction unavailable for {symbol}. Try: 'predict {symbol}' for full analysis.[/dim]"
-            
-            # Map crypto tickers to Polygon format
-            CRYPTO_TICKERS = {
-                'BTC': 'X:BTCUSD', 'ETH': 'X:ETHUSD', 'SOL': 'X:SOLUSD',
-                'XRP': 'X:XRPUSD', 'ADA': 'X:ADAUSD', 'DOT': 'X:DOTUSD',
-                'DOGE': 'X:DOGEUSD', 'AVAX': 'X:AVAXUSD', 'LINK': 'X:LINKUSD',
-                'MATIC': 'X:MATICUSD', 'LTC': 'X:LTCUSD', 'UNI': 'X:UNIUSD',
-                'ATOM': 'X:ATOMUSD', 'SHIB': 'X:SHIBUSD', 'NEAR': 'X:NEARUSD',
-                'ARB': 'X:ARBUSD', 'OP': 'X:OPUSD',
-                'BTCUSD': 'X:BTCUSD', 'ETHUSD': 'X:ETHUSD', 'SOLUSD': 'X:SOLUSD',
-            }
             
             display_symbol = symbol.upper()
             polygon_symbol = CRYPTO_TICKERS.get(symbol.upper(), symbol.upper())
@@ -588,14 +806,6 @@ class Manager:
             if not api_key:
                 return f"[yellow]Technical analysis unavailable - POLYGON_API_KEY not set[/yellow]"
             
-            # Map crypto tickers to Polygon format
-            CRYPTO_TICKERS = {
-                'BTC': 'X:BTCUSD', 'ETH': 'X:ETHUSD', 'SOL': 'X:SOLUSD',
-                'XRP': 'X:XRPUSD', 'ADA': 'X:ADAUSD', 'DOT': 'X:DOTUSD',
-                'DOGE': 'X:DOGEUSD', 'AVAX': 'X:AVAXUSD', 'LINK': 'X:LINKUSD',
-                'MATIC': 'X:MATICUSD', 'LTC': 'X:LTCUSD',
-            }
-            
             display_symbol = symbol.upper()
             polygon_symbol = CRYPTO_TICKERS.get(symbol.upper(), symbol.upper())
             is_crypto = symbol.upper() in CRYPTO_TICKERS
@@ -757,24 +967,29 @@ class Manager:
             return ""
         
         try:
-            # Get decision from Ultimate Decision Engine
-            decision = self._decision_engine.make_decision(symbol)
+            # Get decision from Ultimate Decision Engine (async → run synchronously)
+            decision = run_async(self._decision_engine.make_decision(symbol))
             
             if not decision:
                 return f"[yellow]Could not generate decision for {symbol}[/yellow]"
             
-            # Extract decision data
-            action = decision.get('action', 'HOLD')
-            confidence = decision.get('confidence', 0)
-            risk_score = decision.get('risk_score', 0.5)
-            risk_veto = decision.get('risk_veto', False)
-            entry_price = decision.get('entry_price')
-            stop_loss = decision.get('stop_loss')
-            take_profit = decision.get('take_profit')
-            position_size = decision.get('position_size')
-            reasoning = decision.get('reasoning', '')
-            data_sources = decision.get('data_sources', [])
-            score_breakdown = decision.get('score_breakdown', {})
+            # UltimateDecision is a dataclass — access attributes directly
+            action = decision.direction.value  # "BUY", "SELL", or "NEUTRAL"
+            confidence = decision.confidence
+            risk_score = 1.0 - decision.confidence
+            risk_veto = decision.veto
+            entry_price = decision.trade_setup.entry if decision.trade_setup else None
+            stop_loss = decision.trade_setup.stop_loss if decision.trade_setup else None
+            take_profit = decision.trade_setup.targets[0] if decision.trade_setup and decision.trade_setup.targets else None
+            position_size = decision.trade_setup.position_pct if decision.trade_setup else None
+            reasoning = '; '.join(decision.reasoning) if decision.reasoning else ''
+            data_sources = list(decision.raw_signals.keys()) if decision.raw_signals else []
+            score_breakdown = {
+                'technical': decision.technical_score.score,
+                'intelligence': decision.intelligence_score.score,
+                'market_structure': decision.market_structure_score.score,
+                'validation': decision.validation_score.score,
+            }
             
             # Determine colors
             if action == 'BUY':
@@ -900,6 +1115,7 @@ class Manager:
         # =====================================================================
         if self.fast_path_enabled and self._router:
             routed = self._router.route(prompt)
+            self._last_routed = routed  # Store for learning system
             
             if routed.fast_path and routed.confidence >= 0.8:
                 console.print(f"[dim]⚡ Fast path: {routed.intent.value}[/dim]")
@@ -910,8 +1126,8 @@ class Manager:
                     console.print()
                     console.print("[dim]powered by [/dim][bright_cyan]NUBLE[/bright_cyan]", justify="right")
                     
-                    # Add to conversation for context
-                    conversation.append({"role": "user", "content": prompt})
+                    # Add assistant response to conversation for context
+                    # (user message was already added by the caller)
                     conversation.append({"role": "assistant", "content": fast_response})
                     
                     return fast_response
@@ -919,9 +1135,32 @@ class Manager:
         # =====================================================================
         # FULL PATH: Complex queries need LLM planning
         # =====================================================================
+        
+        # =====================================================================
+        # APEX TIER: Launch Orchestrator in background BEFORE planning starts
+        # =====================================================================
+        # The Orchestrator runs its full pipeline (9 specialized agents in
+        # parallel + DecisionEngine + ML Predictor + Lambda data) on a
+        # background thread. It executes concurrently with the Manager's own
+        # Claude planning, so the user experiences zero added latency.
+        # Its results will be injected into the final answer prompt.
+        # =====================================================================
+        apex_container = None
+        if self.apex_enabled and self._orchestrator:
+            try:
+                apex_container = self._launch_orchestrator_background(prompt)
+                logger.info("APEX: Orchestrator launched in background")
+            except Exception as e:
+                logger.warning(f"APEX: Failed to launch Orchestrator (non-fatal): {e}")
+                apex_container = None
 
         # Show initial planning spinner
         console.print()
+        
+        # Show APEX status indicator if running
+        if apex_container:
+            console.print("[dim]🧠 APEX: 9 specialist agents analyzing in parallel...[/dim]")
+        
         plan_spinner = Spinner(
             "dots", text="[bright_magenta]Planning...[/bright_magenta]"
         )
@@ -934,7 +1173,7 @@ class Manager:
             while True:
                 # Get plan from the agent
                 plan = self.agent.run(conversation)
-                if len(plan) == 0:
+                if not isinstance(plan, list) or len(plan) == 0:
                     break
 
                 # Add to conversation
@@ -968,6 +1207,10 @@ class Manager:
                     result = self.execute_plan(
                         planning_live, planning_content, item, prompt
                     )
+
+                    # Ensure result is always a string
+                    if result is None:
+                        result = "[dim]No data returned[/dim]"
 
                     if "[red]⚠" in result:
                         # Clear the planning pane and show only the error message
@@ -1003,14 +1246,65 @@ class Manager:
                         )
                     )
 
+        # =====================================================================
+        # APEX TIER: Collect Orchestrator results before generating answer
+        # =====================================================================
+        # By now the Orchestrator has had the entire planning phase to run.
+        # Collect its results and inject them into the conversation so Claude
+        # can synthesize BOTH intelligence paths into the final answer.
+        # =====================================================================
+        apex_briefing = ""
+        if apex_container:
+            try:
+                # The Orchestrator has been running since BEFORE planning started.
+                # The planning phase typically takes 15-30s, so the Orchestrator
+                # has had at least that long. We'll wait up to 20s more for it to
+                # finish — this covers even complex multi-agent analyses while
+                # keeping the UX responsive.
+                apex_briefing = self._collect_orchestrator_result(apex_container, timeout=20.0)
+                self._last_apex_result = apex_container.get('result') if isinstance(apex_container, dict) else None
+                if apex_briefing:
+                    # Show APEX completion status
+                    console.print("[dim]🧠 APEX: Deep analysis complete — injecting into synthesis[/dim]")
+                    
+                    # Inject the Orchestrator's intelligence into the conversation
+                    # This gives Claude access to ALL 9 agent analyses + DecisionEngine
+                    # + ML predictions when generating the final answer
+                    conversation.append({
+                        "role": "user",
+                        "content": (
+                            "CRITICAL ADDITIONAL INTELLIGENCE — The following is a comprehensive "
+                            "analysis from NUBLE's Multi-Agent Orchestrator system. It ran 9 "
+                            "specialized agents (MarketAnalyst, NewsAnalyst, RiskManager, "
+                            "FundamentalAnalyst, QuantAnalyst, MacroAnalyst, PortfolioOptimizer, "
+                            "CryptoSpecialist, Educator) in parallel, plus the UltimateDecisionEngine "
+                            "(28+ data points with weighted scoring and risk veto) and ML Predictor "
+                            "(46M+ parameters). INTEGRATE this analysis with your own research above "
+                            "to provide the most comprehensive, accurate, and actionable response "
+                            "possible. When there are conflicts between sources, explain the nuance. "
+                            "When sources agree, emphasize the convergence.\n\n"
+                            f"{apex_briefing}"
+                        ),
+                        "type": "apex_data"
+                    })
+                    logger.info("APEX: Intelligence injected into conversation")
+                else:
+                    logger.info("APEX: Orchestrator returned no results (non-fatal)")
+            except Exception as e:
+                logger.warning(f"APEX: Failed to collect results (non-fatal): {e}")
+
         # Stream the answer as markdown in answer pane
         answer_text = ""
+        
+        # Determine the panel title based on whether APEX data was injected
+        answer_title = "Answer" if not apex_briefing else "Answer — APEX Synthesis"
+        
         with Live(console=console, refresh_per_second=10) as live:
             for chunk in self.agent.answer(prompt, conversation):
                 answer_text += chunk
                 markdown_answer = Markdown(answer_text)
                 live.update(
-                    Panel(markdown_answer, title="Answer", border_style="bright_cyan")
+                    Panel(markdown_answer, title=answer_title, border_style="bright_cyan")
                 )
         conversation.append({"role": "assistant", "content": answer_text})
 
@@ -1018,14 +1312,64 @@ class Manager:
         tokens = self.token_counter.count_conversation_tokens(conversation)
 
         # remove large amounts of raw data to reduce token usage
-        conversation = [item for item in conversation if "type" not in item or item["type"] != "data"]
+        # Must modify in-place to affect the caller's list reference
+        conversation[:] = [item for item in conversation if "type" not in item or item["type"] not in ("data", "apex_data")]
         
         # Get Claude API usage from token tracker
         tracker = self.agent.token_tracker
         usage_info = f"[dim white]Claude API: [/dim white][bright_green]{tracker.total_tokens:,}[/bright_green][dim white] tokens[/dim white] | "
         cost_info = f"[dim white]~[/dim white][yellow]{tracker.get_cost_estimate():.4f}[/yellow][dim white]$[/dim white] | "
         
-        console.print(f"{usage_info}{cost_info}[dim white]Requests: [/dim white][white]{tracker.total_requests}[/white] | [dim white]powered by [/dim white][bright_cyan]NUBLE[/bright_cyan]", justify="right")
+        # Show APEX indicator in footer if it was used
+        apex_indicator = "[bright_magenta]APEX[/bright_magenta] | " if apex_briefing else ""
+        
+        console.print(f"{usage_info}{cost_info}{apex_indicator}[dim white]Requests: [/dim white][white]{tracker.total_requests}[/white] | [dim white]powered by [/dim white][bright_cyan]NUBLE[/bright_cyan]", justify="right")
+
+        # =====================================================================
+        # LEARNING: Record prediction if this was a trading-relevant query
+        # =====================================================================
+        if self.learning_enabled and self.learning_hub:
+            try:
+                routed = getattr(self, '_last_routed', None)
+                if routed and hasattr(routed, 'intent') and hasattr(routed, 'symbols'):
+                    # Check if this was a research/prediction query with symbols
+                    intent_name = routed.intent.value if hasattr(routed.intent, 'value') else str(routed.intent)
+                    if intent_name in ('research', 'prediction', 'RESEARCH', 'PREDICTION') and routed.symbols:
+                        for symbol in routed.symbols[:3]:
+                            try:
+                                # Build signal snapshot from collected data
+                                snapshot = {}
+                                apex_result = getattr(self, '_last_apex_result', None)
+                                if apex_result and isinstance(apex_result, dict):
+                                    snapshot['decision_engine'] = apex_result.get('data', {}).get('decision_engine')
+                                    snapshot['ml_predictions'] = apex_result.get('data', {}).get('ml_predictions')
+                                    snapshot['confidence'] = apex_result.get('confidence')
+                                    snapshot['agents_used'] = apex_result.get('agents_used')
+
+                                # Extract direction and confidence
+                                direction = 'NEUTRAL'
+                                confidence = 0.5
+                                price = 0.0
+
+                                de = snapshot.get('decision_engine')
+                                if de and isinstance(de, dict):
+                                    direction = de.get('direction', de.get('action', 'NEUTRAL'))
+                                    confidence = de.get('confidence', 0.5)
+                                    price = de.get('current_price') or de.get('entry_price', 0) or 0
+
+                                if price and price > 0:
+                                    self.learning_hub.record_prediction(
+                                        symbol=symbol,
+                                        direction=direction,
+                                        confidence=confidence,
+                                        price_at_prediction=float(price),
+                                        source='apex_full',
+                                        signal_snapshot=snapshot,
+                                    )
+                            except Exception:
+                                pass  # Learning should never break the main flow
+            except Exception:
+                pass  # Learning should never break the main flow
 
         return answer_text 
 

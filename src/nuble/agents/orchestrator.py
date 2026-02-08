@@ -208,6 +208,18 @@ class OrchestratorAgent:
         # Cache
         self._cache: Dict[str, Any] = {}
         
+        # Live agent output tracking (for API progress events)
+        self._last_agent_outputs: Dict[str, Any] = {}
+        
+        # Learning system integration
+        self._learning_hub = None
+        try:
+            from nuble.learning.learning_hub import LearningHub
+            self._learning_hub = LearningHub()
+            logger.info("Learning system connected to Orchestrator")
+        except Exception:
+            logger.info("Learning system not available in Orchestrator")
+        
         logger.info(f"OrchestratorAgent initialized with model: {self.orchestrator_model}")
     
     def get_lambda_analysis(self, symbols: List[str]) -> str:
@@ -321,6 +333,9 @@ class OrchestratorAgent:
         """
         start_time = datetime.now()
         
+        # Clear live tracking from previous run
+        self._last_agent_outputs = {}
+        
         # Initialize agents if needed
         self._initialize_agents()
         
@@ -359,25 +374,34 @@ class OrchestratorAgent:
                 # Use the UltimateDecisionEngine for comprehensive analysis
                 for symbol in symbols[:2]:  # Limit to 2 symbols for speed
                     logger.info(f"Running UltimateDecisionEngine for {symbol}...")
-                    decision = await asyncio.get_event_loop().run_in_executor(
-                        None, 
-                        lambda s=symbol: self._decision_engine.make_decision(s)
-                    )
+                    # make_decision is async, so await it directly
+                    decision = await self._decision_engine.make_decision(symbol)
                     if decision:
+                        # UltimateDecision is a dataclass — access attributes directly
                         decision_engine_result = {
-                            'symbol': symbol,
-                            'action': decision.get('action', 'HOLD'),
-                            'confidence': decision.get('confidence', 0),
-                            'risk_score': decision.get('risk_score', 0.5),
-                            'entry_price': decision.get('entry_price'),
-                            'stop_loss': decision.get('stop_loss'),
-                            'take_profit': decision.get('take_profit'),
-                            'position_size': decision.get('position_size'),
-                            'reasoning': decision.get('reasoning', ''),
-                            'data_sources': decision.get('data_sources', []),
-                            'score_breakdown': decision.get('score_breakdown', {}),
-                            'ml_signals': decision.get('ml_signals', {}),
-                            'risk_veto': decision.get('risk_veto', False)
+                            'symbol': decision.symbol,
+                            'action': decision.direction.value,  # TradeDirection enum → "BUY"/"SELL"/"NEUTRAL"
+                            'confidence': decision.confidence,
+                            'risk_score': 1.0 - decision.confidence,  # Inverse of confidence as proxy
+                            'entry_price': decision.trade_setup.entry if decision.trade_setup else None,
+                            'stop_loss': decision.trade_setup.stop_loss if decision.trade_setup else None,
+                            'take_profit': decision.trade_setup.targets[0] if decision.trade_setup and decision.trade_setup.targets else None,
+                            'position_size': decision.trade_setup.position_pct if decision.trade_setup else None,
+                            'reasoning': '; '.join(decision.reasoning) if decision.reasoning else '',
+                            'data_sources': list(decision.raw_signals.keys()) if decision.raw_signals else [],
+                            'score_breakdown': {
+                                'technical': decision.technical_score.score,
+                                'intelligence': decision.intelligence_score.score,
+                                'market_structure': decision.market_structure_score.score,
+                                'validation': decision.validation_score.score,
+                            },
+                            'luxalgo': decision.technical_score.components.get('luxalgo', {}),
+                            'ml_signals': decision.raw_signals.get('ml_signals', {}),
+                            'risk_veto': decision.veto,
+                            'veto_reason': decision.veto_reason,
+                            'strength': decision.strength.value,
+                            'data_points_used': decision.data_points_used,
+                            'should_trade': decision.should_trade,
                         }
                         logger.info(f"DecisionEngine: {symbol} -> {decision_engine_result['action']} ({decision_engine_result['confidence']:.1%})")
                         break  # Use first symbol's decision as primary
@@ -442,6 +466,33 @@ class OrchestratorAgent:
             synthesis,
             context
         )
+        
+        # STEP 4.5: Record predictions in Learning System
+        if self._learning_hub and synthesis.get('symbols'):
+            for symbol in synthesis['symbols'][:3]:
+                de = synthesis.get('decision_engine')
+                if de and isinstance(de, dict):
+                    try:
+                        price = de.get('current_price') or de.get('entry_price', 0)
+                        if price:
+                            self._learning_hub.record_prediction(
+                                symbol=symbol,
+                                direction=de.get('direction', de.get('action', 'NEUTRAL')),
+                                confidence=de.get('confidence', 0.5),
+                                price_at_prediction=float(price),
+                                source='decision_engine',
+                                signal_snapshot={
+                                    'technical_score': de.get('technical_score'),
+                                    'intelligence_score': de.get('intelligence_score'),
+                                    'risk_score': de.get('risk_score'),
+                                    'action': de.get('action'),
+                                    'regime': de.get('regime', 'UNKNOWN'),
+                                    'ml_predictions': synthesis.get('ml_predictions'),
+                                    'agents_used': list(synthesis.get('agent_outputs', {}).keys()),
+                                },
+                            )
+                    except Exception:
+                        pass  # Learning should never break the main flow
         
         # Update context
         context.add_message("assistant", response['message'])
@@ -557,12 +608,16 @@ AVAILABLE AGENTS:
 1. MARKET_ANALYST - Real-time prices, charts, technical analysis, patterns
 2. QUANT_ANALYST - ML signals, backtests, factor models, statistical analysis
 3. NEWS_ANALYST - Breaking news, sentiment analysis, event detection
-4. FUNDAMENTAL_ANALYST - Financial statements, valuations, earnings, SEC filings
+4. FUNDAMENTAL_ANALYST - Financial statements, valuations, earnings, SEC filings, TENK SEC Filing RAG (10-K/10-Q semantic search)
 5. MACRO_ANALYST - Fed policy, economic indicators, geopolitics, rates
 6. RISK_MANAGER - Position risk, portfolio VaR, correlations, stress tests
 7. PORTFOLIO_OPTIMIZER - Asset allocation, rebalancing, tax optimization
 8. CRYPTO_SPECIALIST - On-chain data, DeFi, protocol analysis, whale tracking
 9. EDUCATOR - Explanations, strategies, terminology, examples
+
+NOTE: LuxAlgo Premium Signals (34% weight, multi-timeframe W/D/4H) are automatically 
+fetched via the UltimateDecisionEngine and Lambda — no agent assignment needed.
+TENK SEC Filing RAG is integrated into FUNDAMENTAL_ANALYST — include it for 10-K/10-Q/SEC queries.
 
 Analyze the user's query and respond with a JSON plan:
 
@@ -584,10 +639,11 @@ Analyze the user's query and respond with a JSON plan:
 
 Guidelines:
 - For price checks: use MARKET_ANALYST only
-- For "should I buy X": use MARKET_ANALYST + QUANT_ANALYST + NEWS_ANALYST
+- For "should I buy X": use MARKET_ANALYST + QUANT_ANALYST + NEWS_ANALYST + FUNDAMENTAL_ANALYST
 - For portfolio questions: use PORTFOLIO_OPTIMIZER + RISK_MANAGER
 - For explanations: use EDUCATOR
-- For complex analysis: use 3-4 agents in parallel
+- For 10-K/10-Q/SEC filing analysis: ALWAYS include FUNDAMENTAL_ANALYST (has TENK RAG)
+- For complex analysis: use 3-5 agents in parallel
 
 Respond with ONLY the JSON plan, no other text.
 """
@@ -637,6 +693,19 @@ Respond with ONLY the JSON plan, no other text.
                 'instruction': f'Get ML signals for {", ".join(symbols) if symbols else "the market"}',
                 'priority': 'HIGH'
             })
+            tasks.append({
+                'agent': 'FUNDAMENTAL_ANALYST',
+                'instruction': f'Get fundamentals and SEC filing insights for {", ".join(symbols) if symbols else "the market"}',
+                'priority': 'HIGH'
+            })
+        
+        if any(word in message_lower for word in ['10-k', '10-q', '10k', '10q', 'sec', 'filing', 'annual report', 'risk factor']):
+            if not any(t['agent'] == 'FUNDAMENTAL_ANALYST' for t in tasks):
+                tasks.append({
+                    'agent': 'FUNDAMENTAL_ANALYST',
+                    'instruction': f'Search SEC filings via TENK RAG for {", ".join(symbols) if symbols else "the company"}',
+                    'priority': 'HIGH'
+                })
         
         if any(word in message_lower for word in ['portfolio', 'allocation', 'rebalance']):
             tasks.append({
@@ -778,6 +847,9 @@ Respond with ONLY the JSON plan, no other text.
                         error=str(result)
                     )
                 results[result.task_id] = result
+                # Update live tracking for API progress events
+                if result.success:
+                    self._last_agent_outputs[result.agent_type.value] = result.data
         
         return list(results.values())
     
@@ -890,6 +962,20 @@ This includes live data from:
         decision_engine_section = ""
         decision_engine = synthesis.get('decision_engine')
         if decision_engine:
+            # Extract LuxAlgo signals for explicit surfacing
+            luxalgo = decision_engine.get('luxalgo', {})
+            luxalgo_section = ""
+            if luxalgo:
+                aligned = luxalgo.get('aligned', False)
+                aligned_label = "✅ ALL TIMEFRAMES ALIGNED" if aligned else "⚠️ Mixed signals"
+                luxalgo_section = f"""
+- LuxAlgo Premium Signals: {aligned_label}
+  - Weekly (1W): {luxalgo.get('weekly', 'N/A')} (highest conviction)
+  - Daily (1D): {luxalgo.get('daily', 'N/A')}
+  - 4-Hour (4H): {luxalgo.get('h4', 'N/A')} (most responsive)
+  - Direction: {luxalgo.get('direction', 'N/A')}
+  - Score: {luxalgo.get('score', 0):.3f}"""
+            
             decision_engine_section = f"""
 
 ULTIMATE DECISION ENGINE ANALYSIS (28+ data points):
@@ -904,6 +990,7 @@ ULTIMATE DECISION ENGINE ANALYSIS (28+ data points):
 - Risk Veto: {'YES - HIGH RISK' if decision_engine.get('risk_veto') else 'No'}
 - Reasoning: {decision_engine.get('reasoning', 'N/A')}
 - Data Sources Used: {', '.join(decision_engine.get('data_sources', []))}
+{luxalgo_section}
 """
 
         # Get ML predictions (NEW!)
@@ -943,16 +1030,19 @@ Generate a response that:
 
 1. DIRECTLY answers the user's question first
 2. If the ULTIMATE DECISION ENGINE provided a recommendation, LEAD with that - it's your most sophisticated analysis
-3. Uses the REAL-TIME data from the Lambda Decision Engine - you HAVE access to current market data
-4. Incorporates ML model predictions when available (these come from 46M+ parameters across LSTM, Transformer, Ensemble)
-5. Provides specific, actionable insights with actual numbers from the data
-6. Includes current prices, sentiment scores, analyst actions from the real-time feed
-7. Is personalized to the user's risk tolerance and portfolio (if known)
-8. Includes specific numbers, prices, percentages from the data
-9. Suggests next steps or follow-up questions
+3. If LuxAlgo signals are present, highlight alignment or divergence — they carry 34% weight. When all timeframes align, declare HIGH CONVICTION.
+4. Uses the REAL-TIME data from the Lambda Decision Engine - you HAVE access to current market data
+5. Incorporates ML model predictions when available (these come from 46M+ parameters across LSTM, Transformer, Ensemble)
+6. If TENK SEC filing data is present in agent outputs (sec_filing_insights), incorporate risk factors, revenue breakdowns, management outlook
+7. Provides specific, actionable insights with actual numbers from the data
+8. Includes current prices, sentiment scores, analyst actions from the real-time feed
+9. Is personalized to the user's risk tolerance and portfolio (if known)
+10. Includes specific numbers, prices, percentages from the data
+11. Suggests next steps or follow-up questions
 
 IMPORTANT GUIDELINES:
 - If Decision Engine says RISK VETO, ALWAYS mention the high risk warning prominently
+- If LuxAlgo shows all timeframes aligned, treat it as a strong confirmation signal
 - Be confident but honest about uncertainty
 - Don't hedge excessively - give clear recommendations when the data supports it
 - Use bullet points for key takeaways
@@ -990,11 +1080,11 @@ Format your response in Markdown for best readability.
             parts.append(f"**Confidence:** {decision_engine.get('confidence', 0):.1%}")
             if decision_engine.get('risk_veto'):
                 parts.append("\n⚠️ **RISK VETO ACTIVE** - High risk conditions detected!")
-            if decision_engine.get('entry_price'):
+            if decision_engine.get('entry_price') is not None:
                 parts.append(f"\n**Entry Price:** ${decision_engine.get('entry_price'):.2f}")
-            if decision_engine.get('stop_loss'):
+            if decision_engine.get('stop_loss') is not None:
                 parts.append(f"**Stop Loss:** ${decision_engine.get('stop_loss'):.2f}")
-            if decision_engine.get('take_profit'):
+            if decision_engine.get('take_profit') is not None:
                 parts.append(f"**Take Profit:** ${decision_engine.get('take_profit'):.2f}")
             if decision_engine.get('reasoning'):
                 parts.append(f"\n**Reasoning:** {decision_engine.get('reasoning')}")
@@ -1064,8 +1154,11 @@ Format your response in Markdown for best readability.
         return levels
     
     def _extract_symbols(self, text: str) -> List[str]:
-        """Extract stock/crypto symbols from text."""
-        # Common patterns
+        """Extract stock/crypto symbols from text using the robust lambda_client extractor."""
+        if LAMBDA_AVAILABLE and extract_symbols_from_text:
+            return extract_symbols_from_text(text)
+        
+        # Fallback: simple pattern-based extraction
         patterns = [
             r'\$([A-Z]{1,5})\b',      # $AAPL format
             r'\b([A-Z]{2,5})\b',       # Uppercase 2-5 letters

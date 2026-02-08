@@ -24,11 +24,14 @@ dependencies = [
     "anthropic",
     "python-dotenv",
     "numpy",
-    "aiohttp"
+    "aiohttp",
+    "fastapi",
+    "uvicorn[standard]",
 ]
 
 [project.scripts]
 nuble = "nuble.cli:main"
+nuble-api = "nuble.api.server:run"
 
 [tool.setuptools.packages.find]
 where = ["src"]

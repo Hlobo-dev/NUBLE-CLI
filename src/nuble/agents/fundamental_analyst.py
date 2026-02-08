@@ -10,6 +10,7 @@ The most comprehensive fundamental analysis specialist using:
 - Polygon.io /v2/aggs/ticker/prev — Current price for live valuation
 - Polygon.io /v1/indicators/sma — Server-side moving averages for price context
 - StockNews API — Additional analyst & news sentiment
+- TENK_SOURCE — SEC Filing RAG (semantic search over 10-K/10-Q filings)
 """
 
 import os
@@ -27,7 +28,7 @@ class FundamentalAnalystAgent(SpecializedAgent):
     """
     Fundamental Analyst Agent — Valuation & Financials Expert
     
-    REAL DATA from 7 endpoints:
+    REAL DATA from 8 sources:
     1. Polygon Financials API (income statement, balance sheet, cash flow)
     2. Polygon Ticker Details (company info, market cap, sector)
     3. Polygon Dividends (yield, payout history, frequency)
@@ -35,12 +36,15 @@ class FundamentalAnalystAgent(SpecializedAgent):
     5. Polygon Previous Close (live price for valuation)
     6. Polygon SMA (price trend context for fundamental overlay)
     7. StockNews API (analyst ratings, earnings sentiment)
+    8. TENK_SOURCE SEC Filing RAG (semantic search over 10-K/10-Q filings via DuckDB + embeddings)
     """
     
     def __init__(self, api_key: str = None):
         super().__init__(api_key)
         self.polygon_key = os.environ.get('POLYGON_API_KEY', 'JHKwAdyIOeExkYOxh3LwTopmqqVVFeBY')
         self.stocknews_key = os.environ.get('STOCKNEWS_API_KEY', 'zzad9pmlwttixx0fnsenstctzgdk7ysx0ctkgrk0')
+        self._tenk_db = None
+        self._tenk_initialized = False
     
     def get_capabilities(self) -> Dict[str, Any]:
         return {
@@ -49,11 +53,12 @@ class FundamentalAnalystAgent(SpecializedAgent):
             "capabilities": [
                 "financial_statements", "valuation_metrics", "profitability_analysis",
                 "growth_analysis", "balance_sheet_health", "dividend_analysis",
-                "earnings_quality", "news_sentiment", "peer_comparison"
+                "earnings_quality", "news_sentiment", "peer_comparison",
+                "sec_filing_search", "risk_factors", "management_discussion"
             ],
             "data_sources": [
                 "Polygon Financials", "Polygon Dividends", "Polygon News",
-                "Polygon Ticker Details", "StockNews API"
+                "Polygon Ticker Details", "StockNews API", "TENK SEC Filing RAG"
             ]
         }
     
@@ -322,6 +327,9 @@ class FundamentalAnalystAgent(SpecializedAgent):
         # === 7. Price trend context (SMA from Polygon) ===
         result['price_trend'] = self._get_price_trend(symbol)
         
+        # === 8. TENK SEC Filing RAG — Deep SEC Filing Insights ===
+        result['sec_filing_insights'] = self._get_tenk_filing_insights(symbol)
+        
         return result
     
     def _get_dividend_data(self, symbol: str, current_price: float = None) -> Dict:
@@ -564,6 +572,227 @@ class FundamentalAnalystAgent(SpecializedAgent):
         
         trend['data_source'] = 'polygon_sma_api'
         return trend
+    
+    def _init_tenk(self) -> bool:
+        """
+        Lazily initialize TENK SEC Filing RAG.
+        
+        Directly connects to TENK's DuckDB + SentenceTransformer to avoid
+        namespace collision (TENK's 'src' package vs NUBLE's 'src' package)
+        and heavy module-level side effects in TENK's db.py.
+        """
+        if self._tenk_initialized:
+            return self._tenk_db is not None
+        
+        self._tenk_initialized = True
+        try:
+            import duckdb
+            import numpy as np
+            
+            # Locate TENK_SOURCE directory
+            tenk_root = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'TENK_SOURCE')
+            tenk_root = os.path.abspath(tenk_root)
+            
+            if not os.path.isdir(tenk_root):
+                tenk_root = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'TENK_SOURCE')
+                tenk_root = os.path.abspath(tenk_root)
+            
+            if not os.path.isdir(tenk_root):
+                logger.debug("TENK_SOURCE directory not found")
+                return False
+            
+            # Resolve DuckDB path from TENK config
+            db_path = os.path.join(tenk_root, 'db', 'filings.db')
+            if not os.path.exists(db_path):
+                # Check if parent dir exists at least
+                os.makedirs(os.path.dirname(db_path), exist_ok=True)
+            
+            # Connect to TENK's DuckDB
+            conn = duckdb.connect(db_path)
+            
+            # Ensure schema exists
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS filings (
+                    ticker VARCHAR,
+                    form VARCHAR,
+                    year INTEGER,
+                    quarter INTEGER,
+                    chunk_index INTEGER,
+                    chunk_text TEXT,
+                    embedding FLOAT[384],
+                    url VARCHAR,
+                    PRIMARY KEY (ticker, form, year, quarter, chunk_index)
+                )
+            """)
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_filing ON filings (ticker, form, year, quarter)")
+            
+            # Load SentenceTransformer for semantic search
+            try:
+                from sentence_transformers import SentenceTransformer
+                model = SentenceTransformer('all-MiniLM-L6-v2')
+            except ImportError:
+                logger.warning("sentence-transformers not installed, TENK RAG search disabled")
+                conn.close()
+                return False
+            
+            # Store as lightweight namespace object
+            class TenkDB:
+                pass
+            
+            tenk = TenkDB()
+            tenk.conn = conn
+            tenk.model = model
+            tenk.np = np
+            
+            def list_filings(ticker=None):
+                if ticker:
+                    rows = conn.execute("""
+                        SELECT ticker, form, year, quarter, COUNT(*) as chunks
+                        FROM filings WHERE ticker = ?
+                        GROUP BY ticker, form, year, quarter
+                        ORDER BY year DESC, quarter DESC
+                    """, [ticker.upper()]).fetchall()
+                else:
+                    rows = conn.execute("""
+                        SELECT ticker, form, year, quarter, COUNT(*) as chunks
+                        FROM filings
+                        GROUP BY ticker, form, year, quarter
+                        ORDER BY ticker, year DESC, quarter DESC
+                    """).fetchall()
+                return [{"ticker": r[0], "form": r[1], "year": r[2], "quarter": r[3], "chunks": r[4]} for r in rows]
+            
+            def search(query, k=5, ticker=None):
+                where = []
+                params = []
+                if ticker:
+                    where.append("ticker = ?")
+                    params.append(ticker.upper())
+                where_clause = f"WHERE {' AND '.join(where)}" if where else ""
+                
+                rows = conn.execute(f"""
+                    SELECT chunk_text, ticker, form, year, quarter, embedding, url
+                    FROM filings {where_clause}
+                """, params).fetchall()
+                
+                if not rows:
+                    return []
+                
+                texts = [r[0] for r in rows]
+                meta = [{"ticker": r[1], "form": r[2], "year": r[3], "quarter": r[4], "url": r[6]} for r in rows]
+                embeddings = np.array([r[5] for r in rows])
+                
+                query_emb = model.encode(query)
+                sims = np.dot(embeddings, query_emb) / (
+                    np.linalg.norm(embeddings, axis=1) * np.linalg.norm(query_emb) + 1e-8
+                )
+                
+                top_k = np.argsort(sims)[-k:][::-1]
+                return [{"text": texts[i], **meta[i], "score": float(sims[i])} for i in top_k]
+            
+            tenk.list_filings = list_filings
+            tenk.search = search
+            
+            self._tenk_db = tenk
+            logger.info(f"TENK SEC Filing RAG initialized (DB: {db_path})")
+            return True
+            
+        except Exception as e:
+            logger.warning(f"TENK initialization failed: {e}")
+            return False
+    
+    def _get_tenk_filing_insights(self, symbol: str) -> Dict:
+        """
+        Get SEC filing insights from TENK_SOURCE RAG system.
+        
+        Performs semantic search across 10-K and 10-Q filings for:
+        - Risk factors (Item 1A)
+        - Management Discussion & Analysis (Item 7 / MD&A)
+        - Business overview and competitive landscape (Item 1)
+        - Revenue segments and geographic breakdown
+        """
+        if not self._init_tenk():
+            return {'available': False, 'reason': 'TENK SEC Filing RAG not initialized'}
+        
+        try:
+            # Check if any filings are loaded for this symbol
+            loaded = self._tenk_db.list_filings(ticker=symbol.upper())
+            if not loaded:
+                return {
+                    'available': False,
+                    'reason': f'No filings loaded for {symbol}. Use TENK to load 10-K/10-Q filings first.',
+                    'hint': f'Run: load_filing("{symbol}", "10-K", {datetime.now().year - 1})'
+                }
+            
+            insights = {
+                'available': True,
+                'filings_loaded': [{
+                    'form': f['form'],
+                    'year': f['year'],
+                    'quarter': f['quarter'] if f['quarter'] != 0 else None,
+                    'chunks': f['chunks']
+                } for f in loaded],
+                'data_source': 'tenk_sec_rag'
+            }
+            
+            # Semantic search for key fundamental topics
+            search_queries = {
+                'risk_factors': [
+                    "risk factors that could materially affect the business",
+                    "Item 1A Risk Factors competitive threats regulatory risks"
+                ],
+                'revenue_breakdown': [
+                    "revenue by segment product category geographic region",
+                    "net sales revenue breakdown operating segments"
+                ],
+                'management_outlook': [
+                    "Item 7 Management Discussion and Analysis forward looking outlook",
+                    "management expects future growth strategy"
+                ],
+                'competitive_position': [
+                    "competitive landscape market position industry competition",
+                    "Item 1 Business description competitive advantages"
+                ],
+            }
+            
+            for topic, queries in search_queries.items():
+                topic_results = []
+                for query in queries:
+                    try:
+                        results = self._tenk_db.search(
+                            query=query,
+                            k=3,
+                            ticker=symbol.upper()
+                        )
+                        for r in results:
+                            if r.get('score', 0) > 0.3:  # Only include relevant results
+                                topic_results.append({
+                                    'text': r['text'][:500],  # Truncate for prompt space
+                                    'form': r['form'],
+                                    'year': r['year'],
+                                    'score': round(r['score'], 3)
+                                })
+                    except Exception as e:
+                        logger.debug(f"TENK search failed for query '{query}': {e}")
+                
+                # Deduplicate and keep top results
+                seen_texts = set()
+                unique_results = []
+                for r in sorted(topic_results, key=lambda x: x['score'], reverse=True):
+                    text_key = r['text'][:100]
+                    if text_key not in seen_texts:
+                        seen_texts.add(text_key)
+                        unique_results.append(r)
+                    if len(unique_results) >= 3:
+                        break
+                
+                if unique_results:
+                    insights[topic] = unique_results
+            
+            return insights
+            
+        except Exception as e:
+            logger.warning(f"TENK filing insights failed for {symbol}: {e}")
+            return {'available': False, 'error': str(e)}
 
 
 __all__ = ['FundamentalAnalystAgent']

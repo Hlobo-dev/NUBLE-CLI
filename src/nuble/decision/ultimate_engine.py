@@ -244,11 +244,13 @@ class UltimateDecisionEngine:
     }
     
     # Sub-component weights within Technical (35%)
+    # LuxAlgo is the PRIMARY signal source — premium multi-timeframe TradingView indicators
+    # covering trend, momentum, reversal, volatility across 3 timeframes (1W, 1D, 4H)
     TECHNICAL_WEIGHTS = {
-        "luxalgo": 0.12,
-        "ml_signals": 0.10,
-        "deep_learning": 0.08,
-        "classic_ta": 0.05,
+        "luxalgo": 0.20,         # Premium MTF signals — highest priority
+        "ml_signals": 0.07,
+        "deep_learning": 0.05,
+        "classic_ta": 0.03,
     }
     
     # Sub-component weights within Intelligence (30%)
@@ -680,9 +682,11 @@ class UltimateDecisionEngine:
                 "aligned": aligned,
                 "score": weighted_score,
                 "signals": signals,
-                "weekly": signals.get("1W", {}).get("action", "N/A"),
-                "daily": signals.get("1D", {}).get("action", "N/A"),
-                "h4": signals.get("4h", {}).get("action", "N/A"),
+                # Only show actions for signals that are still valid (not expired)
+                "weekly": signals.get("1W", {}).get("action", "N/A") if signals.get("1W", {}).get("valid") else "N/A",
+                "daily": signals.get("1D", {}).get("action", "N/A") if signals.get("1D", {}).get("valid") else "N/A",
+                "h4": signals.get("4h", {}).get("action", "N/A") if signals.get("4h", {}).get("valid") else "N/A",
+                "direction": "BUY" if all_positive else "SELL" if all_negative else "NEUTRAL",
             }
             
         except Exception as e:

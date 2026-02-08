@@ -1,0 +1,634 @@
+I now have the complete picture. Here's what I know:
+
+**What's genuinely strong:** 8/9 agents doing real computation on real data, parallel execution with proper dependency handling, working SSE/WebSocket, real dual-brain concurrency, strong API data coverage.
+
+**What's broken:** ML models (coin-flip accuracy), Decision Engine (60%+ dead/fabricated), 2,100 lines of learning code never wired in, no programmatic synthesis, no response streaming, single-threaded API bottleneck, no background data refresh, no caching beyond 60s quotes.
+
+I'm now going to lay out the complete institutional-grade architecture and the execution plan. This is going to be long — but it needs to be, because we're rebuilding the analytical core of the system.
+
+---
+
+# NUBLE v7.0 — Institutional-Grade Architecture Blueprint
+
+## Architecture Philosophy
+
+Real institutional quant systems have three properties NUBLE currently lacks:
+
+1. **Continuous awareness** — they don't fetch data when asked. They maintain a live world model that's always current.
+2. **Statistical rigor** — every signal, weight, and threshold is derived from backtested evidence, not hand-tuned.
+3. **Closed-loop learning** — predictions are tracked, accuracy is measured, and weights self-adjust.
+
+Here's the target architecture:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          NUBLE v7.0 ARCHITECTURE                            │
+│                                                                             │
+│  ┌──────────────────────────────────────────────────────────────────────┐   │
+│  │                    LAYER 1: CONTINUOUS DATA FABRIC                    │   │
+│  │                                                                      │   │
+│  │  Background Workers (asyncio tasks, always running)                  │   │
+│  │  ┌─────────────┐ ┌──────────────┐ ┌────────────┐ ┌──────────────┐  │   │
+│  │  │ Price Feed   │ │ News Feed    │ │ Macro Feed │ │ Sentiment    │  │   │
+│  │  │ (Polygon WS) │ │ (StockNews,  │ │ (VIX,DXY,  │ │ (FinBERT    │  │   │
+│  │  │ 1s refresh   │ │  CryptoNews, │ │  Yields,   │ │  on all new  │  │   │
+│  │  │ top 500      │ │  Polygon)    │ │  FGI)      │ │  articles)   │  │   │
+│  │  │ symbols      │ │ 60s refresh  │ │ 5m refresh │ │ on-arrival   │  │   │
+│  │  └──────┬───────┘ └──────┬───────┘ └─────┬──────┘ └──────┬───────┘  │   │
+│  │         │                │               │               │           │   │
+│  │         ▼                ▼               ▼               ▼           │   │
+│  │  ┌──────────────────────────────────────────────────────────────┐    │   │
+│  │  │              WORLD STATE STORE (In-Memory + Redis)           │    │   │
+│  │  │                                                              │    │   │
+│  │  │  prices: {TSLA: {price, vol, rsi, macd, sma, updated_at}}  │    │   │
+│  │  │  news: {TSLA: [{headline, sentiment, source, time}...]}     │    │   │
+│  │  │  macro: {vix, dxy, tnx, fgi, regime, updated_at}           │    │   │
+│  │  │  signals: {TSLA: {luxalgo, ml_pred, fused, updated_at}}    │    │   │
+│  │  │  fundamentals: {TSLA: {pe, roe, margins, updated_at}}      │    │   │
+│  │  │                                                              │    │   │
+│  │  │  ANY agent or engine reads from here — ZERO API calls       │    │   │
+│  │  │  at query time for data that's already cached               │    │   │
+│  │  └──────────────────────────────────────────────────────────────┘    │   │
+│  └──────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+│  ┌──────────────────────────────────────────────────────────────────────┐   │
+│  │                    LAYER 2: SIGNAL GENERATION                        │   │
+│  │                                                                      │   │
+│  │  Runs on every World State update (event-driven, not on-demand)     │   │
+│  │                                                                      │   │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌──────────────┐  │   │
+│  │  │ Technical    │ │ ML Ensemble │ │ Sentiment   │ │ Regime       │  │   │
+│  │  │ Signals      │ │             │ │ Signals     │ │ Detection    │  │   │
+│  │  │             │ │ TFT         │ │             │ │              │  │   │
+│  │  │ 50+ indics  │ │ TCN         │ │ FinBERT     │ │ HMM (3-st)  │  │   │
+│  │  │ LuxAlgo MTF │ │ N-BEATS     │ │ News agg    │ │ VIX regime   │  │   │
+│  │  │ Patterns    │ │ TabNet      │ │ Social      │ │ Vol regime   │  │   │
+│  │  │ S/R levels  │ │ Ensemble    │ │             │ │ Trend regime │  │   │
+│  │  │             │ │ Meta-learner│ │             │ │              │  │   │
+│  │  └──────┬──────┘ └──────┬──────┘ └──────┬──────┘ └──────┬───────┘  │   │
+│  │         │               │               │               │           │   │
+│  │         ▼               ▼               ▼               ▼           │   │
+│  │  ┌──────────────────────────────────────────────────────────────┐    │   │
+│  │  │           SIGNAL FUSION (Learned Weights, Not Hardcoded)     │    │   │
+│  │  │                                                              │    │   │
+│  │  │  Weights derived from rolling 90-day accuracy per signal     │    │   │
+│  │  │  per regime. Bayesian weight updating. Not hand-tuned.       │    │   │
+│  │  │                                                              │    │   │
+│  │  │  Output: FusedSignal per symbol (direction, confidence,      │    │   │
+│  │  │          stop, targets, position_size)                       │    │   │
+│  │  └──────────────────────────────────────────────────────────────┘    │   │
+│  └──────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+│  ┌──────────────────────────────────────────────────────────────────────┐   │
+│  │                    LAYER 3: DECISION ENGINE v2                       │   │
+│  │                                                                      │   │
+│  │  Rebuilt from ground up. Every input is REAL or doesn't exist.      │   │
+│  │                                                                      │   │
+│  │  Inputs (all from World State + Signal Layer):                      │   │
+│  │  ├── Fused Signal (direction, confidence, components)               │   │
+│  │  ├── Technical snapshot (RSI, MACD, BBands, ATR, S/R, patterns)    │   │
+│  │  ├── ML ensemble prediction (direction, confidence, disagreement)   │   │
+│  │  ├── Sentiment composite (FinBERT, news volume, FGI)               │   │
+│  │  ├── Regime state (HMM + VIX + trend)                              │   │
+│  │  ├── Macro context (DXY, yields, sector rotation)                  │   │
+│  │  ├── LuxAlgo MTF (when available)                                   │   │
+│  │  └── Risk metrics (VaR, correlation, drawdown from RiskManager)     │   │
+│  │                                                                      │   │
+│  │  Risk Veto (REAL portfolio-aware):                                  │   │
+│  │  ├── Position concentration (actual portfolio, not signal proxy)    │   │
+│  │  ├── Portfolio VaR breach                                           │   │
+│  │  ├── Correlation with existing positions                            │   │
+│  │  ├── Earnings within 3 days (StockNews calendar)                   │   │
+│  │  ├── Signal conflict (multi-timeframe disagreement)                 │   │
+│  │  ├── Regime unfavorable for direction                               │   │
+│  │  └── Stale data (any critical input > threshold age)               │   │
+│  │                                                                      │   │
+│  │  Output: TradeDecision with REAL validation metrics                 │   │
+│  │  (tracked win rate, tracked accuracy, backtested edge)              │   │
+│  └──────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+│  ┌──────────────────────────────────────────────────────────────────────┐   │
+│  │                    LAYER 4: AGENT ORCHESTRATION                      │   │
+│  │                                                                      │   │
+│  │  Agents read from World State (zero API calls at query time)        │   │
+│  │  Each agent adds ANALYTICAL VALUE, not just data fetching           │   │
+│  │                                                                      │   │
+│  │  Existing (upgraded):                                               │   │
+│  │  ├── MarketAnalyst — reads from World State, adds pattern interp   │   │
+│  │  ├── NewsAnalyst — reads from World State, adds event impact est   │   │
+│  │  ├── RiskManager — reads from World State, adds portfolio-aware    │   │
+│  │  ├── FundamentalAnalyst — adds ratio analysis + SEC RAG           │   │
+│  │  ├── QuantAnalyst — reads ML signals, adds statistical interp     │   │
+│  │  ├── MacroAnalyst — reads macro state, adds cross-asset interp    │   │
+│  │  ├── PortfolioOptimizer — adds allocation optimization            │   │
+│  │  └── CryptoSpecialist — adds on-chain + DeFi interpretation       │   │
+│  │                                                                      │   │
+│  │  New agents:                                                        │   │
+│  │  ├── AlternativeDataAgent — web scraping, social sentiment,        │   │
+│  │  │   SEC filing NLP, earnings call transcript analysis             │   │
+│  │  ├── CrossAssetAgent — inter-market analysis, pairs, spreads      │   │
+│  │  └── EventCatalystAgent — earnings, FDA, FOMC, geopolitical       │   │
+│  │                                                                      │   │
+│  │  SYNTHESIS ENGINE (programmatic, not just Claude prompt dump):      │   │
+│  │  ├── Bayesian consensus scoring across agents                      │   │
+│  │  ├── Conflict detection + resolution logic                         │   │
+│  │  ├── Confidence calibration (are 80% predictions right 80%?)       │   │
+│  │  └── Claude gets STRUCTURED synthesis, not raw data dump           │   │
+│  └──────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+│  ┌──────────────────────────────────────────────────────────────────────┐   │
+│  │                    LAYER 5: LEARNING LOOP                            │   │
+│  │                                                                      │   │
+│  │  WIRED IN (not dead code):                                          │   │
+│  │  ├── Every prediction tracked with full signal snapshot             │   │
+│  │  ├── Outcomes resolved at T+1d, T+5d, T+20d                       │   │
+│  │  ├── Rolling accuracy per signal source, per regime, per asset     │   │
+│  │  ├── Signal weights auto-adjusted (Bayesian, 90-day rolling)       │   │
+│  │  ├── Model retraining triggered on accuracy degradation            │   │
+│  │  ├── Confidence calibration (Platt scaling on rolling window)      │   │
+│  │  └── Weekly performance reports (automated)                         │   │
+│  └──────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+│  ┌──────────────────────────────────────────────────────────────────────┐   │
+│  │                    LAYER 6: API DELIVERY                             │   │
+│  │                                                                      │   │
+│  │  WebSocket primary (bidirectional, token streaming)                  │   │
+│  │  SSE fallback (for clients that can't do WS)                       │   │
+│  │                                                                      │   │
+│  │  ├── Token-by-token streaming of Claude's response                 │   │
+│  │  ├── Real-time agent progress events                                │   │
+│  │  ├── Concurrent request handling (asyncio, no global lock)         │   │
+│  │  ├── Request queuing with backpressure                             │   │
+│  │  └── Metadata from the SAME analysis (no redundant Lambda call)    │   │
+│  └──────────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+## ML Architecture — The Real Rebuild
+
+This is where the biggest gap is. Here's what institutional quant ML actually looks like:
+
+### Model Architecture: Temporal Fusion Transformer + Ensemble
+
+The current 4,715-parameter MLP with 35 features is not going to produce alpha. Here's the target:
+
+**Feature Set (150+ features across 5 categories):**
+
+| Category | Features | Source |
+|----------|----------|--------|
+| Price/Volume (40) | Returns (1d-60d), log returns, realized vol (5d-60d), volume ratios, VWAP deviation, overnight gaps, intraday range | Polygon |
+| Technical (35) | RSI, MACD, Bollinger, ATR, ADX, Stochastic, OBV, MFI, CCI, Williams %R, Ichimoku, pivot points, S/R distance | Polygon |
+| Sentiment (25) | FinBERT score (article-level), news volume, sentiment momentum, FGI, VIX term structure, put/call ratio proxy | StockNews, CryptoNews, FinBERT |
+| Cross-Asset (25) | Sector ETF relative strength, DXY, yields (2Y/10Y/spread), gold, oil, BTC correlation, SPY beta, sector rotation score | Polygon |
+| Fundamental (25) | P/E rank, revenue growth, margin trend, ROE, debt/equity, earnings surprise history, dividend yield, buyback yield | Polygon Financials |
+
+**Model Stack:**
+
+| Model | Architecture | Why |
+|-------|-------------|-----|
+| **Temporal Fusion Transformer** | Multi-horizon attention with variable selection | State-of-the-art for time series with mixed inputs. Handles static (sector, market cap) + temporal (price, sentiment) features natively. Interpretable attention weights. |
+| **Temporal Convolutional Network** | Dilated causal convolutions, residual blocks | Fast inference, good at capturing multi-scale temporal patterns. Complementary to TFT. |
+| **N-BEATS** (Interpretable) | Trend + seasonality decomposition stacks | Captures cyclical patterns that attention models miss. Already in codebase (dead code). |
+| **TabNet** | Attention-based feature selection on tabular data | Handles the cross-sectional features (fundamentals, cross-asset) that sequence models underweight. |
+| **Meta-Learner** | Gradient-boosted ensemble (XGBoost) over base model outputs | Learns which model to trust in which regime. Handles model disagreement. Not a neural net — intentionally different architecture class. |
+
+**Training Protocol:**
+
+| Parameter | Value | Why |
+|-----------|-------|-----|
+| Validation | Purged walk-forward (5 folds, 30-day purge gap) | Prevents look-ahead bias that inflated the current Sharpe ratios |
+| Target | 5-day forward return (not 1-day) | More signal, less noise. 1-day is dominated by microstructure |
+| Loss | Sharpe-aware loss + directional penalty + MSE blend | Optimizes for risk-adjusted returns, not just accuracy |
+| Retraining | Monthly walk-forward, triggered on accuracy degradation | Models don't go stale |
+| Universe | Top 100 liquid US equities + top 20 crypto | Train cross-sectionally — one model learns patterns across all assets |
+| Statistical test | Combinatorial purged cross-validation with p-value threshold < 0.05 | No model ships without statistical significance |
+
+### Why NOT Bedrock for this
+
+Bedrock is the wrong tool for the ML layer. Here's why:
+
+- **SageMaker endpoints** add 50-200ms cold start latency per prediction. Your models should run locally in the API process (PyTorch inference on CPU is <10ms for these model sizes).
+- **Bedrock's agent orchestration** adds overhead vs. your current asyncio.gather approach, which is already well-implemented.
+- **Bedrock's LLM access** is marginally useful — you're already calling Claude directly via the Anthropic SDK, which gives you more control over streaming, caching, and prompt engineering.
+
+The one place Bedrock/AWS adds value is **SageMaker Training Jobs** for the monthly model retraining — use spot instances to train on GPU, then download the model artifacts to your API server.
+
+---
+
+## Execution Plan — Phased
+
+### Phase 1: Fix the Foundation (Week 1-2)
+**Goal:** Make everything that claims to work actually work. Wire in the learning loop. Fix the Decision Engine.
+
+### Phase 2: ML Rebuild (Week 2-4)
+**Goal:** Replace coin-flip MLPs with statistically significant ensemble models across 100+ symbols.
+
+### Phase 3: Continuous Data Fabric (Week 3-4)
+**Goal:** Background data workers so the system is always current, not fetching on demand.
+
+### Phase 4: Synthesis Engine + API Delivery (Week 4-5)
+**Goal:** Programmatic synthesis, token streaming, concurrent request handling.
+
+### Phase 5: New Agents + Alternative Data (Week 5-6)
+**Goal:** Add the agents that provide genuine incremental alpha.
+
+---
+
+## Let's Start Executing — Phase 1, Step 1
+
+The single highest-impact fix is **wiring in the learning loop**. Without it, you can't measure whether anything else you build actually works. It's the foundation for everything.
+
+### Copilot Prompt #1 — Paste this exactly:
+
+```
+I need you to wire the existing learning infrastructure into the runtime system. The learning/ directory has PredictionTracker, AccuracyMonitor, WeightAdjuster, and ContinuousLearningEngine — all well-written but never imported by any runtime code.
+
+Here's exactly what I need you to do:
+
+STEP 1: Create a new file src/nuble/learning/learning_hub.py that acts as a singleton coordinator:
+
+```python
+"""
+LearningHub — Singleton that coordinates all learning components.
+Imported by Manager and Orchestrator to track predictions and adjust weights.
+"""
+import threading
+from pathlib import Path
+from typing import Optional, Dict, Any, List
+from datetime import datetime
+import json
+
+class LearningHub:
+    """Thread-safe singleton coordinating prediction tracking, accuracy monitoring, and weight adjustment."""
+    
+    _instance: Optional['LearningHub'] = None
+    _lock = threading.Lock()
+    
+    def __new__(cls):
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = super().__new__(cls)
+                cls._instance._initialized = False
+            return cls._instance
+    
+    def __init__(self):
+        if self._initialized:
+            return
+        self._initialized = True
+        
+        # Storage directory
+        self.data_dir = Path.home() / '.nuble' / 'learning'
+        self.data_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Import existing learning components
+        from nuble.learning.prediction_tracker import PredictionTracker
+        from nuble.learning.accuracy_monitor import AccuracyMonitor
+        from nuble.learning.weight_adjuster import WeightAdjuster
+        
+        self.tracker = PredictionTracker(storage_path=str(self.data_dir / 'predictions.json'))
+        self.monitor = AccuracyMonitor()
+        self.adjuster = WeightAdjuster()
+        
+        # Current learned weights (loaded from disk or defaults)
+        self._weights_path = self.data_dir / 'learned_weights.json'
+        self.signal_weights = self._load_weights()
+        
+        # Thread safety for weight updates
+        self._weights_lock = threading.Lock()
+    
+    def _load_weights(self) -> Dict[str, float]:
+        """Load learned weights from disk, or return defaults."""
+        if self._weights_path.exists():
+            try:
+                with open(self._weights_path) as f:
+                    return json.load(f)
+            except Exception:
+                pass
+        # Defaults matching current fusion engine
+        return {
+            'technical_luxalgo': 0.20,
+            'technical_classic': 0.03,
+            'ml_ensemble': 0.12,
+            'sentiment_finbert': 0.08,
+            'sentiment_news': 0.08,
+            'regime_hmm': 0.07,
+            'macro_context': 0.05,
+            'fundamental': 0.05,
+        }
+    
+    def _save_weights(self):
+        """Persist current weights to disk."""
+        try:
+            with open(self._weights_path, 'w') as f:
+                json.dump(self.signal_weights, f, indent=2)
+        except Exception:
+            pass
+    
+    def record_prediction(
+        self,
+        symbol: str,
+        direction: str,  # "BULLISH", "BEARISH", "NEUTRAL"
+        confidence: float,
+        price_at_prediction: float,
+        source: str,  # "decision_engine", "ml_ensemble", "fused_signal"
+        signal_snapshot: Dict[str, Any],  # Full snapshot of all signals at prediction time
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        """Record a prediction. Returns prediction_id for later resolution."""
+        prediction_id = f"{symbol}_{source}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        
+        record = {
+            'id': prediction_id,
+            'symbol': symbol,
+            'direction': direction,
+            'confidence': confidence,
+            'price_at_prediction': price_at_prediction,
+            'source': source,
+            'signal_snapshot': signal_snapshot,
+            'timestamp': datetime.now().isoformat(),
+            'metadata': metadata or {},
+            'resolved': False,
+            'outcome': None,
+        }
+        
+        # Use the existing PredictionTracker
+        self.tracker.log_prediction(record)
+        return prediction_id
+    
+    def resolve_predictions(self, symbol: str, current_price: float):
+        """
+        Called periodically (e.g., daily) to resolve outstanding predictions.
+        Checks if predictions from 1d, 5d, 20d ago can be scored.
+        Updates accuracy monitor and weight adjuster.
+        """
+        resolved = self.tracker.resolve_outcomes(symbol, current_price)
+        
+        if resolved:
+            # Update accuracy monitor
+            for pred in resolved:
+                self.monitor.update(
+                    source=pred['source'],
+                    predicted_direction=pred['direction'],
+                    actual_direction='BULLISH' if pred['actual_return'] > 0 else 'BEARISH',
+                    confidence=pred['confidence'],
+                    regime=pred.get('signal_snapshot', {}).get('regime', 'UNKNOWN'),
+                )
+            
+            # Check if weights need adjustment
+            accuracy_report = self.monitor.get_accuracy_report()
+            new_weights = self.adjuster.adjust(
+                current_weights=self.signal_weights,
+                accuracy_report=accuracy_report,
+            )
+            
+            if new_weights:
+                with self._weights_lock:
+                    self.signal_weights = new_weights
+                    self._save_weights()
+    
+    def get_weights(self) -> Dict[str, float]:
+        """Get current learned signal weights. Thread-safe."""
+        with self._weights_lock:
+            return dict(self.signal_weights)
+    
+    def get_accuracy_report(self) -> Dict[str, Any]:
+        """Get current accuracy statistics."""
+        return self.monitor.get_accuracy_report()
+    
+    def get_prediction_stats(self) -> Dict[str, Any]:
+        """Get prediction tracking statistics."""
+        return self.tracker.get_stats()
+```
+
+STEP 2: Wire LearningHub into Manager (manager.py):
+
+In Manager.__init__(), after the existing component initialization, add:
+
+```python
+# Learning system
+try:
+    from nuble.learning.learning_hub import LearningHub
+    self.learning_hub = LearningHub()
+    self.learning_enabled = True
+except Exception as e:
+    self.learning_hub = None
+    self.learning_enabled = False
+```
+
+In Manager.process_prompt(), after the final answer is generated and BEFORE cleanup, add prediction recording:
+
+```python
+# Record prediction if this was a trading-relevant query
+if self.learning_enabled and hasattr(self, '_last_routed') and self._last_routed:
+    routed = self._last_routed
+    if routed.intent in (QueryIntent.RESEARCH, QueryIntent.PREDICTION) and routed.symbols:
+        for symbol in routed.symbols[:3]:
+            try:
+                # Build signal snapshot from whatever data we collected
+                snapshot = {}
+                if hasattr(self, '_last_lambda_data') and self._last_lambda_data:
+                    snapshot['lambda'] = self._last_lambda_data
+                if hasattr(self, '_last_apex_result') and self._last_apex_result:
+                    apex = self._last_apex_result
+                    snapshot['decision_engine'] = apex.get('data', {}).get('decision_engine')
+                    snapshot['ml_predictions'] = apex.get('data', {}).get('ml_predictions')
+                    snapshot['confidence'] = apex.get('confidence')
+                    snapshot['agents_used'] = apex.get('agents_used')
+                
+                # Extract direction from Decision Engine or Lambda
+                direction = 'NEUTRAL'
+                confidence = 0.5
+                price = 0.0
+                
+                if snapshot.get('decision_engine'):
+                    de = snapshot['decision_engine']
+                    direction = de.get('direction', 'NEUTRAL')
+                    confidence = de.get('confidence', 0.5)
+                
+                if snapshot.get('lambda') and isinstance(snapshot['lambda'], dict):
+                    price = snapshot['lambda'].get('current_price', 0.0)
+                    if not direction or direction == 'NEUTRAL':
+                        direction = snapshot['lambda'].get('direction', 'NEUTRAL')
+                
+                if price > 0:
+                    self.learning_hub.record_prediction(
+                        symbol=symbol,
+                        direction=direction,
+                        confidence=confidence,
+                        price_at_prediction=price,
+                        source='apex_full',
+                        signal_snapshot=snapshot,
+                    )
+            except Exception:
+                pass  # Learning should never break the main flow
+```
+
+Also store the routed query and APEX result as instance vars so we can reference them:
+- After SmartRouter returns: `self._last_routed = routed`
+- After collecting orchestrator result: `self._last_apex_result = apex_result`
+- After Lambda data injection in agent.answer(): `self._last_lambda_data = lambda_data`
+
+STEP 3: Wire LearningHub into the Orchestrator (agents/orchestrator.py):
+
+In OrchestratorAgent.__init__(), add:
+```python
+try:
+    from nuble.learning.learning_hub import LearningHub
+    self.learning_hub = LearningHub()
+except Exception:
+    self.learning_hub = None
+```
+
+In the _generate_response() method, after building the response, record per-agent predictions:
+```python
+if self.learning_hub and synthesis_data.get('symbols'):
+    for symbol in synthesis_data['symbols'][:3]:
+        # Record the Decision Engine prediction specifically
+        de = synthesis_data.get('decision_engine')
+        if de and isinstance(de, dict):
+            try:
+                price = de.get('current_price') or de.get('entry_price', 0)
+                if price:
+                    self.learning_hub.record_prediction(
+                        symbol=symbol,
+                        direction=de.get('direction', 'NEUTRAL'),
+                        confidence=de.get('confidence', 0.5),
+                        price_at_prediction=float(price),
+                        source='decision_engine',
+                        signal_snapshot={
+                            'technical_score': de.get('technical_score'),
+                            'intelligence_score': de.get('intelligence_score'),
+                            'ml_predictions': synthesis_data.get('ml_predictions'),
+                            'agents_used': list(synthesis_data.get('agent_outputs', {}).keys()),
+                        },
+                    )
+            except Exception:
+                pass
+```
+
+STEP 4: Add a background prediction resolver
+
+Create src/nuble/learning/resolver.py:
+```python
+"""
+Background task that resolves outstanding predictions by checking current prices.
+Runs every hour, checks predictions from 1d, 5d, and 20d ago.
+"""
+import asyncio
+import logging
+from datetime import datetime, timedelta
+from typing import Optional
+import requests
+
+logger = logging.getLogger(__name__)
+
+POLYGON_BASE = "https://api.polygon.io"
+
+class PredictionResolver:
+    def __init__(self, learning_hub, polygon_api_key: str):
+        self.hub = learning_hub
+        self.api_key = polygon_api_key
+        self._running = False
+        self._task: Optional[asyncio.Task] = None
+    
+    def start(self):
+        """Start the background resolver loop."""
+        if not self._running:
+            self._running = True
+            self._task = asyncio.create_task(self._resolve_loop())
+            logger.info("PredictionResolver started")
+    
+    def stop(self):
+        """Stop the background resolver."""
+        self._running = False
+        if self._task:
+            self._task.cancel()
+    
+    async def _resolve_loop(self):
+        while self._running:
+            try:
+                await self._resolve_all()
+            except Exception as e:
+                logger.error(f"Resolver error: {e}")
+            await asyncio.sleep(3600)  # Run every hour
+    
+    async def _resolve_all(self):
+        """Get all unresolved predictions and check current prices."""
+        unresolved = self.hub.tracker.get_unresolved()
+        symbols = set(p['symbol'] for p in unresolved)
+        
+        for symbol in symbols:
+            try:
+                price = await self._get_price(symbol)
+                if price:
+                    self.hub.resolve_predictions(symbol, price)
+            except Exception as e:
+                logger.warning(f"Failed to resolve {symbol}: {e}")
+    
+    async def _get_price(self, symbol: str) -> Optional[float]:
+        """Fetch current price from Polygon."""
+        try:
+            url = f"{POLYGON_BASE}/v2/aggs/ticker/{symbol}/prev"
+            resp = requests.get(url, params={'apiKey': self.api_key}, timeout=10)
+            if resp.ok:
+                data = resp.json()
+                results = data.get('results', [])
+                if results:
+                    return results[0].get('c')
+        except Exception:
+            pass
+        return None
+```
+
+STEP 5: Wire the resolver into the API server (api/server.py):
+
+In the FastAPI startup event, add:
+```python
+@app.on_event("startup")
+async def startup():
+    # ... existing startup code ...
+    
+    # Start prediction resolver
+    try:
+        from nuble.learning.learning_hub import LearningHub
+        from nuble.learning.resolver import PredictionResolver
+        hub = LearningHub()
+        resolver = PredictionResolver(hub, polygon_api_key=os.getenv('POLYGON_API_KEY', ''))
+        resolver.start()
+        app.state.resolver = resolver
+        logger.info("PredictionResolver started")
+    except Exception as e:
+        logger.warning(f"Learning system not available: {e}")
+```
+
+STEP 6: Add a /api/learning/stats endpoint to server.py:
+```python
+@app.get("/api/learning/stats")
+async def learning_stats():
+    try:
+        from nuble.learning.learning_hub import LearningHub
+        hub = LearningHub()
+        return {
+            "accuracy": hub.get_accuracy_report(),
+            "predictions": hub.get_prediction_stats(),
+            "current_weights": hub.get_weights(),
+        }
+    except Exception as e:
+        return {"error": str(e)}
+```
+
+IMPORTANT IMPLEMENTATION NOTES:
+1. The PredictionTracker in prediction_tracker.py may need its log_prediction() and resolve_outcomes() signatures adjusted to match the LearningHub interface. Check the existing method signatures and adapt.
+2. Same for AccuracyMonitor.update() and WeightAdjuster.adjust() — check their actual signatures and make the LearningHub calls match.
+3. The learning system must NEVER crash the main pipeline. Every learning call should be wrapped in try/except.
+4. Use the existing learning code as much as possible — don't rewrite it. Just wire it in.
+
+Before writing any code, read the actual method signatures in:
+- src/nuble/learning/prediction_tracker.py
+- src/nuble/learning/accuracy_monitor.py  
+- src/nuble/learning/weight_adjuster.py
+- src/nuble/learning/continuous_learning.py (if it has useful components)
+
+Then implement the LearningHub adapter to match those actual signatures.
+```
+

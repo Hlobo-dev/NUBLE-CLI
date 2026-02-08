@@ -225,6 +225,14 @@ class LambdaAnalysis:
     polygon_available: bool = False
     luxalgo_aligned: bool = False
     
+    # LuxAlgo multi-timeframe signals (parsed from Lambda technical layer)
+    luxalgo_weekly_action: str = ""
+    luxalgo_daily_action: str = ""
+    luxalgo_h4_action: str = ""
+    luxalgo_direction: str = ""
+    luxalgo_score: float = 0.0
+    luxalgo_valid_count: int = 0
+    
     # Raw response for advanced use
     raw_response: Dict = field(default_factory=dict)
     
@@ -331,6 +339,37 @@ class LambdaAnalysis:
             cryptonews_summary = cls._build_cryptonews_summary(sentiment_data, news_flow)
             analysis_summary = cls._build_analysis_summary(decision, technicals, intelligence)
             
+            # Parse LuxAlgo multi-timeframe signals — use decision.luxalgo_signals
+            # as the source of truth because it contains the `valid` flag.
+            # The tech_components.luxalgo section can show stale actions (e.g.
+            # daily: "SELL") even when the signal is 162+ hours old and expired.
+            # We ONLY show actions for signals that Lambda has validated as fresh.
+            raw_luxalgo_signals = decision.get('luxalgo_signals', {})
+            luxalgo_data = tech_components.get('luxalgo', {})
+            
+            def _get_valid_action(tf_key: str) -> str:
+                """Return action only if Lambda says the signal is still valid."""
+                sig = raw_luxalgo_signals.get(tf_key, {})
+                if sig and sig.get('valid', False) and sig.get('action'):
+                    return sig['action']
+                return 'N/A'
+            
+            luxalgo_weekly_action = _get_valid_action('weekly')
+            luxalgo_daily_action = _get_valid_action('daily')
+            luxalgo_h4_action = _get_valid_action('h4')
+            
+            # Direction and alignment only meaningful when we have valid signals
+            luxalgo_valid_count = sum(1 for a in [luxalgo_weekly_action, luxalgo_daily_action, luxalgo_h4_action] if a != 'N/A')
+            
+            if luxalgo_valid_count > 0:
+                luxalgo_direction = raw_luxalgo_signals.get('direction', luxalgo_data.get('direction', ''))
+                luxalgo_aligned = raw_luxalgo_signals.get('aligned', False) and luxalgo_valid_count >= 2
+                luxalgo_score = luxalgo_data.get('score', 0.0)
+            else:
+                luxalgo_direction = ''
+                luxalgo_aligned = False
+                luxalgo_score = 0.0
+            
             return cls(
                 symbol=decision.get('symbol', data.get('symbol', '')),
                 timestamp=datetime.fromisoformat(decision.get('timestamp', datetime.now(timezone.utc).isoformat()).replace('Z', '+00:00')) if decision.get('timestamp') else datetime.now(timezone.utc),
@@ -355,7 +394,13 @@ class LambdaAnalysis:
                 analysis_summary=analysis_summary,
                 data_points_used=decision.get('data_points_used', 0),
                 polygon_available=decision.get('polygon_available', False),
-                luxalgo_aligned=decision.get('luxalgo_aligned', False),
+                luxalgo_aligned=luxalgo_aligned,
+                luxalgo_weekly_action=luxalgo_weekly_action,
+                luxalgo_daily_action=luxalgo_daily_action,
+                luxalgo_h4_action=luxalgo_h4_action,
+                luxalgo_direction=luxalgo_direction,
+                luxalgo_score=luxalgo_score,
+                luxalgo_valid_count=luxalgo_valid_count,
                 raw_response=data,
                 api_latency_ms=latency_ms
             )
@@ -913,6 +958,20 @@ def format_analysis_for_context(analysis: LambdaAnalysis) -> str:
         
         # Score
         parts.append(f"- **Technical Score**: {tech.technical_score:+.2f} (confidence: {tech.technical_confidence:.0%})")
+        parts.append("")
+    
+    # LuxAlgo Multi-Timeframe Signals (34% weight in Decision Engine — CRITICAL)
+    if analysis.luxalgo_valid_count > 0 or analysis.luxalgo_aligned:
+        aligned_emoji = "✅ ALIGNED" if analysis.luxalgo_aligned else "⚠️ MIXED"
+        parts.append(f"### 📊 LuxAlgo Premium Signals ({aligned_emoji})")
+        parts.append(f"- **Alignment**: {aligned_emoji} | Direction: {analysis.luxalgo_direction or 'N/A'}")
+        parts.append(f"- **Weekly (1W)**: {analysis.luxalgo_weekly_action} — *highest timeframe, most reliable*")
+        parts.append(f"- **Daily (1D)**: {analysis.luxalgo_daily_action}")
+        parts.append(f"- **4-Hour (4H)**: {analysis.luxalgo_h4_action} — *shortest timeframe, most responsive*")
+        parts.append(f"- **LuxAlgo Score**: {analysis.luxalgo_score:+.3f} (weight: 34% of Decision Engine)")
+        parts.append(f"- **Valid Signals**: {analysis.luxalgo_valid_count}/3 timeframes reporting")
+        if analysis.luxalgo_aligned:
+            parts.append(f"- 🔥 **All timeframes agree on {analysis.luxalgo_direction}** — HIGH CONVICTION signal")
         parts.append("")
     
     # Market context (VIX)

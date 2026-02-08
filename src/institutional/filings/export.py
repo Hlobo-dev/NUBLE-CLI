@@ -5,6 +5,7 @@ SEC Filings Export
 Export SEC filings analysis to PDF, DOCX, and XLSX formats.
 Based on TENK export capabilities.
 """
+from __future__ import annotations
 
 import os
 from typing import Optional, Dict, Any, List

@@ -76,8 +76,17 @@ class SmartRouter:
     PREDICTION_PATTERNS = [
         r'(predict|prediction|forecast|ml)\s+(for|of)?\s*(\$?[A-Z]{1,5})',
         r'(\$?[A-Z]{1,5})\s+(prediction|forecast|ml|model)',
-        r'(what will|where will|should i buy)\s+(\$?[A-Z]{1,5})',
+        r'(what will|where will)\s+(\$?[A-Z]{1,5})',
         r'(transformer|lstm|ensemble|nbeats)\s+(for|of|model)?\s*(\$?[A-Z]{1,5})',
+    ]
+    
+    # Research patterns — complex queries needing full LLM/APEX analysis
+    RESEARCH_PATTERNS = [
+        r'(should i|would you|do you recommend)\s+(buy|sell|hold|invest|trade)',
+        r'(buy or sell|bullish or bearish|good investment)\s+(\$?[A-Z]{1,5})',
+        r'(what do you think|your opinion|analysis)\s+(of|on|about|for)\s+(\$?[A-Z]{1,5})',
+        r'(is it|is now)\s+(a good time|time to)\s+(buy|sell|invest)',
+        r'(give me|provide|full|deep|detailed)\s+(analysis|research|breakdown)',
     ]
     
     PATTERN_PATTERNS = [
@@ -143,6 +152,9 @@ class SmartRouter:
         self._compiled_patterns['comparison'] = [
             re.compile(p, re.IGNORECASE) for p in self.COMPARISON_PATTERNS
         ]
+        self._compiled_patterns['research'] = [
+            re.compile(p, re.IGNORECASE) for p in self.RESEARCH_PATTERNS
+        ]
     
     def route(self, query: str) -> RoutedQuery:
         """
@@ -156,6 +168,18 @@ class SmartRouter:
         symbols = self._extract_symbols(query)
         
         # Try fast path patterns in order of specificity
+        
+        # 0. Research queries — MUST check before prediction to avoid
+        #    "should I buy TSLA" going to ML-only fast path instead of full APEX
+        if self._matches_patterns(query, 'research'):
+            return RoutedQuery(
+                intent=QueryIntent.RESEARCH,
+                symbols=symbols,
+                parameters={'query': query},
+                confidence=0.9,
+                requires_llm=True,
+                fast_path=False
+            )
         
         # 1. Prediction queries
         if self._matches_patterns(query, 'prediction'):

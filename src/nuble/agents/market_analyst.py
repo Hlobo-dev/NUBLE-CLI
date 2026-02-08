@@ -162,7 +162,7 @@ class MarketAnalystAgent(SpecializedAgent):
             }
             
             # Calculate technical indicators
-            technicals = self._calculate_technicals(historical)
+            technicals = self._calculate_technicals(historical, symbol)
             result['technicals'] = technicals
             
             # Detect patterns
@@ -368,18 +368,22 @@ class MarketAnalystAgent(SpecializedAgent):
         
         return self._real_historical(symbol, days)
     
-    def _calculate_technicals(self, data: List[Dict]) -> Dict[str, Any]:
+    def _calculate_technicals(self, data: List[Dict], symbol: str = 'SPY') -> Dict[str, Any]:
         """Calculate 50+ technical indicators."""
         if not data or not HAS_NUMPY:
-            return self._real_technicals(data[0]['symbol'] if data else 'SPY')
+            return self._real_technicals(symbol)
         
-        closes = np.array([d['close'] for d in data if d['close']])
-        highs = np.array([d['high'] for d in data if d['high']])
-        lows = np.array([d['low'] for d in data if d['low']])
-        volumes = np.array([d['volume'] for d in data if d['volume']])
+        # Filter bars where ALL OHLCV fields are present to keep arrays aligned
+        valid_bars = [d for d in data if d.get('close') is not None and d.get('high') is not None 
+                      and d.get('low') is not None and d.get('open') is not None]
         
-        if len(closes) < 20:
-            return self._real_technicals(data[0]['symbol'] if data else 'SPY')
+        if len(valid_bars) < 20:
+            return self._real_technicals(symbol)
+        
+        closes = np.array([d['close'] for d in valid_bars])
+        highs = np.array([d['high'] for d in valid_bars])
+        lows = np.array([d['low'] for d in valid_bars])
+        volumes = np.array([d.get('volume', 0) or 0 for d in valid_bars])
         
         # Moving Averages
         sma_5 = np.mean(closes[-5:]) if len(closes) >= 5 else None
@@ -928,14 +932,6 @@ class MarketAnalystAgent(SpecializedAgent):
             server_rsi = rsi_vals[0].get('value')
         
         # SMAs
-        for window, attr_name in [(20, 'server_sma_20'), (50, 'server_sma_50'), (200, 'server_sma_200')]:
-            sma_data = _pg(f"https://api.polygon.io/v1/indicators/sma/{symbol}",
-                           {'timespan': 'day', 'window': window, 'series_type': 'close', 'order': 'desc', 'limit': 1})
-            sma_vals = sma_data.get('results', {}).get('values', [])
-            if sma_vals:
-                locals()[attr_name] = sma_vals[0].get('value')
-        
-        # Actually assign since locals() trick may not persist
         for window in [20, 50, 200]:
             sma_data = _pg(f"https://api.polygon.io/v1/indicators/sma/{symbol}",
                            {'timespan': 'day', 'window': window, 'series_type': 'close', 'order': 'desc', 'limit': 1})
