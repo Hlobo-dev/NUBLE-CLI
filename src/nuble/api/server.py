@@ -644,6 +644,17 @@ async def startup():
     logger.info("NUBLE API starting up...")
     loop = asyncio.get_event_loop()
     await loop.run_in_executor(None, _mgr._ensure_init)
+
+    # ── Start Learning Resolver (background prediction resolution) ───────
+    try:
+        from ..learning.learning_hub import LearningHub
+        from ..learning.resolver import PredictionResolver
+        _resolver = PredictionResolver(LearningHub())
+        await _resolver.start()
+        logger.info("Learning resolver started — resolving predictions hourly")
+    except Exception as exc:
+        logger.warning("Learning resolver unavailable: %s", exc)
+
     logger.info("NUBLE API ready")
 
 
@@ -1023,6 +1034,41 @@ async def websocket_chat(websocket: WebSocket):
             await websocket.send_json({"type": "error", "message": str(e)})
         except Exception:
             pass
+
+
+
+# ── Learning System ─────────────────────────────────────────────────────
+
+@app.get("/api/learning/stats")
+async def learning_stats():
+    """Get learning system statistics: accuracy, predictions, current weights."""
+    try:
+        from ..learning.learning_hub import LearningHub
+        hub = LearningHub()
+        return {
+            "status": "active",
+            "accuracy": hub.get_accuracy_report(),
+            "predictions": hub.get_prediction_stats(),
+            "current_weights": hub.get_weights(),
+        }
+    except Exception as e:
+        return {"status": "unavailable", "error": str(e)}
+
+
+@app.get("/api/learning/predictions")
+async def learning_predictions():
+    """Get all raw predictions (for debugging/analysis)."""
+    try:
+        from ..learning.learning_hub import LearningHub
+        hub = LearningHub()
+        unresolved = hub.get_unresolved()
+        return {
+            "total": len(hub._raw_predictions),
+            "unresolved_count": len(unresolved),
+            "recent_predictions": list(hub._raw_predictions.values())[-20:],
+        }
+    except Exception as e:
+        return {"status": "unavailable", "error": str(e)}
 
 
 # ── Conversation management ─────────────────────────────────────────────────

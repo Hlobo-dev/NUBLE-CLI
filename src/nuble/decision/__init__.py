@@ -22,6 +22,16 @@ from .data_classes import (
     RiskLayerScore,
     Regime,
 )
+from .enrichment_engine import (
+    EnrichmentEngine,
+    EnrichedIntelligence,
+    EnrichedMetric,
+    Anomaly,
+    Divergence,
+    ConflictV2,
+    ConsensusMetrics,
+)
+from .trade_setup import TradeSetupCalculator, TradeSetupResult
 
 __all__ = [
     'DecisionEngineV2',
@@ -32,4 +42,13 @@ __all__ = [
     'ValidationLayerScore',
     'RiskLayerScore',
     'Regime',
+    'EnrichmentEngine',
+    'EnrichedIntelligence',
+    'EnrichedMetric',
+    'Anomaly',
+    'Divergence',
+    'ConflictV2',
+    'ConsensusMetrics',
+    'TradeSetupCalculator',
+    'TradeSetupResult',
 ]

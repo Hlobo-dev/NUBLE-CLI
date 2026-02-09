@@ -71,7 +71,7 @@ class FundamentalAnalystAgent(SpecializedAgent):
             
             analyses = {}
             for symbol in symbols[:3]:
-                analyses[symbol] = self._analyze_fundamentals(symbol)
+                analyses[symbol] = await self._analyze_fundamentals(symbol, task)
             
             return AgentResult(
                 task_id=task.task_id,
@@ -105,13 +105,14 @@ class FundamentalAnalystAgent(SpecializedAgent):
             logger.warning(f"Polygon call failed {url}: {e}")
         return {}
     
-    def _analyze_fundamentals(self, symbol: str) -> Dict:
+    async def _analyze_fundamentals(self, symbol: str, task=None) -> Dict:
         """Full fundamental analysis from multiple real data sources."""
         symbol = symbol.upper().replace('$', '')
         result = {'symbol': symbol, 'data_source': 'polygon_multi_endpoint', 'analysis_date': datetime.now().isoformat()}
+        shared = self._get_shared_data(task)
         
         # === 1. Company Details (market cap, sector, description) ===
-        details_data = self._polygon_get(f"https://api.polygon.io/v3/reference/tickers/{symbol}")
+        details_data = (await shared.get_company_info(symbol)) if shared else self._polygon_get(f"https://api.polygon.io/v3/reference/tickers/{symbol}")
         details = details_data.get('results', {})
         if details:
             result['company'] = {
@@ -128,7 +129,7 @@ class FundamentalAnalystAgent(SpecializedAgent):
             }
         
         # === 2. Current Price (for live valuation ratios) ===
-        prev_data = self._polygon_get(f"https://api.polygon.io/v2/aggs/ticker/{symbol}/prev")
+        prev_data = (await shared.get_quote(symbol)) if shared else self._polygon_get(f"https://api.polygon.io/v2/aggs/ticker/{symbol}/prev")
         prev_results = prev_data.get('results', [])
         current_price = prev_results[0]['c'] if prev_results else None
         if prev_results:
@@ -144,13 +145,13 @@ class FundamentalAnalystAgent(SpecializedAgent):
             }
         
         # === 3. Financial Statements (last 4 quarters + 4 annual) ===
-        fin_data = self._polygon_get("https://api.polygon.io/vX/reference/financials", {
+        fin_data = (await shared.get_financials(symbol, "quarterly", 5)) if shared else self._polygon_get("https://api.polygon.io/vX/reference/financials", {
             'ticker': symbol, 'limit': 5, 'timeframe': 'quarterly', 'order': 'desc'
         })
         financials = fin_data.get('results', [])
         
         # Also get annual for TTM calculations
-        annual_data = self._polygon_get("https://api.polygon.io/vX/reference/financials", {
+        annual_data = (await shared.get_financials(symbol, "annual", 2)) if shared else self._polygon_get("https://api.polygon.io/vX/reference/financials", {
             'ticker': symbol, 'limit': 2, 'timeframe': 'annual', 'order': 'desc'
         })
         annual_financials = annual_data.get('results', [])

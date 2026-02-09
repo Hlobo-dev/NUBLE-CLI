@@ -89,20 +89,21 @@ class NewsAnalystAgent(SpecializedAgent):
         
         try:
             symbols = task.context.get('symbols', [])
+            shared = self._get_shared_data(task)
             
             all_news = {}
             for symbol in symbols[:3]:
                 is_crypto = symbol.upper() in CRYPTO_SYMBOLS
                 
                 # === TICKER-SPECIFIC NEWS from multiple sources ===
-                stocknews = self._get_stocknews(symbol) if not is_crypto else []
-                polygon_news = self._get_polygon_news(symbol) if not is_crypto else []
-                crypto_news = self._get_crypto_news(symbol) if is_crypto else []
+                stocknews = await self._get_stocknews(symbol, shared) if not is_crypto else []
+                polygon_news = await self._get_polygon_news(symbol, shared) if not is_crypto else []
+                crypto_news = await self._get_crypto_news(symbol, shared) if is_crypto else []
                 
                 combined = stocknews + polygon_news + crypto_news
                 
                 # === PREMIUM: Quantitative Sentiment Analysis ===
-                quant_sentiment = self._get_sentiment_stats(symbol, is_crypto)
+                quant_sentiment = await self._get_sentiment_stats(symbol, is_crypto, shared)
                 
                 sentiment = self._analyze_sentiment(combined)
                 events = self._detect_events(combined)
@@ -122,21 +123,21 @@ class NewsAnalystAgent(SpecializedAgent):
                     all_news[symbol]['sources_used'].append('CryptoNews PRO')
             
             # === PREMIUM: Market-wide intelligence ===
-            market_sentiment = self._get_market_sentiment()
-            trending = self._get_trending_headlines()
-            top_mentioned = self._get_top_mentioned()
-            breaking_events = self._get_breaking_events()
-            general_market_news = self._get_general_market_news()
-            earnings_calendar = self._get_earnings_calendar()
-            analyst_ratings = self._get_analyst_ratings(symbols)
-            sundown_digest = self._get_sundown_digest()
+            market_sentiment = await self._get_market_sentiment(shared)
+            trending = await self._get_trending_headlines(shared)
+            top_mentioned = await self._get_top_mentioned(shared)
+            breaking_events = await self._get_breaking_events(shared)
+            general_market_news = await self._get_general_market_news(shared)
+            earnings_calendar = await self._get_earnings_calendar(shared)
+            analyst_ratings = await self._get_analyst_ratings(symbols, shared)
+            sundown_digest = await self._get_sundown_digest(shared)
             
             # Crypto-specific premium data
             has_crypto = any(s.upper() in CRYPTO_SYMBOLS for s in symbols)
-            crypto_trending = self._get_crypto_trending() if has_crypto else {}
-            crypto_top_mentioned = self._get_crypto_top_mentioned() if has_crypto else {}
-            crypto_general = self._get_crypto_general_news() if has_crypto else {}
-            crypto_events = self._get_crypto_events() if has_crypto else {}
+            crypto_trending = await self._get_crypto_trending(shared) if has_crypto else {}
+            crypto_top_mentioned = await self._get_crypto_top_mentioned(shared) if has_crypto else {}
+            crypto_general = await self._get_crypto_general_news(shared) if has_crypto else {}
+            crypto_events = await self._get_crypto_events(shared) if has_crypto else {}
             
             data = {
                 'symbol_news': all_news,
@@ -181,8 +182,15 @@ class NewsAnalystAgent(SpecializedAgent):
     # StockNews PRO endpoints
     # ──────────────────────────────────────────────────────────────────────
     
-    def _get_stocknews(self, symbol: str) -> List[Dict]:
+    async def _get_stocknews(self, symbol: str, shared=None) -> List[Dict]:
         """StockNews PRO — Ticker news with sentiment + rank score."""
+        if shared:
+            data = await shared.get_stocknews(symbol)
+            if data and data.get('data'):
+                articles = data['data']
+                for a in articles:
+                    a['_source'] = 'stocknews_pro'
+                return articles
         if not HAS_REQUESTS or not self.stocknews_key:
             return []
         try:
@@ -200,8 +208,15 @@ class NewsAnalystAgent(SpecializedAgent):
             pass
         return []
     
-    def _get_sentiment_stats(self, symbol: str, is_crypto: bool = False) -> Dict:
+    async def _get_sentiment_stats(self, symbol: str, is_crypto: bool = False, shared=None) -> Dict:
         """StockNews/CryptoNews PRO — /stat endpoint for quantitative sentiment over time."""
+        if shared:
+            if is_crypto:
+                data = await shared.get_cryptonews_stat(symbol)
+            else:
+                data = await shared.get_stocknews_stat(symbol, "last30days")
+            if data and data.get('data'):
+                return {'sentiment_data': data['data'], 'period': 'last30days', 'data_source': 'cryptonews_stat' if is_crypto else 'stocknews_stat'}
         if not HAS_REQUESTS:
             return {}
         try:
@@ -227,8 +242,17 @@ class NewsAnalystAgent(SpecializedAgent):
             pass
         return {}
     
-    def _get_trending_headlines(self) -> Dict:
+    async def _get_trending_headlines(self, shared=None) -> Dict:
         """StockNews PRO — /trending-headlines for top trending stories."""
+        if shared:
+            data = await shared.get_stocknews_trending()
+            if data and data.get('data'):
+                headlines = data['data']
+                return {
+                    'headlines': [{'title': h.get('title', ''), 'description': h.get('text', '')[:200] if h.get('text') else '', 'source': h.get('source_name', ''), 'date': h.get('date', ''), 'tickers': h.get('tickers', [])} for h in headlines[:10]],
+                    'count': len(headlines),
+                    'data_source': 'stocknews_trending'
+                }
         if not HAS_REQUESTS or not self.stocknews_key:
             return {}
         try:
@@ -252,8 +276,12 @@ class NewsAnalystAgent(SpecializedAgent):
             pass
         return {}
     
-    def _get_top_mentioned(self) -> Dict:
+    async def _get_top_mentioned(self, shared=None) -> Dict:
         """StockNews PRO — /top-mention for most discussed stocks with sentiment."""
+        if shared:
+            data = await shared.get_stocknews_top_mentioned()
+            if data and data.get('data'):
+                return {'top_tickers': data['data'][:15], 'period': 'last7days', 'data_source': 'stocknews_top_mention'}
         if not HAS_REQUESTS or not self.stocknews_key:
             return {}
         try:
@@ -271,8 +299,17 @@ class NewsAnalystAgent(SpecializedAgent):
             pass
         return {}
     
-    def _get_breaking_events(self) -> Dict:
+    async def _get_breaking_events(self, shared=None) -> Dict:
         """StockNews PRO — /events for breaking news events."""
+        if shared:
+            data = await shared.get_stocknews_events()
+            if data and data.get('data'):
+                events = data['data']
+                return {
+                    'events': [{'title': e.get('title', ''), 'event_id': e.get('eventid', ''), 'date': e.get('date', ''), 'source': e.get('source_name', ''), 'tickers': e.get('tickers', [])} for e in events[:10]],
+                    'count': len(events),
+                    'data_source': 'stocknews_events'
+                }
         if not HAS_REQUESTS or not self.stocknews_key:
             return {}
         try:
@@ -296,8 +333,17 @@ class NewsAnalystAgent(SpecializedAgent):
             pass
         return {}
     
-    def _get_general_market_news(self) -> Dict:
+    async def _get_general_market_news(self, shared=None) -> Dict:
         """StockNews PRO — /category?section=general for Fed, CPI, macro news."""
+        if shared:
+            data = await shared.get_stocknews_category("general")
+            if data and data.get('data'):
+                articles = data['data']
+                return {
+                    'articles': [{'title': a.get('title', ''), 'text': (a.get('text', '')[:200] + '...') if a.get('text') else '', 'sentiment': a.get('sentiment', ''), 'source': a.get('source_name', ''), 'date': a.get('date', ''), 'rank_score': a.get('rankscore', '')} for a in articles[:10]],
+                    'count': len(articles),
+                    'data_source': 'stocknews_general_market'
+                }
         if not HAS_REQUESTS or not self.stocknews_key:
             return {}
         try:
@@ -324,8 +370,12 @@ class NewsAnalystAgent(SpecializedAgent):
             pass
         return {}
     
-    def _get_earnings_calendar(self) -> Dict:
+    async def _get_earnings_calendar(self, shared=None) -> Dict:
         """StockNews PRO — /earnings-calendar for upcoming earnings dates."""
+        if shared:
+            data = await shared.get_stocknews_earnings()
+            if data and data.get('data'):
+                return {'upcoming_earnings': data['data'][:20], 'count': len(data['data']), 'data_source': 'stocknews_earnings_calendar'}
         if not HAS_REQUESTS or not self.stocknews_key:
             return {}
         try:
@@ -343,8 +393,19 @@ class NewsAnalystAgent(SpecializedAgent):
             pass
         return {}
     
-    def _get_analyst_ratings(self, symbols: List[str]) -> Dict:
+    async def _get_analyst_ratings(self, symbols: List[str], shared=None) -> Dict:
         """StockNews PRO — /ratings for analyst upgrades/downgrades + price targets."""
+        if shared:
+            data = await shared.get_stocknews_ratings()
+            if data and data.get('data'):
+                ratings = data['data']
+                relevant = [r for r in ratings if any(s.upper() == r.get('ticker', '').upper() for s in symbols)]
+                return {
+                    'relevant_ratings': relevant,
+                    'recent_ratings': [r for r in ratings if r not in relevant][:10],
+                    'total_count': len(ratings),
+                    'data_source': 'stocknews_ratings'
+                }
         if not HAS_REQUESTS or not self.stocknews_key:
             return {}
         try:
@@ -384,8 +445,15 @@ class NewsAnalystAgent(SpecializedAgent):
             pass
         return {}
     
-    def _get_sundown_digest(self) -> Dict:
+    async def _get_sundown_digest(self, shared=None) -> Dict:
         """StockNews PRO — /sundown-digest for daily market summary."""
+        if shared:
+            data = await shared.get_stocknews_sundown()
+            if data and data.get('data'):
+                return {
+                    'digest': [{'title': d.get('title', ''), 'text': d.get('text', ''), 'date': d.get('date', '')} for d in data['data'][:3]],
+                    'data_source': 'stocknews_sundown'
+                }
         if not HAS_REQUESTS or not self.stocknews_key:
             return {}
         try:
@@ -410,8 +478,15 @@ class NewsAnalystAgent(SpecializedAgent):
     # CryptoNews PRO endpoints
     # ──────────────────────────────────────────────────────────────────────
     
-    def _get_crypto_news(self, symbol: str) -> List[Dict]:
+    async def _get_crypto_news(self, symbol: str, shared=None) -> List[Dict]:
         """CryptoNews PRO — Ticker news with sentiment + rank score."""
+        if shared:
+            data = await shared.get_cryptonews(symbol)
+            if data and data.get('data'):
+                articles = data['data']
+                for a in articles:
+                    a['_source'] = 'cryptonews_pro'
+                return articles
         if not HAS_REQUESTS or not self.cryptonews_key:
             return []
         try:
@@ -429,8 +504,17 @@ class NewsAnalystAgent(SpecializedAgent):
             pass
         return []
     
-    def _get_crypto_trending(self) -> Dict:
+    async def _get_crypto_trending(self, shared=None) -> Dict:
         """CryptoNews PRO — /trending-headlines for top crypto stories."""
+        if shared:
+            data = await shared.get_cryptonews_trending()
+            if data and data.get('data'):
+                headlines = data['data']
+                return {
+                    'headlines': [{'title': h.get('title', ''), 'description': (h.get('text', '')[:200]) if h.get('text') else '', 'source': h.get('source_name', ''), 'date': h.get('date', '')} for h in headlines[:10]],
+                    'count': len(headlines),
+                    'data_source': 'cryptonews_trending'
+                }
         if not HAS_REQUESTS or not self.cryptonews_key:
             return {}
         try:
@@ -453,8 +537,12 @@ class NewsAnalystAgent(SpecializedAgent):
             pass
         return {}
     
-    def _get_crypto_top_mentioned(self) -> Dict:
+    async def _get_crypto_top_mentioned(self, shared=None) -> Dict:
         """CryptoNews PRO — /top-mention for most discussed coins."""
+        if shared:
+            data = await shared.get_cryptonews_top_mentioned()
+            if data and data.get('data'):
+                return {'top_coins': data['data'][:15], 'period': 'last7days', 'data_source': 'cryptonews_top_mention'}
         if not HAS_REQUESTS or not self.cryptonews_key:
             return {}
         try:
@@ -472,8 +560,16 @@ class NewsAnalystAgent(SpecializedAgent):
             pass
         return {}
     
-    def _get_crypto_general_news(self) -> Dict:
+    async def _get_crypto_general_news(self, shared=None) -> Dict:
         """CryptoNews PRO — /category?section=general for regulation, market news."""
+        if shared:
+            data = await shared.get_cryptonews_category("general")
+            if data and data.get('data'):
+                articles = data['data']
+                return {
+                    'articles': [{'title': a.get('title', ''), 'text': (a.get('text', '')[:200] + '...') if a.get('text') else '', 'sentiment': a.get('sentiment', ''), 'source': a.get('source_name', ''), 'date': a.get('date', ''), 'rank_score': a.get('rankscore', '')} for a in articles[:10]],
+                    'data_source': 'cryptonews_general'
+                }
         if not HAS_REQUESTS or not self.cryptonews_key:
             return {}
         try:
@@ -499,8 +595,16 @@ class NewsAnalystAgent(SpecializedAgent):
             pass
         return {}
     
-    def _get_crypto_events(self) -> Dict:
+    async def _get_crypto_events(self, shared=None) -> Dict:
         """CryptoNews PRO — /events for breaking crypto events."""
+        if shared:
+            data = await shared.get_cryptonews_events()
+            if data and data.get('data'):
+                events = data['data']
+                return {
+                    'events': [{'title': e.get('title', ''), 'event_id': e.get('eventid', ''), 'date': e.get('date', ''), 'source': e.get('source_name', '')} for e in events[:10]],
+                    'data_source': 'cryptonews_events'
+                }
         if not HAS_REQUESTS or not self.cryptonews_key:
             return {}
         try:
@@ -526,8 +630,23 @@ class NewsAnalystAgent(SpecializedAgent):
     # Polygon News
     # ──────────────────────────────────────────────────────────────────────
     
-    def _get_polygon_news(self, symbol: str) -> List[Dict]:
+    async def _get_polygon_news(self, symbol: str, shared=None) -> List[Dict]:
         """Fetch news from Polygon.io /v2/reference/news."""
+        if shared:
+            data = await shared.get_polygon_news(symbol)
+            if data and data.get('results'):
+                articles = []
+                for a in data['results']:
+                    articles.append({
+                        'title': a.get('title', ''),
+                        'text': a.get('description', ''),
+                        'date': a.get('published_utc', ''),
+                        'source_name': a.get('publisher', {}).get('name', ''),
+                        'sentiment': '',
+                        'tickers': [t for t in (a.get('tickers', []) or [])],
+                        '_source': 'polygon'
+                    })
+                return articles
         if not HAS_REQUESTS:
             return []
         try:
@@ -648,9 +767,45 @@ class NewsAnalystAgent(SpecializedAgent):
     # Market-wide sentiment
     # ──────────────────────────────────────────────────────────────────────
     
-    def _get_market_sentiment(self) -> Dict:
+    async def _get_market_sentiment(self, shared=None) -> Dict:
         """Get real market sentiment from VIX, Fear & Greed, and SPY."""
         result = {'data_source': 'live_apis'}
+
+        # Try shared data layer first for all three data points
+        if shared:
+            fng_data = await shared.get_fear_greed()
+            if fng_data and fng_data.get('data'):
+                fng = fng_data['data']
+                current = int(fng[0].get('value', 50))
+                result['fear_greed_index'] = current
+                result['fear_greed_label'] = fng[0].get('value_classification', 'Neutral')
+                result['fear_greed_trend'] = [int(d.get('value', 50)) for d in fng]
+
+            vix_data = await shared.get_vix()
+            if vix_data and vix_data.get('results'):
+                vr = vix_data['results'][0]
+                result['vix_level'] = round(vr['c'], 1)
+                vix_change = ((vr['c'] - vr['o']) / vr['o']) * 100 if vr.get('o') else 0
+                result['vix_change_pct'] = round(vix_change, 2)
+
+            spy_data = await shared.get_quote('SPY')
+            if spy_data and spy_data.get('results'):
+                sr = spy_data['results'][0]
+                market_change = ((sr['c'] - sr['o']) / sr['o']) * 100 if sr['o'] else 0
+                result['spy_change_pct'] = round(market_change, 2)
+
+            fgi = result.get('fear_greed_index')
+            vix = result.get('vix_level')
+            if fgi is not None and vix is not None:
+                fgi_score = (fgi - 50) / 50
+                vix_score = max(-1, min(1, (20 - vix) / 15))
+                score = (fgi_score * 0.6 + vix_score * 0.4)
+                result['score'] = round(score, 2)
+            elif fgi is not None:
+                result['score'] = round((fgi - 50) / 50, 2)
+            else:
+                result['score'] = 0
+            return result
         
         # Fear & Greed from Alternative.me
         try:

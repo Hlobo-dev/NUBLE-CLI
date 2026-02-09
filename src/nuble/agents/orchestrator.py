@@ -27,7 +27,11 @@ import asyncio
 import json
 import re
 import os
+import numpy as np
 from dataclasses import dataclass, field
+
+from nuble.decision.enrichment_engine import EnrichmentEngine
+from nuble.decision.trade_setup import TradeSetupCalculator
 from datetime import datetime
 from typing import Dict, List, Optional, Any, Callable
 import logging
@@ -67,7 +71,15 @@ except ImportError:
     DECISION_ENGINE_AVAILABLE = False
     UltimateDecisionEngine = None
 
-# Import ML Predictor for predictions
+# Import ML Predictor for predictions (v2 pipeline — F4)
+try:
+    from ..ml.predictor import get_predictor as get_predictor_v2
+    ML_PREDICTOR_V2_AVAILABLE = True
+except ImportError:
+    ML_PREDICTOR_V2_AVAILABLE = False
+    get_predictor_v2 = None
+
+# Legacy v1 fallback
 try:
     from ...institutional.ml import get_predictor
     ML_PREDICTOR_AVAILABLE = True
@@ -186,14 +198,24 @@ class OrchestratorAgent:
             except Exception as e:
                 logger.warning(f"Decision Engine init failed: {e}")
         
-        # Initialize ML Predictor (NEW!)
+        # Initialize ML Predictor — prefer v2 (F4) over legacy v1
         self._ml_predictor = None
-        if self.config.enable_ml_predictor and ML_PREDICTOR_AVAILABLE:
-            try:
-                self._ml_predictor = get_predictor()
-                logger.info("ML Predictor connected (46M+ parameters)")
-            except Exception as e:
-                logger.warning(f"ML Predictor init failed: {e}")
+        self._ml_predictor_v2 = None
+        if self.config.enable_ml_predictor:
+            # Try v2 first
+            if ML_PREDICTOR_V2_AVAILABLE:
+                try:
+                    self._ml_predictor_v2 = get_predictor_v2()
+                    logger.info("ML Predictor v2 (F4 pipeline) connected")
+                except Exception as e:
+                    logger.warning(f"ML Predictor v2 init failed: {e}")
+            # Legacy v1 fallback
+            if self._ml_predictor_v2 is None and ML_PREDICTOR_AVAILABLE:
+                try:
+                    self._ml_predictor = get_predictor()
+                    logger.info("ML Predictor v1 (legacy) connected")
+                except Exception as e:
+                    logger.warning(f"ML Predictor v1 init failed: {e}")
         
         # Model selection
         self.orchestrator_model = CLAUDE_OPUS_MODEL if self.config.use_opus else CLAUDE_SONNET_MODEL
@@ -210,6 +232,9 @@ class OrchestratorAgent:
         
         # Live agent output tracking (for API progress events)
         self._last_agent_outputs: Dict[str, Any] = {}
+
+        # SharedDataLayer for async-native data fetching (initialized per-query)
+        self.shared_data = None
         
         # Learning system integration
         self._learning_hub = None
@@ -241,6 +266,70 @@ class OrchestratorAgent:
                 logger.warning(f"Lambda analysis failed for {symbol}: {e}")
         
         return "\n\n---\n\n".join(analyses) if analyses else ""
+
+    async def _fetch_ohlcv_for_ml(self, symbol: str, days: int = 120):
+        """
+        Fetch recent OHLCV data for ML prediction.
+
+        Uses SharedDataLayer if available, otherwise falls back to Polygon HTTP.
+        Returns a pandas DataFrame with columns [open, high, low, close, volume]
+        or None on failure.
+        """
+        try:
+            import pandas as pd
+
+            # Try SharedDataLayer first (already prefetched)
+            if self.shared_data:
+                historical = await self.shared_data.get_historical(symbol, days)
+                if historical and historical.get('results') and len(historical['results']) >= 60:
+                    bars = historical['results']
+                    df = pd.DataFrame(bars)
+                    if 't' in df.columns:
+                        df['date'] = pd.to_datetime(df['t'], unit='ms')
+                    elif 'date' in df.columns:
+                        df['date'] = pd.to_datetime(df['date'])
+                    df = df.set_index('date').sort_index()
+                    rename = {}
+                    for src, dst in [('o', 'open'), ('h', 'high'), ('l', 'low'), ('c', 'close'), ('v', 'volume')]:
+                        if src in df.columns:
+                            rename[src] = dst
+                    if rename:
+                        df = df.rename(columns=rename)
+                    cols = [c for c in ['open', 'high', 'low', 'close', 'volume'] if c in df.columns]
+                    if len(cols) == 5:
+                        return df[cols].dropna()
+
+            # Fallback: direct Polygon request
+            import requests
+            from datetime import timedelta
+
+            api_key = os.getenv('POLYGON_API_KEY', '')
+            if not api_key:
+                return None
+
+            from datetime import datetime as dt
+            end = dt.now().strftime('%Y-%m-%d')
+            start = (dt.now() - timedelta(days=days)).strftime('%Y-%m-%d')
+            url = (
+                f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/day/"
+                f"{start}/{end}?adjusted=true&sort=asc&limit=5000&apiKey={api_key}"
+            )
+            resp = await asyncio.get_event_loop().run_in_executor(
+                None, lambda: requests.get(url, timeout=15)
+            )
+            data = resp.json()
+            results = data.get('results', [])
+            if not results:
+                return None
+            df = pd.DataFrame(results)
+            df['date'] = pd.to_datetime(df['t'], unit='ms')
+            df = df.set_index('date').sort_index()
+            df = df.rename(columns={'o': 'open', 'h': 'high', 'l': 'low', 'c': 'close', 'v': 'volume'})
+            return df[['open', 'high', 'low', 'close', 'volume']].dropna()
+
+        except Exception as exc:
+            logger.warning(f"_fetch_ohlcv_for_ml({symbol}) failed: {exc}")
+            return None
     
     def _initialize_agents(self):
         """Initialize all specialized agents (lazy loading)."""
@@ -361,6 +450,9 @@ class OrchestratorAgent:
             except Exception as e:
                 logger.warning(f"Lambda fetch failed: {e}")
         
+        # Store for enrichment engine access
+        self._last_lambda_formatted = lambda_context
+        
         # STEP 0.5: Use UltimateDecisionEngine for trading decisions (NEW!)
         decision_engine_result = None
         message_lower = user_message.lower()
@@ -408,24 +500,59 @@ class OrchestratorAgent:
             except Exception as e:
                 logger.warning(f"UltimateDecisionEngine failed: {e}")
         
-        # STEP 0.7: Get ML Predictions if predictor available (NEW!)
+        # STEP 0.7: Get ML Predictions — v2 (F4 pipeline) or v1 legacy
         ml_predictions = {}
-        if self._ml_predictor and symbols and is_trading_query:
+        if symbols and is_trading_query:
             try:
-                for symbol in symbols[:2]:
-                    prediction = await asyncio.get_event_loop().run_in_executor(
-                        None,
-                        lambda s=symbol: self._ml_predictor.predict(s)
-                    )
-                    if prediction:
-                        ml_predictions[symbol] = prediction
-                        logger.info(f"ML Prediction for {symbol}: {prediction.get('direction', 'N/A')}")
+                if self._ml_predictor_v2:
+                    # ── v2 predictor: needs OHLCV DataFrame ───
+                    for symbol in symbols[:2]:
+                        # Fetch historical data for feature computation
+                        hist_df = await self._fetch_ohlcv_for_ml(symbol)
+                        if hist_df is not None and len(hist_df) >= 60:
+                            prediction = await asyncio.get_event_loop().run_in_executor(
+                                None,
+                                lambda s=symbol, d=hist_df: self._ml_predictor_v2.predict(s, d)
+                            )
+                            if prediction and prediction.get('confidence', 0) > 0:
+                                ml_predictions[symbol] = prediction
+                                logger.info(
+                                    f"ML v2 Prediction for {symbol}: "
+                                    f"{prediction.get('direction', 'N/A')} "
+                                    f"({prediction.get('confidence', 0):.0%})"
+                                )
+                elif self._ml_predictor:
+                    # ── v1 legacy predictor ───
+                    for symbol in symbols[:2]:
+                        prediction = await asyncio.get_event_loop().run_in_executor(
+                            None,
+                            lambda s=symbol: self._ml_predictor.predict(s)
+                        )
+                        if prediction:
+                            ml_predictions[symbol] = prediction
+                            logger.info(f"ML v1 Prediction for {symbol}: {prediction.get('direction', 'N/A')}")
             except Exception as e:
                 logger.warning(f"ML Predictor failed: {e}")
         
         # STEP 1: Intent Understanding & Task Planning
         planning_result = await self._plan_execution(user_message, context)
         
+        # STEP 1.5: Prefetch all data via SharedDataLayer (async-native, parallel)
+        try:
+            from .shared_data import SharedDataLayer
+            self.shared_data = SharedDataLayer(
+                polygon_api_key=os.getenv('POLYGON_API_KEY', 'JHKwAdyIOeExkYOxh3LwTopmqqVVFeBY'),
+                stocknews_api_key=os.getenv('STOCKNEWS_API_KEY', 'zzad9pmlwttixx0fnsenstctzgdk7ysx0ctkgrk0'),
+                cryptonews_api_key=os.getenv('CRYPTONEWS_API_KEY', 'fci3fvhrbxocelhel4ddc7zbmgsxnq1zmwrkxgq2'),
+            )
+            agent_types = [t.agent_type.value for t in planning_result.get('tasks', [])]
+            if not agent_types:
+                agent_types = ['market_analyst', 'news_analyst', 'quant_analyst', 'fundamental_analyst', 'risk_manager']
+            await self.shared_data.prefetch(symbols=symbols, agent_types=agent_types)
+        except Exception as exc:
+            logger.warning(f"SharedDataLayer prefetch failed (agents will use direct HTTP): {exc}")
+            self.shared_data = None
+
         # STEP 2: Execute Agent Tasks (in parallel where possible)
         agent_results = await self._execute_tasks(planning_result['tasks'], context)
         
@@ -460,11 +587,118 @@ class OrchestratorAgent:
         if ml_predictions:
             synthesis['ml_predictions'] = ml_predictions
         
+        # ═══════════════════════════════════════════════════════════════
+        # NEW PIPELINE: Enrichment → Trade Setup → Learning Feedback → Claude
+        # ═══════════════════════════════════════════════════════════════
+
+        enriched_intelligence = None
+        trade_setup = None
+        learning_context = ""
+
+        # Step 5: Statistical Enrichment
+        if symbols and self.shared_data:
+            try:
+                enrichment = EnrichmentEngine()
+                enriched_intelligence = await enrichment.enrich(
+                    symbol=symbols[0],
+                    shared_data=self.shared_data,
+                    agent_outputs=synthesis.get('agent_outputs', {}),
+                    lambda_data=synthesis.get('decision_engine'),
+                )
+                synthesis['enriched_intelligence'] = enriched_intelligence
+                logger.info(
+                    f"Enrichment: {enriched_intelligence.sources_reporting} sources, "
+                    f"{len(enriched_intelligence.anomalies)} anomalies, "
+                    f"{len(enriched_intelligence.divergences)} divergences, "
+                    f"{len(enriched_intelligence.conflicts)} conflicts, "
+                    f"consensus={enriched_intelligence.consensus.dominant_direction if enriched_intelligence.consensus else 'N/A'}"
+                )
+            except Exception as e:
+                logger.warning(f"EnrichmentEngine failed (degrading gracefully): {e}", exc_info=True)
+
+        # Step 6: Trade Setup (compute BOTH directions — Claude chooses)
+        if symbols and self.shared_data:
+            try:
+                historical = await self.shared_data.get_historical(symbols[0], 90)
+                if historical and historical.get('results') and len(historical['results']) >= 20:
+                    hist = historical['results']
+                    closes = np.array([r['c'] for r in hist])
+                    highs = np.array([r['h'] for r in hist])
+                    lows = np.array([r['l'] for r in hist])
+                    current_price = closes[-1]
+
+                    # Get SMA20 if available
+                    sma_data = await self.shared_data.get_sma(symbols[0], 20)
+                    sma_20 = None
+                    if sma_data and sma_data.get('results', {}).get('values'):
+                        sma_20 = sma_data['results']['values'][0].get('value')
+
+                    calc = TradeSetupCalculator()
+                    trade_setup_long = calc.compute(
+                        direction="LONG", conviction="moderate",
+                        current_price=current_price,
+                        closes=closes, highs=highs, lows=lows,
+                        sma_20=sma_20,
+                    )
+                    trade_setup_short = calc.compute(
+                        direction="SHORT", conviction="moderate",
+                        current_price=current_price,
+                        closes=closes, highs=highs, lows=lows,
+                        sma_20=sma_20,
+                    )
+
+                    trade_setup = {
+                        'long': trade_setup_long,
+                        'short': trade_setup_short,
+                        'formatted_long': calc.format_for_brief(trade_setup_long) if trade_setup_long else None,
+                        'formatted_short': calc.format_for_brief(trade_setup_short) if trade_setup_short else None,
+                    }
+                    logger.info(f"Trade setup computed for {symbols[0]}: "
+                                f"LONG stop=${trade_setup_long.stop_loss if trade_setup_long else 'N/A'}, "
+                                f"SHORT stop=${trade_setup_short.stop_loss if trade_setup_short else 'N/A'}")
+            except Exception as e:
+                logger.warning(f"TradeSetupCalculator failed (degrading gracefully): {e}", exc_info=True)
+
+        # Step 7: Learning Loop Feedback
+        if self._learning_hub:
+            try:
+                pred_stats = self._learning_hub.get_prediction_stats()
+                raw_stats = pred_stats.get('raw_predictions', {})
+                total_predictions = raw_stats.get('total', 0)
+                resolved = raw_stats.get('resolved', 0)
+
+                if total_predictions > 0:
+                    learning_lines = []
+                    learning_lines.append(f"LEARNING SYSTEM ({resolved} resolved of {total_predictions} total predictions):")
+
+                    # Per-source accuracy
+                    accuracy_report = self._learning_hub.get_accuracy_report()
+                    if accuracy_report:
+                        learning_lines.append("  Signal Source Accuracy (rolling 90-day):")
+                        for source, acc in sorted(accuracy_report.items(), key=lambda x: x[1] if isinstance(x[1], (int, float)) else 0, reverse=True):
+                            if isinstance(acc, (int, float)):
+                                learning_lines.append(f"    {source}: {acc:.0%}")
+
+                    # Learned weights
+                    weights = self._learning_hub.get_weights()
+                    if weights:
+                        learning_lines.append("  Learned Signal Weights:")
+                        for source, w in sorted(weights.items(), key=lambda x: x[1], reverse=True):
+                            learning_lines.append(f"    {source}: {w:.3f}")
+
+                    learning_context = "\n".join(learning_lines)
+            except Exception as e:
+                logger.warning(f"Learning feedback extraction failed: {e}")
+
         # STEP 4: Generate Final Response
         response = await self._generate_response(
             user_message,
             synthesis,
-            context
+            context,
+            enriched_intelligence=enriched_intelligence,
+            trade_setup=trade_setup,
+            learning_context=learning_context,
+            symbols=symbols,
         )
         
         # STEP 4.5: Record predictions in Learning System
@@ -494,6 +728,14 @@ class OrchestratorAgent:
                     except Exception:
                         pass  # Learning should never break the main flow
         
+        # Clean up SharedDataLayer session
+        if self.shared_data:
+            try:
+                await self.shared_data.close()
+                logger.info(f"SharedDataLayer stats: {self.shared_data.get_stats()}")
+            except Exception:
+                pass
+
         # Update context
         context.add_message("assistant", response['message'])
         context.last_analysis = synthesis
@@ -510,8 +752,18 @@ class OrchestratorAgent:
             'agents_used': [r.agent_type.value for r in agent_results if r.success],
             'execution_time_seconds': execution_time,
             'conversation_id': conversation_id,
-            'symbols': symbols
+            'symbols': symbols,
+            'enriched_intelligence': enriched_intelligence,
+            'trade_setup': trade_setup,
+            'learning_context': learning_context,
         }
+        
+        # Add enrichment metadata to data dict
+        result['data']['enriched'] = True if enriched_intelligence else False
+        result['data']['trade_setup_computed'] = True if trade_setup else False
+        result['data']['anomaly_count'] = len(enriched_intelligence.anomalies) if enriched_intelligence else 0
+        result['data']['conflict_count'] = len(enriched_intelligence.conflicts) if enriched_intelligence else 0
+        result['data']['data_coverage_pct'] = enriched_intelligence.data_coverage_pct if enriched_intelligence else 0
         
         logger.info(f"Completed in {execution_time:.2f}s | Agents: {result['agents_used']}")
         
@@ -795,6 +1047,9 @@ Respond with ONLY the JSON plan, no other text.
                     if dep_id in results
                 }
                 task.context['dependency_results'] = dep_results
+                # Inject SharedDataLayer so agents can read from cache
+                if self.shared_data:
+                    task.context['shared_data'] = self.shared_data
                 
                 start = datetime.now()
                 try:
@@ -893,7 +1148,11 @@ Respond with ONLY the JSON plan, no other text.
         self,
         user_message: str,
         synthesis: Dict,
-        context: ConversationContext
+        context: ConversationContext,
+        enriched_intelligence=None,
+        trade_setup: Optional[Dict] = None,
+        learning_context: str = "",
+        symbols: Optional[List[str]] = None,
     ) -> Dict:
         """
         Generate the final user-facing response using Claude Opus.
@@ -904,7 +1163,15 @@ Respond with ONLY the JSON plan, no other text.
         if not self.client:
             return self._simple_response(user_message, synthesis, context)
         
-        response_prompt = self._build_response_prompt(user_message, synthesis, context)
+        response_prompt = self._build_analysis_prompt(
+            user_message=user_message,
+            enriched_intelligence=enriched_intelligence,
+            trade_setup=trade_setup,
+            learning_context=learning_context,
+            synthesis_data=synthesis,
+            lambda_formatted=synthesis.get('lambda_intelligence', ''),
+            symbols=symbols or [],
+        )
         
         try:
             response = self.client.messages.create(
@@ -931,127 +1198,203 @@ Respond with ONLY the JSON plan, no other text.
             'actions': actions
         }
     
-    def _build_response_prompt(
+    def _build_analysis_prompt(
         self,
         user_message: str,
-        synthesis: Dict,
-        context: ConversationContext
+        enriched_intelligence,
+        trade_setup: Dict,
+        learning_context: str,
+        synthesis_data: Dict,
+        lambda_formatted: str,
+        symbols: list,
     ) -> str:
-        """Build the response generation prompt."""
-        
-        risk_tolerance = context.user_profile.get('risk_tolerance', 'moderate')
-        portfolio = context.user_profile.get('portfolio', {})
-        agent_outputs = json.dumps(synthesis['agent_outputs'], indent=2, default=str)
-        
-        # Get Lambda real-time intelligence if available
-        lambda_intel = synthesis.get('lambda_intelligence', '')
-        lambda_section = ""
-        if lambda_intel:
-            lambda_section = f"""
+        """
+        Build the analysis prompt for Claude.
 
-REAL-TIME MARKET INTELLIGENCE (from NUBLE Decision Engine):
-{lambda_intel}
+        This prompt determines the quality of every response NUBLE produces.
+        Every word matters.
+        """
 
-This includes live data from:
-- StockNews API: sentiment, analyst ratings, earnings, SEC filings, events, price targets
-- CryptoNews API: sentiment, whale activity, institutional flows, regulatory, staking
-- Polygon.io: prices, volume, technicals (RSI, MACD, SMA, ATR, VIX)
-"""
+        # ─── Build the intelligence section ───
+        intelligence_parts = []
 
-        # Get UltimateDecisionEngine results (NEW!)
-        decision_engine_section = ""
-        decision_engine = synthesis.get('decision_engine')
-        if decision_engine:
-            # Extract LuxAlgo signals for explicit surfacing
-            luxalgo = decision_engine.get('luxalgo', {})
-            luxalgo_section = ""
+        # Primary: Enriched brief (structured, ~3-5KB)
+        if (
+            enriched_intelligence
+            and hasattr(enriched_intelligence, 'intelligence_brief')
+            and enriched_intelligence.intelligence_brief
+        ):
+            intelligence_parts.append(enriched_intelligence.intelligence_brief)
+        else:
+            # Fallback: truncated raw agent data
+            raw = json.dumps(synthesis_data.get('agent_outputs', {}), indent=None, default=str)
+            if len(raw) > 15000:
+                raw = raw[:15000] + "\n... [truncated]"
+            intelligence_parts.append(f"RAW AGENT DATA (enrichment unavailable):\n{raw}")
+
+        # Trade setup (both directions)
+        if trade_setup:
+            intelligence_parts.append("")
+            intelligence_parts.append("═══ MATHEMATICAL TRADE SETUPS ═══")
+            intelligence_parts.append("(Computed from ATR, Keltner Channels, and Fractional Kelly — pure math, no judgment)")
+            intelligence_parts.append("Claude: Choose the direction based on your analysis. The math below adapts to your choice.")
+            intelligence_parts.append("")
+            if trade_setup.get('formatted_long'):
+                intelligence_parts.append(trade_setup['formatted_long'])
+                intelligence_parts.append("")
+            if trade_setup.get('formatted_short'):
+                intelligence_parts.append(trade_setup['formatted_short'])
+
+        # Learning feedback
+        if learning_context:
+            intelligence_parts.append("")
+            intelligence_parts.append("═══ HISTORICAL ACCURACY DATA ═══")
+            intelligence_parts.append(learning_context)
+
+        # Lambda intelligence (if available and not already in enriched brief)
+        if lambda_formatted and not enriched_intelligence:
+            intelligence_parts.append("")
+            intelligence_parts.append("═══ LAMBDA INTELLIGENCE ═══")
+            intelligence_parts.append(lambda_formatted)
+
+        intelligence_section = "\n".join(intelligence_parts)
+
+        # ─── Decision Engine + ML sections (compact, above the brief) ───
+        decision_section = ""
+        de = synthesis_data.get('decision_engine')
+        if de:
+            luxalgo = de.get('luxalgo', {})
+            lux_line = ""
             if luxalgo:
-                aligned = luxalgo.get('aligned', False)
-                aligned_label = "✅ ALL TIMEFRAMES ALIGNED" if aligned else "⚠️ Mixed signals"
-                luxalgo_section = f"""
-- LuxAlgo Premium Signals: {aligned_label}
-  - Weekly (1W): {luxalgo.get('weekly', 'N/A')} (highest conviction)
-  - Daily (1D): {luxalgo.get('daily', 'N/A')}
-  - 4-Hour (4H): {luxalgo.get('h4', 'N/A')} (most responsive)
-  - Direction: {luxalgo.get('direction', 'N/A')}
-  - Score: {luxalgo.get('score', 0):.3f}"""
-            
-            decision_engine_section = f"""
-
-ULTIMATE DECISION ENGINE ANALYSIS (28+ data points):
-- Symbol: {decision_engine.get('symbol', 'N/A')}
-- Recommended Action: {decision_engine.get('action', 'N/A')}
-- Confidence: {decision_engine.get('confidence', 0):.1%}
-- Risk Score: {decision_engine.get('risk_score', 0.5):.2f}
-- Entry Price: {decision_engine.get('entry_price', 'N/A')}
-- Stop Loss: {decision_engine.get('stop_loss', 'N/A')}
-- Take Profit: {decision_engine.get('take_profit', 'N/A')}
-- Position Size: {decision_engine.get('position_size', 'N/A')}
-- Risk Veto: {'YES - HIGH RISK' if decision_engine.get('risk_veto') else 'No'}
-- Reasoning: {decision_engine.get('reasoning', 'N/A')}
-- Data Sources Used: {', '.join(decision_engine.get('data_sources', []))}
-{luxalgo_section}
+                aligned_label = "ALL ALIGNED" if luxalgo.get('aligned') else "MIXED"
+                lux_line = (
+                    f"  LuxAlgo: {luxalgo.get('direction', '?')} "
+                    f"(W:{luxalgo.get('weekly','?')} D:{luxalgo.get('daily','?')} "
+                    f"4H:{luxalgo.get('h4','?')}) — {aligned_label}"
+                )
+            decision_section = f"""
+DECISION ENGINE RECOMMENDATION:
+  Action: {de.get('action', 'N/A')} | Confidence: {de.get('confidence', 0):.0%} | Risk: {de.get('risk_score', 0.5):.2f}
+  Entry: {de.get('entry_price', 'N/A')} | Stop: {de.get('stop_loss', 'N/A')} | Target: {de.get('take_profit', 'N/A')}
+  Risk Veto: {'⛔ YES' if de.get('risk_veto') else 'No'}
+{lux_line}
 """
 
-        # Get ML predictions (NEW!)
         ml_section = ""
-        ml_predictions = synthesis.get('ml_predictions', {})
-        if ml_predictions:
-            ml_parts = ["", "ML MODEL PREDICTIONS (46M+ parameters):"]
-            for symbol, pred in ml_predictions.items():
-                ml_parts.append(f"- {symbol}:")
-                ml_parts.append(f"  - Direction: {pred.get('direction', 'N/A')}")
-                ml_parts.append(f"  - Confidence: {pred.get('confidence', 0):.1%}")
-                ml_parts.append(f"  - Price Target: {pred.get('price_target', 'N/A')}")
-                ml_parts.append(f"  - Model: {pred.get('model', 'ensemble')}")
-            ml_section = "\n".join(ml_parts)
+        ml_preds = synthesis_data.get('ml_predictions', {})
+        if ml_preds:
+            ml_lines = ["ML PREDICTIONS (LightGBM + Triple-Barrier Labels + SHAP):"]
+            for sym, pred in ml_preds.items():
+                direction = pred.get('direction', '?')
+                confidence = pred.get('confidence', 0)
+                ml_lines.append(
+                    f"  {sym}: {direction} ({confidence:.0%})"
+                )
+                # Probabilities breakdown
+                proba = pred.get('probabilities', {})
+                if proba:
+                    proba_parts = [f"{k.replace('proba_', '')}={v:.0%}" for k, v in proba.items()]
+                    ml_lines.append(f"    Probabilities: {', '.join(proba_parts)}")
+                # SHAP explanation (top features driving this prediction)
+                explanation = pred.get('explanation', {})
+                top_features = explanation.get('top_features', [])
+                if top_features:
+                    ml_lines.append("    Key drivers (SHAP):")
+                    for feat in top_features[:5]:
+                        fname = feat.get('feature', '?')
+                        fval = feat.get('shap_value', feat.get('value', 0))
+                        direction_arrow = "↑" if fval > 0 else "↓"
+                        ml_lines.append(f"      {direction_arrow} {fname}: {fval:+.4f}")
+                # Model info
+                model_info = pred.get('model_info', {})
+                if model_info.get('cv_mean_ic'):
+                    ml_lines.append(f"    Model CV IC: {model_info['cv_mean_ic']:.4f}")
+                if model_info.get('training_date'):
+                    ml_lines.append(f"    Trained: {model_info['training_date']}")
+            ml_section = "\n" + "\n".join(ml_lines) + "\n"
 
-        return f"""You are NUBLE, the world's most intelligent financial advisor.
+        # ─── Anomaly & Conflict quick-reference blocks ───
+        anomaly_block = ""
+        conflict_block = ""
+        if enriched_intelligence:
+            if hasattr(enriched_intelligence, 'anomalies') and enriched_intelligence.anomalies:
+                a_lines = ["⚠️  STATISTICAL ANOMALIES DETECTED:"]
+                for a in enriched_intelligence.anomalies:
+                    metric = getattr(a, 'metric', str(a))
+                    zscore = getattr(a, 'z_score', None)
+                    source = getattr(a, 'source', '')
+                    z_str = f" (z={zscore:+.1f})" if zscore is not None else ""
+                    a_lines.append(f"  • {metric}{z_str} [{source}]")
+                anomaly_block = "\n" + "\n".join(a_lines) + "\n"
 
-You have access to comprehensive analysis from multiple specialized agents AND real-time market intelligence.
-Your job is to synthesize this into an excellent, actionable response.
+            if hasattr(enriched_intelligence, 'conflicts') and enriched_intelligence.conflicts:
+                c_lines = ["⚔️  AGENT CONFLICTS (you MUST take a side):"]
+                for c in enriched_intelligence.conflicts:
+                    metric = getattr(c, 'metric', str(c))
+                    sources = getattr(c, 'sources', [])
+                    c_lines.append(f"  • {metric} — sources disagree: {', '.join(str(s) for s in sources)}")
+                conflict_block = "\n" + "\n".join(c_lines) + "\n"
 
-USER QUESTION: "{user_message}"
+        # ─── Build the system prompt ───
+        # This is carefully engineered for maximum analysis quality.
+        symbols_str = ', '.join(symbols) if symbols else 'the queried assets'
 
-USER PROFILE:
-- Risk Tolerance: {risk_tolerance}
-- Portfolio: {json.dumps(portfolio, indent=2) if portfolio else 'Not provided'}
-{decision_engine_section}
-{ml_section}
-{lambda_section}
-AGENT ANALYSIS:
-{agent_outputs}
+        prompt = f"""You are NUBLE's senior analyst — a world-class financial intelligence system.
 
-OVERALL CONFIDENCE: {synthesis['overall_confidence']:.1%}
+You are receiving a STATISTICALLY ENRICHED intelligence brief from an 8-agent research system that has:
+- Fetched real-time data from Polygon, StockNews, CoinGecko, and alternative data sources
+- Computed percentile ranks, z-scores, and rates of change for every metric
+- Detected statistical anomalies (values >2σ from recent norms)
+- Identified divergences between data sources (price vs volume, sentiment vs price, etc.)
+- Measured mathematical consensus across all agents
+- Pre-computed trade setups for both LONG and SHORT directions using ATR-based math
 
----
+YOUR ROLE: You are the judgment layer. The system provides statistically enriched data. You provide expert interpretation.
 
-Generate a response that:
+═══ ANALYSIS FRAMEWORK ═══
 
-1. DIRECTLY answers the user's question first
-2. If the ULTIMATE DECISION ENGINE provided a recommendation, LEAD with that - it's your most sophisticated analysis
-3. If LuxAlgo signals are present, highlight alignment or divergence — they carry 34% weight. When all timeframes align, declare HIGH CONVICTION.
-4. Uses the REAL-TIME data from the Lambda Decision Engine - you HAVE access to current market data
-5. Incorporates ML model predictions when available (these come from 46M+ parameters across LSTM, Transformer, Ensemble)
-6. If TENK SEC filing data is present in agent outputs (sec_filing_insights), incorporate risk factors, revenue breakdowns, management outlook
-7. Provides specific, actionable insights with actual numbers from the data
-8. Includes current prices, sentiment scores, analyst actions from the real-time feed
-9. Is personalized to the user's risk tolerance and portfolio (if known)
-10. Includes specific numbers, prices, percentages from the data
-11. Suggests next steps or follow-up questions
+1. OPEN with a one-sentence verdict. Be direct. "TSLA is showing strong bullish momentum with 80% agent consensus, though volume divergence warrants caution."
 
-IMPORTANT GUIDELINES:
-- If Decision Engine says RISK VETO, ALWAYS mention the high risk warning prominently
-- If LuxAlgo shows all timeframes aligned, treat it as a strong confirmation signal
-- Be confident but honest about uncertainty
-- Don't hedge excessively - give clear recommendations when the data supports it
-- Use bullet points for key takeaways
-- Include risk warnings where appropriate
-- Make it conversational, not robotic
-- If recommending a position, include entry, stop-loss, and target levels from the Decision Engine
+2. ANOMALIES FIRST. Statistical anomalies (⚠️ flags) are the highest-signal items. Address every single one. Explain what each anomaly means in context. An RSI z-score of +2.5σ during an earnings breakout means something VERY different than the same reading during a range-bound market — say so.
 
-Format your response in Markdown for best readability.
-"""
+3. DIVERGENCES. When data sources tell conflicting stories, this is where your expertise matters most. Don't just report the divergence — explain which side you believe and WHY. "Volume is declining while price rises — in most contexts this is bearish, but for TSLA post-earnings, institutional accumulation often shows in dark pool volume not captured here."
+
+4. CONFLICTS. When agents disagree, take a side. Don't hedge everything. "MarketAnalyst says BULLISH based on technical momentum, while RiskManager says BEARISH on elevated VIX. I favor the technical signal here because VIX is elevated market-wide due to [macro event], not TSLA-specific risk."
+
+5. CITE ACTUAL NUMBERS with their statistical context. NEVER say "RSI is elevated." SAY "RSI is 73.2, at the 89th percentile of its 90-day range (z-score +1.8σ), but still below the 2σ anomaly threshold." The percentile and z-score give the reader instant context for whether this is unusual or normal for this stock.
+
+6. TRADE SETUP. After your analysis, recommend a direction. Then reference the pre-computed mathematical trade setup for that direction. The entry, stop, targets, and position size are mathematically computed from ATR and Kelly criterion — present them as your recommendation. If you believe conviction is "high" rather than "moderate," say so and note that stops should be tightened and position size can increase.
+
+7. RISK FACTORS. What could make you wrong? Be specific. "This thesis fails if VIX breaks above 30 (currently 23.5, 67th percentile) or if the earnings guidance revision on March 15 disappoints."
+
+8. DATA GAPS. If coverage is below 75%, explicitly state what data is missing and how it affects your confidence. "MacroAnalyst and PortfolioOptimizer did not report — macro context is inferred from VIX and sector data only."
+
+═══ WHAT NOT TO DO ═══
+- Do NOT give a generic "balanced" answer that says "there are bullish and bearish signals." Take a position.
+- Do NOT use vague language. Every claim should be backed by a specific number from the brief.
+- Do NOT ignore conflicts or divergences. They are the most important signals.
+- Do NOT make up numbers. If a metric isn't in the brief, say it's not available.
+- Do NOT repeat the raw data back. Interpret it. Add value. That's your job.
+- Do NOT caveat every sentence. Be confident when the data supports confidence. Be uncertain when it doesn't. Match your tone to the evidence.
+
+═══ LEARNING SYSTEM NOTE ═══
+If historical accuracy data is provided, adjust your confidence accordingly. If a signal source has been 80% accurate, weight it more heavily in your reasoning. If a source has been 45% accurate, explicitly note that and discount it.
+
+═══ ADDITIONAL RULES ═══
+- If Decision Engine says RISK VETO, lead with a ⛔ warning — do NOT bury it.
+- If LuxAlgo timeframes all align, declare HIGH CONVICTION explicitly.
+- Never round away precision that matters — "$242.15 stop" not "$242 stop".
+- Use percentile ranks to contextualize every key number.
+- Be direct. Be specific. No filler. No "it's important to note that…"
+- When data is missing or coverage is low, say so — never fabricate numbers.
+- Format in clean Markdown with headers, bullets, and bold for emphasis.
+
+The user asked: {user_message}
+{decision_section}{ml_section}
+{intelligence_section}
+{anomaly_block}{conflict_block}"""
+
+        return prompt
     
     def _simple_response(
         self,

@@ -73,9 +73,9 @@ class RiskManagerAgent(SpecializedAgent):
                 'correlations': self._analyze_correlations(analysis_symbols[:5]),
                 'drawdown': self._analyze_drawdown(analysis_symbols[:3]),
                 'position_limits': self._calculate_limits(analysis_symbols, portfolio),
-                'volatility_regime': self._get_volatility_regime(),
-                'sentiment_risk': self._get_sentiment_risk(),
-                'event_risk': self._get_event_risk(analysis_symbols[:3]),
+                'volatility_regime': await self._get_volatility_regime(task),
+                'sentiment_risk': await self._get_sentiment_risk(task),
+                'event_risk': await self._get_event_risk(analysis_symbols[:3], task),
                 'risk_score': self._overall_risk_score(analysis_symbols)
             }
             
@@ -279,9 +279,10 @@ class RiskManagerAgent(SpecializedAgent):
             'note': 'Default limits — historical data unavailable'
         }
     
-    def _get_volatility_regime(self) -> Dict:
+    async def _get_volatility_regime(self, task=None) -> Dict:
         """Get real VIX-based volatility regime."""
-        data = self._polygon_get("https://api.polygon.io/v2/aggs/ticker/VIX/prev")
+        shared = self._get_shared_data(task)
+        data = (await shared.get_vix()) if shared else self._polygon_get("https://api.polygon.io/v2/aggs/ticker/VIX/prev")
         results = data.get('results', [])
         
         if not results:
@@ -312,8 +313,35 @@ class RiskManagerAgent(SpecializedAgent):
             'data_source': 'polygon_live'
         }
     
-    def _get_sentiment_risk(self) -> Dict:
+    async def _get_sentiment_risk(self, task=None) -> Dict:
         """Get sentiment-based risk from Fear & Greed Index."""
+        shared = self._get_shared_data(task)
+        if shared:
+            fng_data = await shared.get_fear_greed()
+            if fng_data and fng_data.get('data'):
+                fng = fng_data['data']
+                current = int(fng[0].get('value', 50))
+                trend = [int(d.get('value', 50)) for d in fng]
+                if current < 20:
+                    risk_level, contrarian = 'EXTREME_FEAR', 'Potential buying opportunity (contrarian)'
+                elif current < 35:
+                    risk_level, contrarian = 'FEAR', 'Market pessimism elevated'
+                elif current > 80:
+                    risk_level, contrarian = 'EXTREME_GREED', 'Potential correction risk (contrarian)'
+                elif current > 65:
+                    risk_level, contrarian = 'GREED', 'Market optimism elevated'
+                else:
+                    risk_level, contrarian = 'NEUTRAL', 'No extreme sentiment'
+                return {
+                    'fear_greed_index': current,
+                    'label': fng[0].get('value_classification', 'Unknown'),
+                    'risk_level': risk_level,
+                    'contrarian_signal': contrarian,
+                    'trend_7d': trend,
+                    'trend_direction': 'IMPROVING' if trend[0] > trend[-1] else 'DETERIORATING',
+                    'data_source': 'alternative_me_live'
+                }
+
         result = {}
         
         try:
@@ -355,7 +383,7 @@ class RiskManagerAgent(SpecializedAgent):
         
         return result
     
-    def _get_event_risk(self, symbols: List[str]) -> List[Dict]:
+    async def _get_event_risk(self, symbols: List[str], task=None) -> List[Dict]:
         """Detect event risk from real news sources + premium endpoints."""
         events = []
         

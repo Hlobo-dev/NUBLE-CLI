@@ -69,17 +69,18 @@ class MacroAnalystAgent(SpecializedAgent):
         start = datetime.now()
         
         try:
+            shared = self._get_shared_data(task)
             data = {
-                'volatility_regime': self._analyze_volatility(),
-                'sector_performance': self._get_sector_performance(),
-                'market_breadth': self._analyze_market_breadth(),
-                'yield_curve': self._analyze_yield_curve(),
-                'dollar_strength': self._analyze_dollar(),
-                'commodity_signals': self._analyze_commodities(),
-                'macro_news': self._get_macro_news(),
-                'sentiment_overlay': self._get_sentiment(),
-                'risk_assessment': self._assess_macro_risk(),
-                'market_impact': self._assess_impact()
+                'volatility_regime': await self._analyze_volatility(shared),
+                'sector_performance': await self._get_sector_performance(shared),
+                'market_breadth': await self._analyze_market_breadth(shared),
+                'yield_curve': await self._analyze_yield_curve(shared),
+                'dollar_strength': await self._analyze_dollar(shared),
+                'commodity_signals': await self._analyze_commodities(shared),
+                'macro_news': await self._get_macro_news(shared),
+                'sentiment_overlay': await self._get_sentiment(shared),
+                'risk_assessment': await self._assess_macro_risk(shared),
+                'market_impact': await self._assess_impact(shared)
             }
             
             return AgentResult(
@@ -114,9 +115,9 @@ class MacroAnalystAgent(SpecializedAgent):
             logger.warning(f"Polygon call failed: {e}")
         return {}
     
-    def _get_prev_close(self, ticker: str) -> Dict:
+    async def _get_prev_close(self, ticker: str, shared=None) -> Dict:
         """Get previous close data from Polygon."""
-        data = self._polygon_get(f"https://api.polygon.io/v2/aggs/ticker/{ticker}/prev")
+        data = (await shared.get_quote(ticker)) if shared else self._polygon_get(f"https://api.polygon.io/v2/aggs/ticker/{ticker}/prev")
         results = data.get('results', [])
         if results:
             r = results[0]
@@ -125,9 +126,9 @@ class MacroAnalystAgent(SpecializedAgent):
                     'volume': r.get('v', 0), 'change_pct': round(change_pct, 2)}
         return {}
     
-    def _analyze_volatility(self) -> Dict:
+    async def _analyze_volatility(self, shared=None) -> Dict:
         """Analyze volatility regime from real VIX data."""
-        vix_data = self._get_prev_close('VIX')
+        vix_data = await self._get_prev_close('VIX', shared)
         
         if not vix_data:
             return {'error': 'VIX data unavailable'}
@@ -153,7 +154,7 @@ class MacroAnalystAgent(SpecializedAgent):
             'data_source': 'polygon_live'
         }
     
-    def _get_sector_performance(self) -> Dict:
+    async def _get_sector_performance(self, shared=None) -> Dict:
         """Get real sector ETF performance with SMA trend scoring."""
         sector_etfs = {
             'Technology': 'XLK', 'Healthcare': 'XLV', 'Financials': 'XLF',
@@ -164,7 +165,7 @@ class MacroAnalystAgent(SpecializedAgent):
         
         performance = {}
         for sector, etf in sector_etfs.items():
-            data = self._get_prev_close(etf)
+            data = await self._get_prev_close(etf, shared)
             if data:
                 entry = {
                     'etf': etf,
@@ -174,7 +175,7 @@ class MacroAnalystAgent(SpecializedAgent):
                 }
                 
                 # Add SMA trend from Polygon server-side indicator
-                sma_data = self._polygon_get(
+                sma_data = (await shared.get_sma(etf, 50)) if shared else self._polygon_get(
                     f"https://api.polygon.io/v1/indicators/sma/{etf}",
                     {'timespan': 'day', 'window': 50, 'series_type': 'close', 'order': 'desc', 'limit': 1}
                 )
@@ -216,7 +217,7 @@ class MacroAnalystAgent(SpecializedAgent):
         
         return {'error': 'Sector data unavailable'}
     
-    def _analyze_market_breadth(self) -> Dict:
+    async def _analyze_market_breadth(self, shared=None) -> Dict:
         """Analyze market breadth using major indices."""
         indices = {
             'SPY': 'S&P 500', 'QQQ': 'Nasdaq 100',
@@ -225,7 +226,7 @@ class MacroAnalystAgent(SpecializedAgent):
         
         breadth = {}
         for ticker, name in indices.items():
-            data = self._get_prev_close(ticker)
+            data = await self._get_prev_close(ticker, shared)
             if data:
                 breadth[name] = {
                     'ticker': ticker,
@@ -256,11 +257,11 @@ class MacroAnalystAgent(SpecializedAgent):
         
         return breadth if breadth else {'error': 'Market breadth data unavailable'}
     
-    def _analyze_yield_curve(self) -> Dict:
+    async def _analyze_yield_curve(self, shared=None) -> Dict:
         """Analyze yield curve using treasury bond ETF proxies."""
-        shy = self._get_prev_close('SHY')   # 1-3yr treasuries (short end)
-        ief = self._get_prev_close('IEF')   # 7-10yr treasuries (mid)
-        tlt = self._get_prev_close('TLT')   # 20+yr treasuries (long end)
+        shy = await self._get_prev_close('SHY', shared)   # 1-3yr treasuries (short end)
+        ief = await self._get_prev_close('IEF', shared)   # 7-10yr treasuries (mid)
+        tlt = await self._get_prev_close('TLT', shared)   # 20+yr treasuries (long end)
         
         if not shy or not tlt:
             return {'error': 'Treasury data unavailable', 'data_source': 'polygon_error'}
@@ -296,9 +297,9 @@ class MacroAnalystAgent(SpecializedAgent):
             'data_source': 'polygon_live'
         }
     
-    def _analyze_dollar(self) -> Dict:
+    async def _analyze_dollar(self, shared=None) -> Dict:
         """Analyze US dollar strength."""
-        uup = self._get_prev_close('UUP')  # Dollar bullish ETF
+        uup = await self._get_prev_close('UUP', shared)  # Dollar bullish ETF
         
         if not uup:
             return {'error': 'Dollar data unavailable'}
@@ -322,10 +323,10 @@ class MacroAnalystAgent(SpecializedAgent):
             'data_source': 'polygon_live'
         }
     
-    def _analyze_commodities(self) -> Dict:
+    async def _analyze_commodities(self, shared=None) -> Dict:
         """Analyze commodity signals for inflation/risk."""
-        gld = self._get_prev_close('GLD')  # Gold
-        uso = self._get_prev_close('USO')  # Oil
+        gld = await self._get_prev_close('GLD', shared)  # Gold
+        uso = await self._get_prev_close('USO', shared)  # Oil
         
         result = {'data_source': 'polygon_live'}
         
@@ -347,7 +348,7 @@ class MacroAnalystAgent(SpecializedAgent):
         
         return result
     
-    def _get_macro_news(self) -> Dict:
+    async def _get_macro_news(self, shared=None) -> Dict:
         """Get macro-relevant news from Polygon & StockNews PRO (ALL premium endpoints)."""
         headlines = []
         
@@ -488,8 +489,21 @@ class MacroAnalystAgent(SpecializedAgent):
             'data_source': 'polygon_news + stocknews_pro_full'
         }
     
-    def _get_sentiment(self) -> Dict:
+    async def _get_sentiment(self, shared=None) -> Dict:
         """Get market sentiment from Fear & Greed Index."""
+        if shared:
+            fng_data = await shared.get_fear_greed()
+            if fng_data and fng_data.get('data'):
+                fng = fng_data['data']
+                current = int(fng[0].get('value', 50))
+                trend = [int(d.get('value', 50)) for d in fng]
+                return {
+                    'fear_greed_index': current,
+                    'label': fng[0].get('value_classification', 'Unknown'),
+                    'trend_7d': trend,
+                    'direction': 'IMPROVING' if trend[0] > trend[-1] else 'DETERIORATING',
+                    'data_source': 'alternative_me_live'
+                }
         try:
             resp = requests.get("https://api.alternative.me/fng/?limit=7", timeout=8)
             if resp.status_code == 200:
@@ -508,13 +522,13 @@ class MacroAnalystAgent(SpecializedAgent):
             pass
         return {'error': 'Sentiment data unavailable'}
     
-    def _assess_macro_risk(self) -> Dict:
+    async def _assess_macro_risk(self, shared=None) -> Dict:
         """Assess overall macro risk from real indicators."""
         risks = []
         risk_score = 0
         
         # VIX level
-        vix_data = self._get_prev_close('VIX')
+        vix_data = await self._get_prev_close('VIX', shared)
         if vix_data:
             vix = vix_data['close']
             if vix > 30:
@@ -525,20 +539,20 @@ class MacroAnalystAgent(SpecializedAgent):
                 risk_score += 1
         
         # Gold (safe haven demand)
-        gld_data = self._get_prev_close('GLD')
+        gld_data = await self._get_prev_close('GLD', shared)
         if gld_data and gld_data.get('change_pct', 0) > 1:
             risks.append(f"Gold up {gld_data['change_pct']:.1f}% — safe haven demand")
             risk_score += 1
         
         # TLT (flight to safety)
-        tlt_data = self._get_prev_close('TLT')
+        tlt_data = await self._get_prev_close('TLT', shared)
         if tlt_data and tlt_data.get('change_pct', 0) > 1:
             risks.append(f"Long bonds up {tlt_data['change_pct']:.1f}% — flight to safety")
             risk_score += 1
         
         # Small caps divergence
-        spy_data = self._get_prev_close('SPY')
-        iwm_data = self._get_prev_close('IWM')
+        spy_data = await self._get_prev_close('SPY', shared)
+        iwm_data = await self._get_prev_close('IWM', shared)
         if spy_data and iwm_data:
             divergence = (spy_data.get('change_pct', 0) - iwm_data.get('change_pct', 0))
             if abs(divergence) > 1.5:
@@ -546,7 +560,7 @@ class MacroAnalystAgent(SpecializedAgent):
                 risk_score += 1
         
         # Dollar shock
-        uup = self._get_prev_close('UUP')
+        uup = await self._get_prev_close('UUP', shared)
         if uup and abs(uup.get('change_pct', 0)) > 0.5:
             risks.append(f"Dollar move {uup['change_pct']:.1f}% — currency risk")
             risk_score += 1
@@ -570,13 +584,13 @@ class MacroAnalystAgent(SpecializedAgent):
             'data_source': 'polygon_calculated'
         }
     
-    def _assess_impact(self) -> Dict:
+    async def _assess_impact(self, shared=None) -> Dict:
         """Assess market impact across asset classes from real data."""
-        spy = self._get_prev_close('SPY')
-        tlt = self._get_prev_close('TLT')
-        uup = self._get_prev_close('UUP')
-        gld = self._get_prev_close('GLD')
-        vix = self._get_prev_close('VIX')
+        spy = await self._get_prev_close('SPY', shared)
+        tlt = await self._get_prev_close('TLT', shared)
+        uup = await self._get_prev_close('UUP', shared)
+        gld = await self._get_prev_close('GLD', shared)
+        vix = await self._get_prev_close('VIX', shared)
         
         def direction(data, key='change_pct'):
             if not data:

@@ -63,13 +63,14 @@ class PortfolioOptimizerAgent(SpecializedAgent):
             risk_tolerance = task.context.get('user_profile', {}).get('risk_tolerance', 'moderate')
             symbols = list(portfolio.keys()) if portfolio else task.context.get('symbols', ['SPY', 'QQQ', 'TLT'])
             
+            shared = self._get_shared_data(task)
             data = {
-                'current_analysis': self._analyze_current(symbols, portfolio),
-                'optimization': self._optimize(symbols, risk_tolerance),
-                'trend_overlay': self._trend_overlay(symbols),
-                'dividend_analysis': self._dividend_analysis(symbols),
-                'rebalancing_trades': self._recommend_trades(symbols, portfolio),
-                'expected_metrics': self._project_metrics(symbols, portfolio),
+                'current_analysis': await self._analyze_current(symbols, portfolio, shared),
+                'optimization': await self._optimize(symbols, risk_tolerance, shared),
+                'trend_overlay': await self._trend_overlay(symbols, shared),
+                'dividend_analysis': await self._dividend_analysis(symbols, shared),
+                'rebalancing_trades': await self._recommend_trades(symbols, portfolio, shared),
+                'expected_metrics': await self._project_metrics(symbols, portfolio, shared),
             }
             
             return AgentResult(
@@ -104,38 +105,38 @@ class PortfolioOptimizerAgent(SpecializedAgent):
             logger.warning(f"Polygon call failed: {e}")
         return {}
     
-    def _get_returns(self, symbol: str, days: int = 252) -> np.ndarray:
+    async def _get_returns(self, symbol: str, days: int = 252, shared=None) -> np.ndarray:
         """Fetch real historical returns from Polygon."""
         end_date = datetime.now().strftime('%Y-%m-%d')
         start_date = (datetime.now() - timedelta(days=days + 30)).strftime('%Y-%m-%d')
         
-        data = self._polygon_get(
+        data = (await shared.get_historical(symbol, days + 30)) if shared else self._polygon_get(
             f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/day/{start_date}/{end_date}",
             {'sort': 'asc'}
         )
-        results = data.get('results', [])
+        results = (data or {}).get('results', [])
         if len(results) >= 20:
             closes = np.array([r['c'] for r in results])
             return np.diff(closes) / closes[:-1]
         return np.array([])
     
-    def _get_current_price(self, symbol: str) -> float:
+    async def _get_current_price(self, symbol: str, shared=None) -> float:
         """Get current price from Polygon."""
-        data = self._polygon_get(f"https://api.polygon.io/v2/aggs/ticker/{symbol}/prev")
-        results = data.get('results', [])
+        data = (await shared.get_quote(symbol)) if shared else self._polygon_get(f"https://api.polygon.io/v2/aggs/ticker/{symbol}/prev")
+        results = (data or {}).get('results', [])
         return results[0]['c'] if results else 0
     
-    def _analyze_current(self, symbols: List[str], portfolio: Dict) -> Dict:
+    async def _analyze_current(self, symbols: List[str], portfolio: Dict, shared=None) -> Dict:
         """Analyze current portfolio with real data."""
         total = sum(portfolio.values()) if portfolio else 0
         
         holdings = {}
         for symbol in symbols[:10]:
-            price = self._get_current_price(symbol)
+            price = await self._get_current_price(symbol, shared)
             position_value = portfolio.get(symbol, 0)
             weight = position_value / total if total > 0 else 1.0 / len(symbols)
             
-            returns = self._get_returns(symbol, days=60)
+            returns = await self._get_returns(symbol, days=60, shared=shared)
             perf_30d = None
             vol_30d = None
             if len(returns) >= 30:
@@ -167,11 +168,11 @@ class PortfolioOptimizerAgent(SpecializedAgent):
             'data_source': 'polygon_live'
         }
     
-    def _optimize(self, symbols: List[str], risk_tolerance: str) -> Dict:
+    async def _optimize(self, symbols: List[str], risk_tolerance: str, shared=None) -> Dict:
         """Generate optimization insights from real data."""
         returns_dict = {}
         for symbol in symbols[:5]:
-            ret = self._get_returns(symbol)
+            ret = await self._get_returns(symbol, shared=shared)
             if len(ret) > 0:
                 returns_dict[symbol] = ret
         
@@ -239,17 +240,17 @@ class PortfolioOptimizerAgent(SpecializedAgent):
             'data_source': 'polygon_calculated'
         }
     
-    def _trend_overlay(self, symbols: List[str]) -> Dict:
+    async def _trend_overlay(self, symbols: List[str], shared=None) -> Dict:
         """Get SMA trend overlay for allocation decisions."""
         trends = {}
         for symbol in symbols[:5]:
-            sma_data = self._polygon_get(
+            sma_data = (await shared.get_sma(symbol, 50)) if shared else self._polygon_get(
                 f"https://api.polygon.io/v1/indicators/sma/{symbol}",
                 {'timespan': 'day', 'window': 50, 'series_type': 'close', 'order': 'desc', 'limit': 1}
             )
-            sma_results = sma_data.get('results', {}).get('values', [])
+            sma_results = (sma_data or {}).get('results', {}).get('values', [])
             
-            price = self._get_current_price(symbol)
+            price = await self._get_current_price(symbol, shared)
             
             if sma_results and price:
                 sma50 = sma_results[0].get('value', 0)
@@ -272,21 +273,21 @@ class PortfolioOptimizerAgent(SpecializedAgent):
             'data_source': 'polygon_sma_live'
         }
     
-    def _dividend_analysis(self, symbols: List[str]) -> Dict:
+    async def _dividend_analysis(self, symbols: List[str], shared=None) -> Dict:
         """Analyze dividend income from Polygon dividends API."""
         dividends = {}
         for symbol in symbols[:5]:
-            data = self._polygon_get(
+            data = (await shared.get_dividends(symbol)) if shared else self._polygon_get(
                 f"https://api.polygon.io/v3/reference/dividends",
                 {'ticker': symbol, 'limit': 8, 'order': 'desc'}
             )
-            divs = data.get('results', [])
+            divs = (data or {}).get('results', [])
             
             if divs:
                 amounts = [d.get('cash_amount', 0) for d in divs if d.get('cash_amount')]
                 annual_div = sum(amounts[:4])  # Last 4 quarters
                 
-                price = self._get_current_price(symbol)
+                price = await self._get_current_price(symbol, shared)
                 div_yield = (annual_div / price) * 100 if price > 0 else 0
                 
                 # Growth: compare latest vs prior year
@@ -316,7 +317,7 @@ class PortfolioOptimizerAgent(SpecializedAgent):
             'data_source': 'polygon_dividends'
         }
     
-    def _recommend_trades(self, symbols: List[str], portfolio: Dict) -> List[Dict]:
+    async def _recommend_trades(self, symbols: List[str], portfolio: Dict, shared=None) -> List[Dict]:
         """Recommend rebalancing trades based on real data + news signals."""
         if not portfolio:
             return [{'note': 'No portfolio positions provided for rebalancing analysis'}]
@@ -331,11 +332,18 @@ class PortfolioOptimizerAgent(SpecializedAgent):
         # StockNews PRO — Check earnings calendar for risk-aware rebalancing
         earnings_tickers = set()
         try:
-            resp = requests.get("https://stocknewsapi.com/api/v1/earnings-calendar", params={
-                'page': 1, 'items': 50, 'token': self.stocknews_key
-            }, timeout=8)
-            if resp.status_code == 200:
-                earnings = resp.json().get('data', [])
+            earnings_data = None
+            if shared:
+                earnings_data = await shared.get_stocknews_earnings()
+            else:
+                resp = requests.get("https://stocknewsapi.com/api/v1/earnings-calendar", params={
+                    'page': 1, 'items': 50, 'token': self.stocknews_key
+                }, timeout=8)
+                if resp.status_code == 200:
+                    earnings_data = resp.json()
+            
+            if earnings_data:
+                earnings = earnings_data.get('data', [])
                 for e in earnings:
                     t = e.get('ticker', '').upper()
                     if t in [s.upper() for s in symbols]:
@@ -347,11 +355,18 @@ class PortfolioOptimizerAgent(SpecializedAgent):
         downgraded = set()
         upgraded = set()
         try:
-            resp = requests.get("https://stocknewsapi.com/api/v1/ratings", params={
-                'items': 30, 'page': 1, 'token': self.stocknews_key
-            }, timeout=8)
-            if resp.status_code == 200:
-                ratings = resp.json().get('data', [])
+            ratings_data = None
+            if shared:
+                ratings_data = await shared.get_stocknews_ratings()
+            else:
+                resp = requests.get("https://stocknewsapi.com/api/v1/ratings", params={
+                    'items': 30, 'page': 1, 'token': self.stocknews_key
+                }, timeout=8)
+                if resp.status_code == 200:
+                    ratings_data = resp.json()
+            
+            if ratings_data:
+                ratings = ratings_data.get('data', [])
                 for r in ratings:
                     t = r.get('ticker', '').upper()
                     if t in [s.upper() for s in symbols]:
@@ -395,11 +410,11 @@ class PortfolioOptimizerAgent(SpecializedAgent):
         
         return trades
     
-    def _project_metrics(self, symbols: List[str], portfolio: Dict) -> Dict:
+    async def _project_metrics(self, symbols: List[str], portfolio: Dict, shared=None) -> Dict:
         """Project portfolio metrics from real data."""
         returns_list = []
         for symbol in symbols[:5]:
-            ret = self._get_returns(symbol)
+            ret = await self._get_returns(symbol, shared=shared)
             if len(ret) > 0:
                 returns_list.append(ret)
         
@@ -425,7 +440,7 @@ class PortfolioOptimizerAgent(SpecializedAgent):
         max_dd = float(np.min((cumulative - running_max) / running_max))
         
         # Beta vs SPY
-        spy_returns = self._get_returns('SPY')
+        spy_returns = await self._get_returns('SPY', shared=shared)
         beta = 1.0
         if len(spy_returns) >= min_len:
             spy_aligned = spy_returns[-min_len:]

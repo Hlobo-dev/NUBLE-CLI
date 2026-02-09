@@ -75,18 +75,25 @@ except ImportError:
     logger.info("Orchestrator not available — running single-brain mode")
 
 
-# ML Integration (optional, graceful fallback if not available)
+# ML Integration — v2 (F4 pipeline) preferred, v1 legacy fallback
+ML_V2_AVAILABLE = False
+ML_AVAILABLE = False
+try:
+    from .ml.predictor import MLPredictor as MLPredictorV2, get_predictor as get_predictor_v2
+    ML_V2_AVAILABLE = True
+except ImportError:
+    pass
+
 try:
     from institutional.ml import MLPredictor, MLIntegration, get_predictor
     ML_AVAILABLE = True
 except ImportError:
     try:
-        # Try relative import if absolute fails
         from ..institutional.ml import MLPredictor, MLIntegration, get_predictor
         ML_AVAILABLE = True
     except ImportError:
-        ML_AVAILABLE = False
-        logger.info("ML module not available, running without ML predictions")
+        if not ML_V2_AVAILABLE:
+            logger.info("ML module not available, running without ML predictions")
 
 # Unified Services Integration
 try:
@@ -114,19 +121,29 @@ class Manager:
         self.system_prompt = agent_prompt
         self.token_counter = TokenCounter()
         
-        # Initialize ML components if available and enabled
-        self.ml_enabled = enable_ml and ML_AVAILABLE
+        # Initialize ML components — prefer v2 (F4 pipeline) over v1 legacy
+        self.ml_enabled = enable_ml and (ML_V2_AVAILABLE or ML_AVAILABLE)
         self._ml_predictor = None
+        self._ml_predictor_v2 = None
         self._ml_integration = None
         
-        if self.ml_enabled:
+        if enable_ml and ML_V2_AVAILABLE:
+            try:
+                self._ml_predictor_v2 = get_predictor_v2()
+                self.ml_enabled = True
+                logger.info("ML v2 (F4 pipeline) initialized")
+            except Exception as e:
+                logger.warning(f"Failed to initialize ML v2: {e}")
+        
+        if self._ml_predictor_v2 is None and enable_ml and ML_AVAILABLE:
             try:
                 self._ml_predictor = get_predictor()
                 self._ml_integration = MLIntegration(self._ml_predictor)
-                logger.info("ML components initialized successfully")
+                self.ml_enabled = True
+                logger.info("ML v1 (legacy) components initialized")
             except Exception as e:
-                logger.warning(f"Failed to initialize ML: {e}")
-                self.ml_enabled = False
+                logger.warning(f"Failed to initialize ML v1: {e}")
+                self.ml_enabled = ML_V2_AVAILABLE  # still True if v2 loaded
         
         # Initialize Ultimate Decision Engine (NEW!)
         self.decision_engine_enabled = enable_decision_engine and DECISION_ENGINE_AVAILABLE
@@ -217,8 +234,8 @@ class Manager:
     
     @property
     def ml_predictor(self):
-        """Get ML predictor instance."""
-        return self._ml_predictor
+        """Get ML predictor instance (v2 preferred, v1 fallback)."""
+        return self._ml_predictor_v2 or self._ml_predictor
     
     @property 
     def ml_integration(self):
@@ -366,18 +383,41 @@ class Manager:
                     parts.append(f"  Price Target: ${pred.get('price_target'):.2f}")
         
         # Individual agent outputs (condensed)
-        agent_outputs = data.get('agent_outputs', {})
-        if agent_outputs:
-            parts.append("\n--- INDIVIDUAL AGENT INTELLIGENCE ---")
-            for agent_name, agent_data in agent_outputs.items():
-                if isinstance(agent_data, dict):
-                    # Condense each agent's output to key findings
-                    agent_summary = json.dumps(agent_data, indent=None, default=str)
-                    # Truncate very long outputs to keep context window manageable
-                    if len(agent_summary) > 1500:
-                        agent_summary = agent_summary[:1500] + "... [truncated]"
-                    parts.append(f"\n[{agent_name.upper()}]: {agent_summary}")
+        # If enriched intelligence is available, use the intelligence brief instead of truncated JSON
+        enriched = result.get('enriched_intelligence') or data.get('enriched_intelligence')
+        if enriched and hasattr(enriched, 'intelligence_brief') and enriched.intelligence_brief:
+            parts.append(f"\n--- STATISTICALLY ENRICHED INTELLIGENCE ---")
+            parts.append(enriched.intelligence_brief)
+        else:
+            # Fallback: raw agent outputs with truncation
+            agent_outputs = data.get('agent_outputs', {})
+            if agent_outputs:
+                parts.append("\n--- INDIVIDUAL AGENT INTELLIGENCE ---")
+                for agent_name, agent_data in agent_outputs.items():
+                    if isinstance(agent_data, dict):
+                        # Condense each agent's output to key findings
+                        agent_summary = json.dumps(agent_data, indent=None, default=str)
+                        # Truncate very long outputs to keep context window manageable
+                        if len(agent_summary) > 1500:
+                            agent_summary = agent_summary[:1500] + "... [truncated]"
+                        parts.append(f"\n[{agent_name.upper()}]: {agent_summary}")
         
+        # Trade setup (pre-computed entry/stop/targets for both directions)
+        trade_setup = result.get('trade_setup') or data.get('trade_setup')
+        if trade_setup:
+            parts.append("\n--- PRE-COMPUTED TRADE SETUPS ---")
+            formatted_long = trade_setup.get('formatted_long', '')
+            formatted_short = trade_setup.get('formatted_short', '')
+            if formatted_long:
+                parts.append(formatted_long)
+            if formatted_short:
+                parts.append(formatted_short)
+
+        # Learning context (system track record)
+        learning_ctx = result.get('learning_context', '') or data.get('learning_context', '')
+        if learning_ctx:
+            parts.append(f"\n--- SYSTEM TRACK RECORD ---\n{learning_ctx}")
+
         # Lambda intelligence (if orchestrator fetched it)
         lambda_intel = data.get('lambda_intelligence', '')
         if lambda_intel:
@@ -403,11 +443,65 @@ class Manager:
             return "[dim]ML predictions not available[/dim]"
         
         try:
-            prediction = self._ml_predictor.predict(symbol)
-            return self._ml_integration.format_prediction_for_display(prediction)
+            # Try v2 predictor first (needs OHLCV data)
+            if self._ml_predictor_v2 and self._ml_predictor_v2.has_model(symbol):
+                # Fetch recent data for v2 prediction
+                df = self._fetch_ohlcv_sync(symbol)
+                if df is not None and len(df) >= 60:
+                    pred = self._ml_predictor_v2.predict(symbol, df)
+                    if pred.get('confidence', 0) > 0:
+                        direction = pred.get('direction', 'NEUTRAL')
+                        confidence = pred.get('confidence', 0)
+                        explanation = pred.get('explanation', {})
+                        top_feats = explanation.get('top_features', [])[:3]
+                        feat_str = ""
+                        if top_feats:
+                            feat_parts = [f"{f.get('feature', '?')}" for f in top_feats]
+                            feat_str = f" (key: {', '.join(feat_parts)})"
+                        return f"[bold]ML v2: {direction} ({confidence:.0%}){feat_str}[/bold]"
+            
+            # Fallback to v1
+            if self._ml_predictor:
+                prediction = self._ml_predictor.predict(symbol)
+                if self._ml_integration:
+                    return self._ml_integration.format_prediction_for_display(prediction)
+                return f"[bold]ML v1: {prediction.get('direction', 'N/A')} ({prediction.get('confidence', 0):.0%})[/bold]"
+            
+            return "[dim]ML predictions not available[/dim]"
         except Exception as e:
             logger.warning(f"ML prediction failed for {symbol}: {e}")
             return f"[dim]ML prediction unavailable: {str(e)[:50]}[/dim]"
+
+    def _fetch_ohlcv_sync(self, symbol: str, days: int = 120):
+        """Synchronous OHLCV fetch for ML prediction (used by Manager's fast path)."""
+        try:
+            import pandas as pd
+            import requests
+            from datetime import datetime, timedelta
+
+            api_key = os.getenv('POLYGON_API_KEY', '')
+            if not api_key:
+                return None
+
+            end = datetime.now().strftime('%Y-%m-%d')
+            start = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d')
+            url = (
+                f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/day/"
+                f"{start}/{end}?adjusted=true&sort=asc&limit=5000&apiKey={api_key}"
+            )
+            resp = requests.get(url, timeout=15)
+            data = resp.json()
+            results = data.get('results', [])
+            if not results:
+                return None
+            df = pd.DataFrame(results)
+            df['date'] = pd.to_datetime(df['t'], unit='ms')
+            df = df.set_index('date').sort_index()
+            df = df.rename(columns={'o': 'open', 'h': 'high', 'l': 'low', 'c': 'close', 'v': 'volume'})
+            return df[['open', 'high', 'low', 'close', 'volume']].dropna()
+        except Exception as exc:
+            logger.warning(f"_fetch_ohlcv_sync({symbol}) failed: {exc}")
+            return None
     
     def enhance_response_with_ml(self, symbol: str, response: dict) -> dict:
         """
@@ -424,7 +518,19 @@ class Manager:
             return response
         
         try:
-            return self._ml_integration.enhance_query_response(symbol, response)
+            # v2: inject prediction dict into response
+            if self._ml_predictor_v2 and self._ml_predictor_v2.has_model(symbol):
+                df = self._fetch_ohlcv_sync(symbol)
+                if df is not None and len(df) >= 60:
+                    pred = self._ml_predictor_v2.predict(symbol, df)
+                    if pred.get('confidence', 0) > 0:
+                        response['ml_prediction'] = pred
+                        return response
+            
+            # v1 fallback
+            if self._ml_integration:
+                return self._ml_integration.enhance_query_response(symbol, response)
+            return response
         except Exception as e:
             logger.warning(f"Failed to enhance response: {e}")
             return response

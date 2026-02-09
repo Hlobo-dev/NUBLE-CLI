@@ -100,17 +100,18 @@ class QuantAnalystAgent(SpecializedAgent):
         
         try:
             symbols = task.context.get('symbols', [])
+            shared = self._get_shared_data(task)
             
             # Generate ML signals using real models
             signals = {}
             for symbol in symbols[:3]:
-                signals[symbol] = await self._generate_signals(symbol)
+                signals[symbol] = await self._generate_signals(symbol, shared)
             
             # Regime analysis using real HMM
-            regime = await self._detect_regime()
+            regime = await self._detect_regime(shared)
             
             # Factor exposures from real data
-            factors = await self._analyze_factors(symbols)
+            factors = await self._analyze_factors(symbols, shared)
             
             # Calculate overall confidence from signals
             confidences = [s.get('confidence', 0.5) for s in signals.values()]
@@ -144,7 +145,7 @@ class QuantAnalystAgent(SpecializedAgent):
                 error=str(e)
             )
     
-    async def _generate_signals(self, symbol: str) -> Dict:
+    async def _generate_signals(self, symbol: str, shared=None) -> Dict:
         """Generate ML signals using real models."""
         
         # Try to use the real ML predictor
@@ -179,7 +180,7 @@ class QuantAnalystAgent(SpecializedAgent):
                 logger.warning(f"ML prediction failed for {symbol}: {e}")
         
         # Fallback: use technical analysis from real data
-        return await self._technical_fallback_signal(symbol)
+        return await self._technical_fallback_signal(symbol, shared)
     
     def _polygon_get(self, url: str, params: Dict = None) -> Dict:
         """Helper for Polygon API calls."""
@@ -206,7 +207,7 @@ class QuantAnalystAgent(SpecializedAgent):
             return values[0].get('value')
         return None
     
-    def _get_news_sentiment_factor(self, symbol: str) -> float:
+    async def _get_news_sentiment_factor(self, symbol: str, shared=None) -> float:
         """Get news sentiment as a quantitative factor (-1 to +1) using premium endpoints."""
         import requests
         stocknews_key = os.getenv('STOCKNEWS_API_KEY', 'zzad9pmlwttixx0fnsenstctzgdk7ysx0ctkgrk0')
@@ -215,53 +216,72 @@ class QuantAnalystAgent(SpecializedAgent):
         
         # 1. StockNews PRO — /stat endpoint for quantitative sentiment over 7 days
         try:
-            resp = requests.get("https://stocknewsapi.com/api/v1/stat", params={
-                'tickers': symbol, 'date': 'last7days', 'page': 1,
-                'token': stocknews_key
-            }, timeout=8)
-            if resp.status_code == 200:
-                data = resp.json().get('data', {})
-                if data:
-                    # The stat endpoint returns sentiment breakdown
-                    total = data.get('total', 0)
-                    positive = data.get('positive', 0) or data.get('Positive', 0)
-                    negative = data.get('negative', 0) or data.get('Negative', 0)
-                    if total and total > 0:
-                        stat_score = (positive - negative) / total
-                        sentiment_score += stat_score
-                        sources_used += 1
+            stat_data = None
+            if shared:
+                stat_resp = await shared.get_stocknews_stat(symbol, 'last7days')
+                if stat_resp:
+                    stat_data = stat_resp.get('data', {})
+            else:
+                resp = requests.get("https://stocknewsapi.com/api/v1/stat", params={
+                    'tickers': symbol, 'date': 'last7days', 'page': 1,
+                    'token': stocknews_key
+                }, timeout=8)
+                if resp.status_code == 200:
+                    stat_data = resp.json().get('data', {})
+            
+            if stat_data:
+                total = stat_data.get('total', 0)
+                positive = stat_data.get('positive', 0) or stat_data.get('Positive', 0)
+                negative = stat_data.get('negative', 0) or stat_data.get('Negative', 0)
+                if total and total > 0:
+                    stat_score = (positive - negative) / total
+                    sentiment_score += stat_score
+                    sources_used += 1
         except Exception:
             pass
         
         # 2. StockNews PRO — Ticker news with sentiment labels (fallback/supplement)
         try:
-            resp = requests.get("https://stocknewsapi.com/api/v1", params={
-                'tickers': symbol, 'items': 10, 'sortby': 'rank',
-                'extra-fields': 'id,eventid,rankscore',
-                'token': stocknews_key
-            }, timeout=8)
-            if resp.status_code == 200:
-                articles = resp.json().get('data', [])
-                if articles:
-                    pos = sum(1 for a in articles if str(a.get('sentiment', '')).lower() in ('positive', 'bullish'))
-                    neg = sum(1 for a in articles if str(a.get('sentiment', '')).lower() in ('negative', 'bearish'))
-                    total = len(articles)
-                    ticker_score = (pos - neg) / total if total > 0 else 0
-                    sentiment_score += ticker_score
-                    sources_used += 1
+            articles = None
+            if shared:
+                news_resp = await shared.get_stocknews(symbol)
+                if news_resp:
+                    articles = news_resp.get('data', [])
+            else:
+                resp = requests.get("https://stocknewsapi.com/api/v1", params={
+                    'tickers': symbol, 'items': 10, 'sortby': 'rank',
+                    'extra-fields': 'id,eventid,rankscore',
+                    'token': stocknews_key
+                }, timeout=8)
+                if resp.status_code == 200:
+                    articles = resp.json().get('data', [])
+            
+            if articles:
+                pos = sum(1 for a in articles if str(a.get('sentiment', '')).lower() in ('positive', 'bullish'))
+                neg = sum(1 for a in articles if str(a.get('sentiment', '')).lower() in ('negative', 'bearish'))
+                total = len(articles)
+                ticker_score = (pos - neg) / total if total > 0 else 0
+                sentiment_score += ticker_score
+                sources_used += 1
         except Exception:
             pass
         
         # 3. StockNews PRO — Check if symbol has upcoming earnings (risk factor)
         try:
-            resp = requests.get("https://stocknewsapi.com/api/v1/earnings-calendar", params={
-                'page': 1, 'items': 50, 'token': stocknews_key
-            }, timeout=8)
-            if resp.status_code == 200:
-                earnings = resp.json().get('data', [])
+            earnings_data = None
+            if shared:
+                earnings_data = await shared.get_stocknews_earnings()
+            else:
+                resp = requests.get("https://stocknewsapi.com/api/v1/earnings-calendar", params={
+                    'page': 1, 'items': 50, 'token': stocknews_key
+                }, timeout=8)
+                if resp.status_code == 200:
+                    earnings_data = resp.json()
+            
+            if earnings_data:
+                earnings = earnings_data.get('data', [])
                 for e in earnings:
                     if e.get('ticker', '').upper() == symbol.upper():
-                        # Reduce confidence due to upcoming earnings uncertainty
                         sentiment_score -= 0.1
                         break
         except Exception:
@@ -272,7 +292,7 @@ class QuantAnalystAgent(SpecializedAgent):
             return max(-1.0, min(1.0, sentiment_score / sources_used))
         return 0.0
     
-    async def _technical_fallback_signal(self, symbol: str) -> Dict:
+    async def _technical_fallback_signal(self, symbol: str, shared=None) -> Dict:
         """Generate signal from Polygon server-side indicators + historical data."""
         import requests
         
@@ -283,22 +303,42 @@ class QuantAnalystAgent(SpecializedAgent):
             from datetime import timedelta
             
             # 1. Get Polygon server-side indicators (more accurate than manual)
-            rsi = self._get_polygon_indicator(symbol, 'rsi', 14)
-            sma_20 = self._get_polygon_indicator(symbol, 'sma', 20)
-            sma_50 = self._get_polygon_indicator(symbol, 'sma', 50)
-            ema_12 = self._get_polygon_indicator(symbol, 'ema', 12)
-            ema_26 = self._get_polygon_indicator(symbol, 'ema', 26)
+            if shared:
+                rsi_data = await shared.get_rsi(symbol)
+                rsi_vals = (rsi_data or {}).get('results', {}).get('values', [])
+                rsi = float(rsi_vals[0].get('value')) if rsi_vals else None
+                
+                sma20_data = await shared.get_sma(symbol, 20)
+                sma_20 = float((sma20_data or {}).get('results', {}).get('values', [{}])[0].get('value', 0)) if sma20_data and (sma20_data or {}).get('results', {}).get('values') else None
+                
+                sma50_data = await shared.get_sma(symbol, 50)
+                sma_50 = float((sma50_data or {}).get('results', {}).get('values', [{}])[0].get('value', 0)) if sma50_data and (sma50_data or {}).get('results', {}).get('values') else None
+                
+                ema12_data = await shared.get_ema(symbol, 12)
+                ema_12 = float((ema12_data or {}).get('results', {}).get('values', [{}])[0].get('value', 0)) if ema12_data and (ema12_data or {}).get('results', {}).get('values') else None
+                
+                ema26_data = await shared.get_ema(symbol, 26)
+                ema_26 = float((ema26_data or {}).get('results', {}).get('values', [{}])[0].get('value', 0)) if ema26_data and (ema26_data or {}).get('results', {}).get('values') else None
+                
+                macd_data = await shared.get_macd(symbol)
+            else:
+                rsi = self._get_polygon_indicator(symbol, 'rsi', 14)
+                sma_20 = self._get_polygon_indicator(symbol, 'sma', 20)
+                sma_50 = self._get_polygon_indicator(symbol, 'sma', 50)
+                ema_12 = self._get_polygon_indicator(symbol, 'ema', 12)
+                ema_26 = self._get_polygon_indicator(symbol, 'ema', 26)
+                
+                macd_data = self._polygon_get(
+                    f"https://api.polygon.io/v1/indicators/macd/{symbol}",
+                    {'timespan': 'day', 'short_window': 12, 'long_window': 26,
+                     'signal_window': 9, 'series_type': 'close', 'order': 'desc', 'limit': 1}
+                )
             
-            # MACD from Polygon
-            macd_data = self._polygon_get(
-                f"https://api.polygon.io/v1/indicators/macd/{symbol}",
-                {'timespan': 'day', 'short_window': 12, 'long_window': 26,
-                 'signal_window': 9, 'series_type': 'close', 'order': 'desc', 'limit': 1}
-            )
+            # MACD parsing
             macd_val = None
             macd_signal = None
             macd_histogram = None
-            macd_values = macd_data.get('results', {}).get('values', [])
+            macd_values = (macd_data or {}).get('results', {}).get('values', [])
             if macd_values:
                 macd_val = macd_values[0].get('value')
                 macd_signal = macd_values[0].get('signal')
@@ -308,16 +348,23 @@ class QuantAnalystAgent(SpecializedAgent):
             end_date = datetime.now().strftime('%Y-%m-%d')
             start_date = (datetime.now() - timedelta(days=60)).strftime('%Y-%m-%d')
             
-            url = f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/day/{start_date}/{end_date}"
-            response = requests.get(url, params={'apiKey': self.polygon_key, 'sort': 'asc'}, timeout=10)
-            
             closes = None
             returns = None
-            if response.status_code == 200:
-                results = response.json().get('results', [])
+            if shared:
+                hist = await shared.get_historical(symbol, 60)
+                results = (hist or {}).get('results', [])
                 if len(results) >= 20:
                     closes = np.array([r['c'] for r in results])
                     returns = np.diff(closes) / closes[:-1]
+            else:
+                url = f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/day/{start_date}/{end_date}"
+                response = requests.get(url, params={'apiKey': self.polygon_key, 'sort': 'asc'}, timeout=10)
+                
+                if response.status_code == 200:
+                    results = response.json().get('results', [])
+                    if len(results) >= 20:
+                        closes = np.array([r['c'] for r in results])
+                        returns = np.diff(closes) / closes[:-1]
             
             # Fallback RSI if server-side failed
             if rsi is None and returns is not None and len(returns) >= 14:
@@ -332,7 +379,7 @@ class QuantAnalystAgent(SpecializedAgent):
                 return self._minimal_fallback_signal(symbol)
             
             # 3. News sentiment factor
-            news_factor = self._get_news_sentiment_factor(symbol)
+            news_factor = await self._get_news_sentiment_factor(symbol, shared)
             
             # 4. Calculate momentum & volatility
             momentum_5d = 0
@@ -407,7 +454,7 @@ class QuantAnalystAgent(SpecializedAgent):
             'timestamp': datetime.now().isoformat()
         }
     
-    async def _detect_regime(self) -> Dict:
+    async def _detect_regime(self, shared=None) -> Dict:
         """Detect current market regime using real HMM or VIX-based detection."""
         
         # Try to use real regime detector
@@ -427,9 +474,9 @@ class QuantAnalystAgent(SpecializedAgent):
                 logger.warning(f"HMM regime detection failed: {e}")
         
         # Fallback: VIX-based regime detection
-        return await self._vix_based_regime()
+        return await self._vix_based_regime(shared)
     
-    async def _vix_based_regime(self) -> Dict:
+    async def _vix_based_regime(self, shared=None) -> Dict:
         """Detect regime from VIX and SPY trend."""
         import requests
         
@@ -442,35 +489,43 @@ class QuantAnalystAgent(SpecializedAgent):
         
         try:
             # Get VIX
-            vix_url = f"https://api.polygon.io/v2/aggs/ticker/VIX/prev"
-            vix_response = requests.get(vix_url, params={'apiKey': self.polygon_key}, timeout=5)
-            
             vix = 20  # Default
-            if vix_response.status_code == 200:
-                vix_data = vix_response.json().get('results', [{}])
-                if vix_data:
-                    vix = vix_data[0].get('c', 20)
+            if shared:
+                vix_data = await shared.get_vix()
+                vix_results = (vix_data or {}).get('results', [])
+                if vix_results:
+                    vix = vix_results[0].get('c', 20)
+            else:
+                vix_url = f"https://api.polygon.io/v2/aggs/ticker/VIX/prev"
+                vix_response = requests.get(vix_url, params={'apiKey': self.polygon_key}, timeout=5)
+                if vix_response.status_code == 200:
+                    vix_data = vix_response.json().get('results', [{}])
+                    if vix_data:
+                        vix = vix_data[0].get('c', 20)
             
             # Get SPY trend
             from datetime import timedelta
             end_date = datetime.now().strftime('%Y-%m-%d')
             start_date = (datetime.now() - timedelta(days=60)).strftime('%Y-%m-%d')
             
-            spy_url = f"https://api.polygon.io/v2/aggs/ticker/SPY/range/1/day/{start_date}/{end_date}"
-            spy_response = requests.get(spy_url, params={'apiKey': self.polygon_key}, timeout=5)
-            
             trend = 'MIXED'
-            if spy_response.status_code == 200:
-                spy_data = spy_response.json().get('results', [])
-                if len(spy_data) >= 20:
-                    closes = [r['c'] for r in spy_data]
-                    sma_20 = sum(closes[-20:]) / 20
-                    sma_50 = sum(closes[-50:]) / 50 if len(closes) >= 50 else sma_20
-                    
-                    if closes[-1] > sma_20 > sma_50:
-                        trend = 'BULLISH'
-                    elif closes[-1] < sma_20 < sma_50:
-                        trend = 'BEARISH'
+            if shared:
+                spy_hist = await shared.get_historical('SPY', 60)
+                spy_data = (spy_hist or {}).get('results', [])
+            else:
+                spy_url = f"https://api.polygon.io/v2/aggs/ticker/SPY/range/1/day/{start_date}/{end_date}"
+                spy_response = requests.get(spy_url, params={'apiKey': self.polygon_key}, timeout=5)
+                spy_data = spy_response.json().get('results', []) if spy_response.status_code == 200 else []
+            
+            if len(spy_data) >= 20:
+                closes = [r['c'] for r in spy_data]
+                sma_20 = sum(closes[-20:]) / 20
+                sma_50 = sum(closes[-50:]) / 50 if len(closes) >= 50 else sma_20
+                
+                if closes[-1] > sma_20 > sma_50:
+                    trend = 'BULLISH'
+                elif closes[-1] < sma_20 < sma_50:
+                    trend = 'BEARISH'
             
             # Determine regime
             if vix > 35:
@@ -505,7 +560,7 @@ class QuantAnalystAgent(SpecializedAgent):
                 'model': 'none'
             }
     
-    async def _analyze_factors(self, symbols: List[str]) -> Dict:
+    async def _analyze_factors(self, symbols: List[str], shared=None) -> Dict:
         """Analyze factor exposures using real market data + Polygon indicators."""
         import requests
         
@@ -518,13 +573,17 @@ class QuantAnalystAgent(SpecializedAgent):
             start_date = (datetime.now() - timedelta(days=252)).strftime('%Y-%m-%d')
             
             # Get SPY for market beta
-            spy_url = f"https://api.polygon.io/v2/aggs/ticker/SPY/range/1/day/{start_date}/{end_date}"
-            spy_response = requests.get(spy_url, params={'apiKey': self.polygon_key}, timeout=10)
+            if shared:
+                spy_hist = await shared.get_historical('SPY', 252)
+                spy_data = (spy_hist or {}).get('results', [])
+            else:
+                spy_url = f"https://api.polygon.io/v2/aggs/ticker/SPY/range/1/day/{start_date}/{end_date}"
+                spy_response = requests.get(spy_url, params={'apiKey': self.polygon_key}, timeout=10)
+                spy_data = spy_response.json().get('results', []) if spy_response.status_code == 200 else []
             
-            if spy_response.status_code != 200:
+            if not spy_data:
                 return self._default_factors()
             
-            spy_data = spy_response.json().get('results', [])
             spy_closes = np.array([r['c'] for r in spy_data])
             spy_returns = np.diff(spy_closes) / spy_closes[:-1]
             
@@ -532,36 +591,50 @@ class QuantAnalystAgent(SpecializedAgent):
             betas = []
             for symbol in symbols[:3]:
                 try:
-                    sym_url = f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/day/{start_date}/{end_date}"
-                    sym_response = requests.get(sym_url, params={'apiKey': self.polygon_key}, timeout=10)
+                    if shared:
+                        sym_hist = await shared.get_historical(symbol, 252)
+                        sym_data = (sym_hist or {}).get('results', [])
+                    else:
+                        sym_url = f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/day/{start_date}/{end_date}"
+                        sym_response = requests.get(sym_url, params={'apiKey': self.polygon_key}, timeout=10)
+                        sym_data = sym_response.json().get('results', []) if sym_response.status_code == 200 else []
                     
-                    if sym_response.status_code == 200:
-                        sym_data = sym_response.json().get('results', [])
-                        if len(sym_data) >= len(spy_data):
-                            sym_closes = np.array([r['c'] for r in sym_data[:len(spy_data)]])
-                            sym_returns = np.diff(sym_closes) / sym_closes[:-1]
-                            
-                            if len(sym_returns) == len(spy_returns):
-                                cov = np.cov(sym_returns, spy_returns)[0, 1]
-                                var = np.var(spy_returns)
-                                beta = cov / var if var > 0 else 1.0
-                                betas.append(beta)
+                    if len(sym_data) >= len(spy_data):
+                        sym_closes = np.array([r['c'] for r in sym_data[:len(spy_data)]])
+                        sym_returns = np.diff(sym_closes) / sym_closes[:-1]
+                        
+                        if len(sym_returns) == len(spy_returns):
+                            cov = np.cov(sym_returns, spy_returns)[0, 1]
+                            var = np.var(spy_returns)
+                            beta = cov / var if var > 0 else 1.0
+                            betas.append(beta)
                 except Exception:
                     continue
             
             avg_beta = sum(betas) / len(betas) if betas else 1.0
             
             # Momentum factor from Polygon SMA
-            spy_sma_50 = self._get_polygon_indicator('SPY', 'sma', 50)
-            spy_sma_200 = self._get_polygon_indicator('SPY', 'sma', 200)
+            if shared:
+                sma50_data = await shared.get_sma('SPY', 50)
+                spy_sma_50 = float((sma50_data or {}).get('results', {}).get('values', [{}])[0].get('value', 0)) if sma50_data and (sma50_data or {}).get('results', {}).get('values') else None
+                sma200_data = await shared.get_sma('SPY', 200)
+                spy_sma_200 = float((sma200_data or {}).get('results', {}).get('values', [{}])[0].get('value', 0)) if sma200_data and (sma200_data or {}).get('results', {}).get('values') else None
+            else:
+                spy_sma_50 = self._get_polygon_indicator('SPY', 'sma', 50)
+                spy_sma_200 = self._get_polygon_indicator('SPY', 'sma', 200)
             
             momentum = round(float((spy_closes[-1] - spy_closes[-20]) / spy_closes[-20]), 3) if len(spy_closes) > 20 else 0
             
             # RSI factor from Polygon
-            spy_rsi = self._get_polygon_indicator('SPY', 'rsi', 14)
+            if shared:
+                rsi_data = await shared.get_rsi('SPY')
+                rsi_vals = (rsi_data or {}).get('results', {}).get('values', [])
+                spy_rsi = float(rsi_vals[0].get('value')) if rsi_vals else None
+            else:
+                spy_rsi = self._get_polygon_indicator('SPY', 'rsi', 14)
             
             # News sentiment factor
-            news_factor = self._get_news_sentiment_factor(symbols[0]) if symbols else 0
+            news_factor = await self._get_news_sentiment_factor(symbols[0], shared) if symbols else 0
             
             factors = {
                 'market_beta': round(float(avg_beta), 3),

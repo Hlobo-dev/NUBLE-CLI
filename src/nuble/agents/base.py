@@ -159,6 +159,12 @@ class SpecializedAgent(ABC):
             execution_time_ms=execution_time_ms
         )
     
+    def _get_shared_data(self, task: 'AgentTask' = None):
+        """Get the shared data layer from task context, if available."""
+        if task and hasattr(task, 'context') and task.context:
+            return task.context.get('shared_data')
+        return None
+
     async def reason_with_claude(
         self,
         prompt: str,

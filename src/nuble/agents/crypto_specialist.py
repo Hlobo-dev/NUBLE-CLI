@@ -84,13 +84,14 @@ class CryptoSpecialistAgent(SpecializedAgent):
             symbols = task.context.get('symbols', [])
             crypto_symbols = self._filter_crypto(symbols)
             
+            shared = self._get_shared_data(task)
             data = {
-                'market_overview': self._get_market_overview(),
-                'price_data': self._get_price_data(crypto_symbols),
-                'coin_fundamentals': self._get_coin_fundamentals(crypto_symbols),
-                'technicals': self._get_crypto_technicals(crypto_symbols),
-                'sentiment': self._get_crypto_sentiment(),
-                'defi_overview': self._get_defi_overview()
+                'market_overview': await self._get_market_overview(shared),
+                'price_data': await self._get_price_data(crypto_symbols, shared),
+                'coin_fundamentals': await self._get_coin_fundamentals(crypto_symbols, shared),
+                'technicals': await self._get_crypto_technicals(crypto_symbols, shared),
+                'sentiment': await self._get_crypto_sentiment(shared),
+                'defi_overview': await self._get_defi_overview(shared)
             }
             
             return AgentResult(
@@ -130,8 +131,32 @@ class CryptoSpecialistAgent(SpecializedAgent):
         crypto_list = set(CRYPTO_TICKERS.keys())
         return [s.upper() for s in symbols if s.upper() in crypto_list] or ['BTC', 'ETH']
     
-    def _get_market_overview(self) -> Dict:
+    async def _get_market_overview(self, shared=None) -> Dict:
         """Get crypto market overview from CoinGecko."""
+        if shared:
+            data = await shared.get_coingecko_global()
+            if data and data.get('data'):
+                d = data['data']
+                total_mcap = d.get('total_market_cap', {}).get('usd', 0)
+                total_vol = d.get('total_volume', {}).get('usd', 0)
+                btc_dom = d.get('market_cap_percentage', {}).get('btc', 0)
+                eth_dom = d.get('market_cap_percentage', {}).get('eth', 0)
+                mcap_change = d.get('market_cap_change_percentage_24h_usd', 0)
+                result = {
+                    'total_market_cap': f"${total_mcap / 1e12:.2f}T",
+                    'total_market_cap_raw': total_mcap,
+                    'btc_dominance': round(btc_dom, 1),
+                    'eth_dominance': round(eth_dom, 1),
+                    'total_volume_24h': f"${total_vol / 1e9:.0f}B",
+                    'market_cap_change_24h': round(mcap_change, 2),
+                    'active_cryptocurrencies': d.get('active_cryptocurrencies', 0),
+                    'data_source': 'coingecko_live'
+                }
+                fng_data = await shared.get_fear_greed()
+                if fng_data and fng_data.get('data'):
+                    result['fear_greed_index'] = int(fng_data['data'][0].get('value', 0))
+                    result['fear_greed_label'] = fng_data['data'][0].get('value_classification', 'Unknown')
+                return result
         try:
             resp = requests.get("https://api.coingecko.com/api/v3/global",
                                 timeout=10, headers={'Accept': 'application/json'})
@@ -186,7 +211,7 @@ class CryptoSpecialistAgent(SpecializedAgent):
             }
         return {'error': 'Market overview data unavailable'}
     
-    def _get_price_data(self, symbols: List[str]) -> Dict:
+    async def _get_price_data(self, symbols: List[str], shared=None) -> Dict:
         """Get real price data from Polygon for each crypto symbol."""
         data = {}
         for symbol in symbols[:5]:
@@ -194,8 +219,8 @@ class CryptoSpecialistAgent(SpecializedAgent):
             if not polygon_ticker:
                 continue
             
-            prev = self._polygon_get(f"https://api.polygon.io/v2/aggs/ticker/{polygon_ticker}/prev")
-            results = prev.get('results', [])
+            prev = (await shared.get_quote(polygon_ticker)) if shared else self._polygon_get(f"https://api.polygon.io/v2/aggs/ticker/{polygon_ticker}/prev")
+            results = prev.get('results', []) if prev else []
             if results:
                 r = results[0]
                 change = r['c'] - r['o']
@@ -215,7 +240,7 @@ class CryptoSpecialistAgent(SpecializedAgent):
         
         return data
     
-    def _get_coin_fundamentals(self, symbols: List[str]) -> Dict:
+    async def _get_coin_fundamentals(self, symbols: List[str], shared=None) -> Dict:
         """Get coin-specific fundamentals from CoinGecko /coins/{id}."""
         fundamentals = {}
         
@@ -225,15 +250,23 @@ class CryptoSpecialistAgent(SpecializedAgent):
                 continue
             
             try:
-                resp = requests.get(
-                    f"https://api.coingecko.com/api/v3/coins/{coin_id}",
-                    params={'localization': 'false', 'tickers': 'false',
-                            'community_data': 'false', 'developer_data': 'false'},
-                    timeout=10, headers={'Accept': 'application/json'}
-                )
+                coin = None
+                if shared:
+                    coin = await shared.get_coingecko_coin(coin_id)
+                else:
+                    resp = requests.get(
+                        f"https://api.coingecko.com/api/v3/coins/{coin_id}",
+                        params={'localization': 'false', 'tickers': 'false',
+                                'community_data': 'false', 'developer_data': 'false'},
+                        timeout=10, headers={'Accept': 'application/json'}
+                    )
+                    if resp.status_code == 200:
+                        coin = resp.json()
+                    elif resp.status_code == 429:
+                        logger.warning("CoinGecko rate limit hit")
+                        break
                 
-                if resp.status_code == 200:
-                    coin = resp.json()
+                if coin:
                     market = coin.get('market_data', {})
                     
                     fundamentals[symbol] = {
@@ -255,15 +288,12 @@ class CryptoSpecialistAgent(SpecializedAgent):
                         'total_volume_24h': market.get('total_volume', {}).get('usd', 0),
                         'data_source': 'coingecko_coins'
                     }
-                elif resp.status_code == 429:
-                    logger.warning("CoinGecko rate limit hit")
-                    break
             except Exception as e:
                 logger.warning(f"CoinGecko coin data failed for {symbol}: {e}")
         
         return fundamentals if fundamentals else {'note': 'CoinGecko coin data unavailable'}
     
-    def _get_crypto_technicals(self, symbols: List[str]) -> Dict:
+    async def _get_crypto_technicals(self, symbols: List[str], shared=None) -> Dict:
         """Get technical indicators using Polygon server-side API + historical."""
         technicals = {}
         
@@ -275,11 +305,11 @@ class CryptoSpecialistAgent(SpecializedAgent):
             entry = {'data_source': 'polygon_indicators'}
             
             # Server-side RSI from Polygon
-            rsi_data = self._polygon_get(
+            rsi_data = (await shared.get_rsi(polygon_ticker)) if shared else self._polygon_get(
                 f"https://api.polygon.io/v1/indicators/rsi/{polygon_ticker}",
                 {'timespan': 'day', 'window': 14, 'series_type': 'close', 'order': 'desc', 'limit': 1}
             )
-            rsi_vals = rsi_data.get('results', {}).get('values', [])
+            rsi_vals = (rsi_data or {}).get('results', {}).get('values', [])
             if rsi_vals:
                 rsi = rsi_vals[0].get('value')
                 entry['rsi'] = round(float(rsi), 2) if rsi else None
@@ -287,21 +317,21 @@ class CryptoSpecialistAgent(SpecializedAgent):
             
             # Server-side SMA from Polygon
             for window in [20, 50]:
-                sma_data = self._polygon_get(
+                sma_data = (await shared.get_sma(polygon_ticker, window)) if shared else self._polygon_get(
                     f"https://api.polygon.io/v1/indicators/sma/{polygon_ticker}",
                     {'timespan': 'day', 'window': window, 'series_type': 'close', 'order': 'desc', 'limit': 1}
                 )
-                sma_vals = sma_data.get('results', {}).get('values', [])
+                sma_vals = (sma_data or {}).get('results', {}).get('values', [])
                 if sma_vals:
                     entry[f'sma_{window}'] = round(float(sma_vals[0].get('value', 0)), 2)
             
             # Server-side MACD from Polygon
-            macd_data = self._polygon_get(
+            macd_data = (await shared.get_macd(polygon_ticker)) if shared else self._polygon_get(
                 f"https://api.polygon.io/v1/indicators/macd/{polygon_ticker}",
                 {'timespan': 'day', 'short_window': 12, 'long_window': 26,
                  'signal_window': 9, 'series_type': 'close', 'order': 'desc', 'limit': 1}
             )
-            macd_vals = macd_data.get('results', {}).get('values', [])
+            macd_vals = (macd_data or {}).get('results', {}).get('values', [])
             if macd_vals:
                 entry['macd'] = round(float(macd_vals[0].get('value', 0)), 4)
                 entry['macd_signal'] = round(float(macd_vals[0].get('signal', 0)), 4)
@@ -312,11 +342,11 @@ class CryptoSpecialistAgent(SpecializedAgent):
                 end_date = datetime.now().strftime('%Y-%m-%d')
                 start_date = (datetime.now() - timedelta(days=60)).strftime('%Y-%m-%d')
                 
-                hist = self._polygon_get(
+                hist = (await shared.get_historical(polygon_ticker, 60)) if shared else self._polygon_get(
                     f"https://api.polygon.io/v2/aggs/ticker/{polygon_ticker}/range/1/day/{start_date}/{end_date}",
                     {'sort': 'asc'}
                 )
-                results = hist.get('results', [])
+                results = (hist or {}).get('results', [])
                 if len(results) >= 14:
                     closes = np.array([r['c'] for r in results])
                     volumes = np.array([r['v'] for r in results])
@@ -346,42 +376,56 @@ class CryptoSpecialistAgent(SpecializedAgent):
         
         return technicals
     
-    def _get_crypto_sentiment(self) -> Dict:
+    async def _get_crypto_sentiment(self, shared=None) -> Dict:
         """Get real crypto sentiment from Fear & Greed + CryptoNews PRO (ALL premium endpoints)."""
         sentiment = {}
         
         # Fear & Greed Index
         try:
-            resp = requests.get("https://api.alternative.me/fng/?limit=7", timeout=5)
-            if resp.status_code == 200:
-                fng_data = resp.json().get('data', [])
-                if fng_data:
-                    current = fng_data[0]
-                    sentiment['fear_greed'] = {
-                        'value': int(current.get('value', 0)),
-                        'label': current.get('value_classification', 'Unknown'),
-                        'trend_7d': [int(d.get('value', 0)) for d in fng_data],
-                        'direction': 'IMPROVING' if int(fng_data[0].get('value', 0)) > int(fng_data[-1].get('value', 0)) else 'DETERIORATING',
-                        'data_source': 'alternative_me_live'
-                    }
+            fng_data_list = None
+            if shared:
+                fng_resp = await shared.get_fear_greed()
+                if fng_resp:
+                    fng_data_list = fng_resp.get('data', [])
+            else:
+                resp = requests.get("https://api.alternative.me/fng/?limit=7", timeout=5)
+                if resp.status_code == 200:
+                    fng_data_list = resp.json().get('data', [])
+            
+            if fng_data_list:
+                current = fng_data_list[0]
+                sentiment['fear_greed'] = {
+                    'value': int(current.get('value', 0)),
+                    'label': current.get('value_classification', 'Unknown'),
+                    'trend_7d': [int(d.get('value', 0)) for d in fng_data_list],
+                    'direction': 'IMPROVING' if int(fng_data_list[0].get('value', 0)) > int(fng_data_list[-1].get('value', 0)) else 'DETERIORATING',
+                    'data_source': 'alternative_me_live'
+                }
         except Exception:
             pass
         
         # CryptoNews PRO — Ticker news with sentiment + rank score
         if self.crypto_news_key:
             try:
-                resp = requests.get("https://cryptonews-api.com/api/v1", params={
-                    'tickers': 'BTC,ETH,SOL',
-                    'items': 10, 'sortby': 'rank',
-                    'extra-fields': 'id,eventid,rankscore',
-                    'token': self.crypto_news_key
-                }, timeout=10)
+                news_data = None
+                if shared:
+                    cn_resp = await shared.get_cryptonews('BTC,ETH,SOL')
+                    if cn_resp:
+                        news_data = cn_resp.get('data', [])
+                else:
+                    resp = requests.get("https://cryptonews-api.com/api/v1", params={
+                        'tickers': 'BTC,ETH,SOL',
+                        'items': 10, 'sortby': 'rank',
+                        'extra-fields': 'id,eventid,rankscore',
+                        'token': self.crypto_news_key
+                    }, timeout=10)
+                    if resp.status_code == 200:
+                        news_data = resp.json().get('data', [])
                 
-                if resp.status_code == 200:
-                    news = resp.json().get('data', [])
+                if news_data:
                     sentiments = []
                     headlines = []
-                    for article in news[:10]:
+                    for article in news_data[:10]:
                         sent = article.get('sentiment', 'Neutral')
                         sentiments.append(sent)
                         headlines.append({
@@ -396,12 +440,7 @@ class CryptoSpecialistAgent(SpecializedAgent):
                     neg = sentiments.count('Negative') + sentiments.count('Bearish')
                     total = len(sentiments) if sentiments else 1
                     
-                    if pos > neg:
-                        overall = 'BULLISH'
-                    elif neg > pos:
-                        overall = 'BEARISH'
-                    else:
-                        overall = 'NEUTRAL'
+                    overall = 'BULLISH' if pos > neg else 'BEARISH' if neg > pos else 'NEUTRAL'
                     
                     sentiment['news'] = {
                         'overall': overall,
@@ -417,29 +456,44 @@ class CryptoSpecialistAgent(SpecializedAgent):
         # CryptoNews PRO — /stat endpoint for quantitative sentiment over 30 days
         if self.crypto_news_key:
             try:
-                resp = requests.get("https://cryptonews-api.com/api/v1/stat", params={
-                    'tickers': 'BTC', 'date': 'last30days', 'page': 1,
-                    'token': self.crypto_news_key
-                }, timeout=10)
-                if resp.status_code == 200:
-                    stat_data = resp.json().get('data', {})
-                    if stat_data:
-                        sentiment['btc_sentiment_30d'] = {
-                            'data': stat_data,
-                            'period': 'last30days',
-                            'data_source': 'cryptonews_stat'
-                        }
+                stat_data = None
+                if shared:
+                    stat_resp = await shared.get_cryptonews_stat('BTC')
+                    if stat_resp:
+                        stat_data = stat_resp.get('data', {})
+                else:
+                    resp = requests.get("https://cryptonews-api.com/api/v1/stat", params={
+                        'tickers': 'BTC', 'date': 'last30days', 'page': 1,
+                        'token': self.crypto_news_key
+                    }, timeout=10)
+                    if resp.status_code == 200:
+                        stat_data = resp.json().get('data', {})
+                
+                if stat_data:
+                    sentiment['btc_sentiment_30d'] = {
+                        'data': stat_data,
+                        'period': 'last30days',
+                        'data_source': 'cryptonews_stat'
+                    }
             except Exception:
                 pass
         
         # CryptoNews PRO — /top-mention for most discussed coins
         if self.crypto_news_key:
             try:
-                resp = requests.get("https://cryptonews-api.com/api/v1/top-mention", params={
-                    'date': 'last7days', 'token': self.crypto_news_key
-                }, timeout=10)
-                if resp.status_code == 200:
-                    top_coins = resp.json().get('data', [])
+                top_coins = None
+                if shared:
+                    tm_resp = await shared.get_cryptonews_top_mentioned()
+                    if tm_resp:
+                        top_coins = tm_resp.get('data', [])
+                else:
+                    resp = requests.get("https://cryptonews-api.com/api/v1/top-mention", params={
+                        'date': 'last7days', 'token': self.crypto_news_key
+                    }, timeout=10)
+                    if resp.status_code == 200:
+                        top_coins = resp.json().get('data', [])
+                
+                if top_coins:
                     sentiment['top_mentioned_coins'] = {
                         'coins': top_coins[:15],
                         'period': 'last7days',
@@ -451,11 +505,19 @@ class CryptoSpecialistAgent(SpecializedAgent):
         # CryptoNews PRO — /trending-headlines for top trending crypto stories
         if self.crypto_news_key:
             try:
-                resp = requests.get("https://cryptonews-api.com/api/v1/trending-headlines", params={
-                    'page': 1, 'token': self.crypto_news_key
-                }, timeout=10)
-                if resp.status_code == 200:
-                    trending = resp.json().get('data', [])
+                trending = None
+                if shared:
+                    tr_resp = await shared.get_cryptonews_trending()
+                    if tr_resp:
+                        trending = tr_resp.get('data', [])
+                else:
+                    resp = requests.get("https://cryptonews-api.com/api/v1/trending-headlines", params={
+                        'page': 1, 'token': self.crypto_news_key
+                    }, timeout=10)
+                    if resp.status_code == 200:
+                        trending = resp.json().get('data', [])
+                
+                if trending:
                     sentiment['trending_headlines'] = {
                         'headlines': [{
                             'title': h.get('title', ''),
@@ -470,11 +532,19 @@ class CryptoSpecialistAgent(SpecializedAgent):
         # CryptoNews PRO — /events for breaking crypto events
         if self.crypto_news_key:
             try:
-                resp = requests.get("https://cryptonews-api.com/api/v1/events", params={
-                    'page': 1, 'token': self.crypto_news_key
-                }, timeout=10)
-                if resp.status_code == 200:
-                    events = resp.json().get('data', [])
+                events = None
+                if shared:
+                    ev_resp = await shared.get_cryptonews_events()
+                    if ev_resp:
+                        events = ev_resp.get('data', [])
+                else:
+                    resp = requests.get("https://cryptonews-api.com/api/v1/events", params={
+                        'page': 1, 'token': self.crypto_news_key
+                    }, timeout=10)
+                    if resp.status_code == 200:
+                        events = resp.json().get('data', [])
+                
+                if events:
                     sentiment['breaking_events'] = {
                         'events': [{
                             'title': e.get('title', ''),
@@ -490,13 +560,21 @@ class CryptoSpecialistAgent(SpecializedAgent):
         # CryptoNews PRO — /category?section=general for regulation, DeFi, NFT, market news
         if self.crypto_news_key:
             try:
-                resp = requests.get("https://cryptonews-api.com/api/v1/category", params={
-                    'section': 'general', 'items': 5, 'sortby': 'rank',
-                    'extra-fields': 'id,eventid,rankscore',
-                    'page': 1, 'token': self.crypto_news_key
-                }, timeout=10)
-                if resp.status_code == 200:
-                    general = resp.json().get('data', [])
+                general = None
+                if shared:
+                    cat_resp = await shared.get_cryptonews_category('general')
+                    if cat_resp:
+                        general = cat_resp.get('data', [])
+                else:
+                    resp = requests.get("https://cryptonews-api.com/api/v1/category", params={
+                        'section': 'general', 'items': 5, 'sortby': 'rank',
+                        'extra-fields': 'id,eventid,rankscore',
+                        'page': 1, 'token': self.crypto_news_key
+                    }, timeout=10)
+                    if resp.status_code == 200:
+                        general = resp.json().get('data', [])
+                
+                if general:
                     sentiment['general_crypto_news'] = {
                         'articles': [{
                             'title': a.get('title', ''),
@@ -512,20 +590,27 @@ class CryptoSpecialistAgent(SpecializedAgent):
         # CryptoNews PRO — /sundown-digest for daily crypto summary
         if self.crypto_news_key:
             try:
-                resp = requests.get("https://cryptonews-api.com/api/v1/sundown-digest", params={
-                    'page': 1, 'token': self.crypto_news_key
-                }, timeout=10)
-                if resp.status_code == 200:
-                    digest = resp.json().get('data', [])
-                    if digest:
-                        sentiment['sundown_digest'] = {
-                            'digest': [{
-                                'title': d.get('title', ''),
-                                'text': d.get('text', ''),
-                                'date': d.get('date', ''),
-                            } for d in digest[:2]],
-                            'data_source': 'cryptonews_sundown'
-                        }
+                digest = None
+                if shared:
+                    sd_resp = await shared.get_cryptonews_sundown()
+                    if sd_resp:
+                        digest = sd_resp.get('data', [])
+                else:
+                    resp = requests.get("https://cryptonews-api.com/api/v1/sundown-digest", params={
+                        'page': 1, 'token': self.crypto_news_key
+                    }, timeout=10)
+                    if resp.status_code == 200:
+                        digest = resp.json().get('data', [])
+                
+                if digest:
+                    sentiment['sundown_digest'] = {
+                        'digest': [{
+                            'title': d.get('title', ''),
+                            'text': d.get('text', ''),
+                            'date': d.get('date', ''),
+                        } for d in digest[:2]],
+                        'data_source': 'cryptonews_sundown'
+                    }
             except Exception:
                 pass
         
@@ -534,21 +619,29 @@ class CryptoSpecialistAgent(SpecializedAgent):
         
         return sentiment
     
-    def _get_defi_overview(self) -> Dict:
+    async def _get_defi_overview(self, shared=None) -> Dict:
         """Get DeFi overview from CoinGecko."""
         try:
-            resp = requests.get("https://api.coingecko.com/api/v3/global/decentralized_finance_defi",
-                                timeout=10, headers={'Accept': 'application/json'})
-            if resp.status_code == 200:
-                data = resp.json().get('data', {})
+            defi_data = None
+            if shared:
+                defi_resp = await shared.get_coingecko_defi()
+                if defi_resp:
+                    defi_data = defi_resp.get('data', {})
+            else:
+                resp = requests.get("https://api.coingecko.com/api/v3/global/decentralized_finance_defi",
+                                    timeout=10, headers={'Accept': 'application/json'})
+                if resp.status_code == 200:
+                    defi_data = resp.json().get('data', {})
+            
+            if defi_data:
                 return {
-                    'defi_market_cap': data.get('defi_market_cap', ''),
-                    'eth_market_cap': data.get('eth_market_cap', ''),
-                    'defi_to_eth_ratio': data.get('defi_to_eth_ratio', ''),
-                    'defi_dominance': data.get('defi_dominance', ''),
-                    'top_coin': data.get('top_coin_name', ''),
-                    'top_coin_defi_dominance': data.get('top_coin_defi_dominance', ''),
-                    'trading_volume_24h': data.get('trading_volume_24h', ''),
+                    'defi_market_cap': defi_data.get('defi_market_cap', ''),
+                    'eth_market_cap': defi_data.get('eth_market_cap', ''),
+                    'defi_to_eth_ratio': defi_data.get('defi_to_eth_ratio', ''),
+                    'defi_dominance': defi_data.get('defi_dominance', ''),
+                    'top_coin': defi_data.get('top_coin_name', ''),
+                    'top_coin_defi_dominance': defi_data.get('top_coin_defi_dominance', ''),
+                    'trading_volume_24h': defi_data.get('trading_volume_24h', ''),
                     'data_source': 'coingecko_defi_live'
                 }
         except Exception as e:

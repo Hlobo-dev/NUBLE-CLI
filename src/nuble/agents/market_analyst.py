@@ -108,7 +108,7 @@ class MarketAnalystAgent(SpecializedAgent):
             all_data = {}
             
             for symbol in symbols[:3]:  # Limit to 3 symbols
-                symbol_data = await self._analyze_symbol(symbol, query)
+                symbol_data = await self._analyze_symbol(symbol, query, task)
                 all_data[symbol] = symbol_data
             
             # Calculate overall confidence
@@ -140,7 +140,7 @@ class MarketAnalystAgent(SpecializedAgent):
                 error=str(e)
             )
     
-    async def _analyze_symbol(self, symbol: str, query: str) -> Dict[str, Any]:
+    async def _analyze_symbol(self, symbol: str, query: str, task=None) -> Dict[str, Any]:
         """Perform full analysis on a symbol using all data sources."""
         result = {
             'symbol': symbol,
@@ -148,12 +148,12 @@ class MarketAnalystAgent(SpecializedAgent):
         }
         
         # Get current quote
-        quote = await self._get_quote(symbol)
+        quote = await self._get_quote(symbol, task)
         if quote:
             result['quote'] = quote
         
         # Get historical data
-        historical = await self._get_historical(symbol, days=90)
+        historical = await self._get_historical(symbol, days=90, task=task)
         if historical:
             result['historical'] = {
                 'data_points': len(historical),
@@ -178,17 +178,17 @@ class MarketAnalystAgent(SpecializedAgent):
             result['trend'] = trend
         
         # StockNews PRO — News sentiment for this symbol
-        news_sentiment = self._get_stocknews_sentiment(symbol)
+        news_sentiment = await self._get_stocknews_sentiment(symbol, task)
         if news_sentiment:
             result['news_sentiment'] = news_sentiment
         
         # StockNews PRO — Analyst ratings for this symbol
-        analyst_ratings = self._get_analyst_ratings(symbol)
+        analyst_ratings = await self._get_analyst_ratings(symbol, task)
         if analyst_ratings:
             result['analyst_ratings'] = analyst_ratings
         
         # StockNews PRO — Check earnings calendar
-        earnings_info = self._get_earnings_info(symbol)
+        earnings_info = await self._get_earnings_info(symbol, task)
         if earnings_info:
             result['upcoming_earnings'] = earnings_info
         
@@ -199,8 +199,35 @@ class MarketAnalystAgent(SpecializedAgent):
         
         return result
     
-    def _get_stocknews_sentiment(self, symbol: str) -> Dict:
-        """StockNews PRO — Get quantitative sentiment + ranked news."""
+    async def _get_stocknews_sentiment(self, symbol: str, task=None) -> Dict:
+        """StockNews PRO — Get quantitative sentiment + ranked news. Prefers SharedDataLayer."""
+        # Try shared data layer first (zero HTTP calls)
+        shared = self._get_shared_data(task)
+        if shared:
+            result = {}
+            stat_data = await shared.get_stocknews_stat(symbol)
+            if stat_data and stat_data.get('data'):
+                result['sentiment_stats_7d'] = stat_data['data']
+            
+            news_data = await shared.get_stocknews(symbol)
+            if news_data and news_data.get('data'):
+                articles = news_data['data']
+                pos = sum(1 for a in articles if str(a.get('sentiment', '')).lower() in ('positive', 'bullish'))
+                neg = sum(1 for a in articles if str(a.get('sentiment', '')).lower() in ('negative', 'bearish'))
+                total = len(articles)
+                score = (pos - neg) / total if total > 0 else 0
+                result['score'] = round(score, 2)
+                result['label'] = 'BULLISH' if score > 0.2 else 'BEARISH' if score < -0.2 else 'NEUTRAL'
+                result['positive'] = pos
+                result['negative'] = neg
+                result['article_count'] = total
+                result['top_headlines'] = [a.get('title', '') for a in articles[:3]]
+            
+            if result:
+                result['data_source'] = 'stocknews_pro'
+                return result
+
+        # Fallback to direct HTTP
         if not HAS_REQUESTS:
             return {}
         stocknews_key = os.environ.get('STOCKNEWS_API_KEY', 'zzad9pmlwttixx0fnsenstctzgdk7ysx0ctkgrk0')
@@ -247,8 +274,36 @@ class MarketAnalystAgent(SpecializedAgent):
             result['data_source'] = 'stocknews_pro'
         return result
     
-    def _get_analyst_ratings(self, symbol: str) -> Dict:
-        """StockNews PRO — /ratings for analyst upgrades/downgrades + price targets."""
+    async def _get_analyst_ratings(self, symbol: str, task=None) -> Dict:
+        """StockNews PRO — /ratings for analyst upgrades/downgrades + price targets. Prefers SharedDataLayer."""
+        # Try shared data layer first
+        shared = self._get_shared_data(task)
+        if shared:
+            data = await shared.get_stocknews_ratings()
+            if data and data.get('data'):
+                ratings = data['data']
+                symbol_ratings = []
+                for r in ratings:
+                    if r.get('ticker', '').upper() == symbol.upper():
+                        symbol_ratings.append({
+                            'action': r.get('action', ''),
+                            'rating_from': r.get('rating_from', ''),
+                            'rating_to': r.get('rating_to', ''),
+                            'target_from': r.get('target_from', ''),
+                            'target_to': r.get('target_to', ''),
+                            'analyst': r.get('analyst', ''),
+                            'analyst_company': r.get('analyst_company', ''),
+                            'date': r.get('date', ''),
+                        })
+                if symbol_ratings:
+                    return {
+                        'ratings': symbol_ratings,
+                        'latest_action': symbol_ratings[0].get('action', ''),
+                        'data_source': 'stocknews_ratings'
+                    }
+                return {}
+
+        # Fallback to direct HTTP
         if not HAS_REQUESTS:
             return {}
         stocknews_key = os.environ.get('STOCKNEWS_API_KEY', 'zzad9pmlwttixx0fnsenstctzgdk7ysx0ctkgrk0')
@@ -281,8 +336,23 @@ class MarketAnalystAgent(SpecializedAgent):
             pass
         return {}
     
-    def _get_earnings_info(self, symbol: str) -> Dict:
-        """StockNews PRO — /earnings-calendar for upcoming earnings date."""
+    async def _get_earnings_info(self, symbol: str, task=None) -> Dict:
+        """StockNews PRO — /earnings-calendar for upcoming earnings date. Prefers SharedDataLayer."""
+        # Try shared data layer first
+        shared = self._get_shared_data(task)
+        if shared:
+            data = await shared.get_stocknews_earnings()
+            if data and data.get('data'):
+                for e in data['data']:
+                    if e.get('ticker', '').upper() == symbol.upper():
+                        return {
+                            'date': e.get('date', ''),
+                            'time': e.get('time', ''),
+                            'data_source': 'stocknews_earnings_calendar'
+                        }
+                return {}
+
+        # Fallback to direct HTTP
         if not HAS_REQUESTS:
             return {}
         stocknews_key = os.environ.get('STOCKNEWS_API_KEY', 'zzad9pmlwttixx0fnsenstctzgdk7ysx0ctkgrk0')
@@ -303,8 +373,26 @@ class MarketAnalystAgent(SpecializedAgent):
             pass
         return {}
     
-    async def _get_quote(self, symbol: str) -> Optional[Dict]:
-        """Get real-time quote from Polygon."""
+    async def _get_quote(self, symbol: str, task=None) -> Optional[Dict]:
+        """Get real-time quote from Polygon. Prefers SharedDataLayer if available."""
+        # Try shared data layer first (zero HTTP calls)
+        shared = self._get_shared_data(task)
+        if shared:
+            data = await shared.get_quote(symbol)
+            if data and data.get('results'):
+                r = data['results'][0]
+                return {
+                    'symbol': symbol,
+                    'open': r.get('o'),
+                    'high': r.get('h'),
+                    'low': r.get('l'),
+                    'close': r.get('c'),
+                    'volume': r.get('v'),
+                    'vwap': r.get('vw'),
+                    'change_pct': ((r.get('c', 0) - r.get('o', 1)) / r.get('o', 1) * 100) if r.get('o') else 0
+                }
+
+        # Fallback to direct HTTP
         if not HAS_REQUESTS:
             return self._real_quote(symbol)
         
@@ -333,8 +421,27 @@ class MarketAnalystAgent(SpecializedAgent):
         
         return self._real_quote(symbol)
     
-    async def _get_historical(self, symbol: str, days: int = 90) -> List[Dict]:
-        """Get historical OHLCV data."""
+    async def _get_historical(self, symbol: str, days: int = 90, task=None) -> List[Dict]:
+        """Get historical OHLCV data. Prefers SharedDataLayer if available."""
+        # Try shared data layer first
+        shared = self._get_shared_data(task)
+        if shared:
+            data = await shared.get_historical(symbol, days)
+            if data and data.get('results'):
+                return [
+                    {
+                        'date': datetime.fromtimestamp(r['t'] / 1000).strftime('%Y-%m-%d'),
+                        'open': r.get('o'),
+                        'high': r.get('h'),
+                        'low': r.get('l'),
+                        'close': r.get('c'),
+                        'volume': r.get('v'),
+                        'vwap': r.get('vw')
+                    }
+                    for r in data['results']
+                ]
+
+        # Fallback to direct HTTP
         if not HAS_REQUESTS:
             return self._real_historical(symbol, days)
         
