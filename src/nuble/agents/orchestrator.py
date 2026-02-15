@@ -71,7 +71,15 @@ except ImportError:
     DECISION_ENGINE_AVAILABLE = False
     UltimateDecisionEngine = None
 
-# Import WRDS ML Predictor (institutional-grade, highest priority)
+# Import LivePredictor (Polygon live + WRDS-trained models — PRIMARY)
+try:
+    from ..ml.live_predictor import get_live_predictor
+    LIVE_PREDICTOR_AVAILABLE = True
+except ImportError:
+    LIVE_PREDICTOR_AVAILABLE = False
+    get_live_predictor = None
+
+# Import WRDS ML Predictor (institutional-grade, fallback when Polygon unavailable)
 try:
     from ..ml.wrds_predictor import get_wrds_predictor
     WRDS_PREDICTOR_AVAILABLE = True
@@ -79,7 +87,7 @@ except ImportError:
     WRDS_PREDICTOR_AVAILABLE = False
     get_wrds_predictor = None
 
-# Import ML Predictor for predictions (v2 pipeline — F4)
+# Import ML Predictor for predictions (v2 pipeline — F4) — DEPRECATED
 try:
     from ..ml.predictor import get_predictor as get_predictor_v2
     ML_PREDICTOR_V2_AVAILABLE = True
@@ -87,7 +95,7 @@ except ImportError:
     ML_PREDICTOR_V2_AVAILABLE = False
     get_predictor_v2 = None
 
-# Legacy v1 fallback
+# Legacy v1 fallback — DEPRECATED
 try:
     from ...institutional.ml import get_predictor
     ML_PREDICTOR_AVAILABLE = True
@@ -206,34 +214,42 @@ class OrchestratorAgent:
             except Exception as e:
                 logger.warning(f"Decision Engine init failed: {e}")
         
-        # Initialize ML Predictor — prefer WRDS (institutional) > v2 (F4) > v1 (legacy)
+        # Initialize ML Predictor — prefer LivePredictor > WRDS > v2 > v1
         self._ml_predictor = None
         self._ml_predictor_v2 = None
         self._wrds_predictor = None
+        self._live_predictor = None
         if self.config.enable_ml_predictor:
-            # Try WRDS predictor first (institutional-grade, 3.76M observations)
+            # Try LivePredictor first (Polygon live + WRDS-trained models)
+            if LIVE_PREDICTOR_AVAILABLE:
+                try:
+                    self._live_predictor = get_live_predictor()
+                    logger.info("✅ LivePredictor connected (Polygon + WRDS multi-tier ensemble)")
+                except Exception as e:
+                    logger.warning(f"LivePredictor init failed: {e}")
+            # Try WRDS predictor as fallback (institutional-grade, 3.76M observations)
             if WRDS_PREDICTOR_AVAILABLE:
                 try:
                     self._wrds_predictor = get_wrds_predictor()
                     if self._wrds_predictor.is_ready:
-                        logger.info("✅ WRDS ML Predictor connected (institutional-grade, 461 features)")
+                        logger.info("✅ WRDS ML Predictor connected (institutional-grade, multi-tier)")
                     else:
                         self._wrds_predictor = None
                         logger.warning("WRDS predictor loaded but not ready (model not trained yet?)")
                 except Exception as e:
                     logger.warning(f"WRDS Predictor init failed: {e}")
-            # Try v2 next
+            # DEPRECATED: v2 next
             if ML_PREDICTOR_V2_AVAILABLE:
                 try:
                     self._ml_predictor_v2 = get_predictor_v2()
-                    logger.info("ML Predictor v2 (F4 pipeline) connected")
+                    logger.info("⚠️  ML Predictor v2 (DEPRECATED — F4 pipeline) connected")
                 except Exception as e:
                     logger.warning(f"ML Predictor v2 init failed: {e}")
-            # Legacy v1 fallback
+            # DEPRECATED: Legacy v1 fallback
             if self._ml_predictor_v2 is None and ML_PREDICTOR_AVAILABLE:
                 try:
                     self._ml_predictor = get_predictor()
-                    logger.info("ML Predictor v1 (legacy) connected")
+                    logger.info("⚠️  ML Predictor v1 (DEPRECATED — legacy) connected")
                 except Exception as e:
                     logger.warning(f"ML Predictor v1 init failed: {e}")
         
@@ -520,13 +536,30 @@ class OrchestratorAgent:
             except Exception as e:
                 logger.warning(f"UltimateDecisionEngine failed: {e}")
         
-        # STEP 0.7: Get ML Predictions — WRDS (institutional) > v2 (F4) > v1 legacy
+        # STEP 0.7: Get ML Predictions — Live > WRDS > v2 (DEPRECATED) > v1 (DEPRECATED)
         ml_predictions = {}
         if symbols and is_trading_query:
             try:
-                # ── WRDS predictor: institutional-grade, 461 features, 3.76M obs ──
-                if self._wrds_predictor and self._wrds_predictor.is_ready:
-                    for symbol in symbols[:5]:  # WRDS can handle more symbols (no OHLCV fetch needed)
+                # ── LivePredictor: Polygon live + WRDS-trained multi-tier ensemble ──
+                if self._live_predictor:
+                    for symbol in symbols[:5]:
+                        prediction = await asyncio.get_event_loop().run_in_executor(
+                            None,
+                            lambda s=symbol: self._live_predictor.predict(s)
+                        )
+                        if prediction and prediction.get('confidence', 0) > 0:
+                            ml_predictions[symbol] = prediction
+                            logger.info(
+                                f"Live Prediction for {symbol}: "
+                                f"{prediction.get('signal', 'N/A')} "
+                                f"({prediction.get('confidence', 0):.0%}) "
+                                f"{prediction.get('decile', '?')} "
+                                f"[{prediction.get('data_source', 'live')} | "
+                                f"coverage={prediction.get('feature_coverage', 'N/A')}]"
+                            )
+                # ── WRDS predictor: institutional-grade, multi-tier (fallback) ──
+                elif self._wrds_predictor and self._wrds_predictor.is_ready:
+                    for symbol in symbols[:5]:
                         prediction = await asyncio.get_event_loop().run_in_executor(
                             None,
                             lambda s=symbol: self._wrds_predictor.predict(s)
@@ -535,11 +568,10 @@ class OrchestratorAgent:
                             ml_predictions[symbol] = prediction
                             logger.info(
                                 f"WRDS Prediction for {symbol}: "
-                                f"{prediction.get('direction', 'N/A')} "
+                                f"{prediction.get('signal', 'N/A')} "
                                 f"({prediction.get('confidence', 0):.0%}) "
-                                f"D{prediction.get('decile_rank', '?')} "
-                                f"[{prediction.get('model_type', 'wrds_lgb')} | "
-                                f"IC={prediction.get('model_ic', 'N/A')}]"
+                                f"{prediction.get('decile', '?')} "
+                                f"[wrds_historical]"
                             )
                 elif self._ml_predictor_v2:
                     # ── v2 predictor: needs OHLCV DataFrame ───

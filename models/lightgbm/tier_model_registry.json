@@ -1,0 +1,466 @@
+{
+  "method": "tier_specific_lgb",
+  "timestamp": "2026-02-14 17:31:33",
+  "total_time_min": 0.6,
+  "models": {
+    "mega": {
+      "n_features": 51,
+      "features": [
+        "accruals_to_cash_flow",
+        "aftret_equity",
+        "aftret_invcapx",
+        "beat_miss_streak",
+        "beneish_depi",
+        "breakeven_10y",
+        "capei",
+        "capex_intensity",
+        "capex_to_depreciation",
+        "divyield",
+        "down_vol",
+        "eps_dispersion",
+        "eps_revision_3m",
+        "evm",
+        "fcf_ocf",
+        "fcf_to_revenue",
+        "gprof",
+        "gross_margin_vol",
+        "gsector",
+        "insider_buy_ratio",
+        "insider_num_sells",
+        "inst_hhi",
+        "inst_ownership_change",
+        "intcov_ratio",
+        "log_market_cap",
+        "market_cap",
+        "market_cap_trend3",
+        "net_operating_assets",
+        "non_current_accruals",
+        "num_recs",
+        "ohlson_o_score",
+        "pay_turn",
+        "pe_op_basic",
+        "peg_ltgforward",
+        "peg_trailing",
+        "pretret_earnat",
+        "pretret_noa",
+        "ps",
+        "rd_intensity",
+        "rect_turn",
+        "return_kurtosis",
+        "revenue_share",
+        "revision_breadth",
+        "roa_vs_industry",
+        "roce",
+        "sale_invcap",
+        "sue",
+        "sue_ibes",
+        "trade_weighted_usd",
+        "up_vol",
+        "vol_12m"
+      ],
+      "n_trees": 172,
+      "best_iteration": 172,
+      "val_ic": 0.0285,
+      "train_rows": 53841,
+      "val_rows": 6724,
+      "train_years": "2014-2023",
+      "val_year": 2024,
+      "top_features": [
+        {
+          "name": "breakeven_10y",
+          "importance": 16.95
+        },
+        {
+          "name": "trade_weighted_usd",
+          "importance": 8.72
+        },
+        {
+          "name": "fcf_ocf",
+          "importance": 6.09
+        },
+        {
+          "name": "down_vol",
+          "importance": 4.72
+        },
+        {
+          "name": "divyield",
+          "importance": 3.76
+        },
+        {
+          "name": "ps",
+          "importance": 3.25
+        },
+        {
+          "name": "gsector",
+          "importance": 3.23
+        },
+        {
+          "name": "pe_op_basic",
+          "importance": 2.9
+        },
+        {
+          "name": "capex_intensity",
+          "importance": 2.87
+        },
+        {
+          "name": "vol_12m",
+          "importance": 2.48
+        }
+      ]
+    },
+    "large": {
+      "n_features": 55,
+      "features": [
+        "accruals_to_cash_flow",
+        "aftret_equity",
+        "aftret_invcapx",
+        "beat_miss_streak",
+        "beta_cma",
+        "capex_intensity",
+        "cash_debt",
+        "cash_ratio",
+        "debt_assets",
+        "earnings_smoothness",
+        "eps_dispersion",
+        "fcf_ocf",
+        "fcf_to_revenue",
+        "ffi30",
+        "gprof",
+        "gross_margin_vol",
+        "gsector",
+        "idio_vol",
+        "insider_num_buys",
+        "insider_num_sells",
+        "inst_hhi",
+        "inst_ownership_change",
+        "int_totdebt",
+        "intcov_ratio",
+        "invt_act",
+        "log_market_cap",
+        "log_market_cap_lag3",
+        "npm_vs_industry",
+        "num_analysts_fy1",
+        "num_institutions",
+        "opmad",
+        "pay_turn",
+        "pe_op_basic",
+        "piotroski_f_score",
+        "pretret_noa",
+        "ps",
+        "rd_intensity",
+        "realized_vol",
+        "realized_vol_lag1",
+        "realized_vol_lag3",
+        "rect_turn",
+        "revenue_share",
+        "roa_vs_industry",
+        "roce",
+        "roe_vs_industry",
+        "sale_equity",
+        "sale_nwc",
+        "sp500_member_lag1",
+        "sue",
+        "sue_ibes",
+        "total_inst_shares",
+        "trade_weighted_usd",
+        "turnover_6m",
+        "vol_3m",
+        "vol_6m"
+      ],
+      "n_trees": 380,
+      "best_iteration": 380,
+      "val_ic": 0.0459,
+      "train_rows": 92285,
+      "val_rows": 9653,
+      "train_years": "2014-2023",
+      "val_year": 2024,
+      "top_features": [
+        {
+          "name": "trade_weighted_usd",
+          "importance": 16.79
+        },
+        {
+          "name": "realized_vol",
+          "importance": 5.05
+        },
+        {
+          "name": "idio_vol",
+          "importance": 4.77
+        },
+        {
+          "name": "pe_op_basic",
+          "importance": 4.33
+        },
+        {
+          "name": "realized_vol_lag3",
+          "importance": 3.78
+        },
+        {
+          "name": "fcf_ocf",
+          "importance": 3.71
+        },
+        {
+          "name": "realized_vol_lag1",
+          "importance": 3.07
+        },
+        {
+          "name": "beta_cma",
+          "importance": 2.99
+        },
+        {
+          "name": "turnover_6m",
+          "importance": 2.71
+        },
+        {
+          "name": "inst_hhi",
+          "importance": 2.71
+        }
+      ]
+    },
+    "mid": {
+      "n_features": 68,
+      "features": [
+        "accrual",
+        "accruals_to_cash_flow",
+        "altman_z_score",
+        "analyst_dispersion",
+        "analyst_revision",
+        "beat_miss_streak",
+        "beneish_aqi",
+        "beneish_gmi",
+        "beneish_m_score",
+        "beneish_sgi",
+        "bm",
+        "capex_intensity",
+        "capex_to_depreciation",
+        "cash_conversion_cycle",
+        "ccc_trend",
+        "cf_earnings_divergence",
+        "debt_maturity_risk",
+        "debt_to_equity_change",
+        "dsri",
+        "earnings_persistence",
+        "earnings_smoothness",
+        "eps_dispersion_trend",
+        "eps_revision_1m",
+        "eps_revision_3m",
+        "fcf_to_revenue",
+        "fcf_to_revenue_trend",
+        "gross_margin_trend",
+        "gross_margin_vol",
+        "gsector",
+        "idio_vol",
+        "insider_buy_ratio",
+        "insider_buy_ratio_6m",
+        "insider_ceo_buy",
+        "insider_cluster_buy",
+        "insider_num_sells",
+        "inst_breadth",
+        "inst_hhi",
+        "inst_ownership_change",
+        "interest_coverage_trend",
+        "log_market_cap",
+        "margin_divergence",
+        "mom_12_2",
+        "mom_1m",
+        "mom_6m",
+        "montier_c_score",
+        "net_debt_to_ebitda",
+        "net_margin_trend",
+        "net_operating_assets",
+        "non_current_accruals",
+        "num_analysts_fy1",
+        "num_institutions",
+        "operating_leverage",
+        "operating_margin_trend",
+        "pe_op_basic",
+        "peg_1yrforward",
+        "peg_ltgforward",
+        "piotroski_f_score",
+        "rd_intensity",
+        "realized_vol",
+        "revenue_acceleration",
+        "revenue_cagr_2yr",
+        "revenue_growth_yoy",
+        "revision_breadth",
+        "sue",
+        "sue_ibes",
+        "total_inst_shares",
+        "turnover",
+        "working_capital_accruals"
+      ],
+      "n_trees": 454,
+      "best_iteration": 454,
+      "val_ic": 0.0837,
+      "train_rows": 103324,
+      "val_rows": 8708,
+      "train_years": "2014-2023",
+      "val_year": 2024,
+      "top_features": [
+        {
+          "name": "realized_vol",
+          "importance": 5.74
+        },
+        {
+          "name": "idio_vol",
+          "importance": 4.38
+        },
+        {
+          "name": "inst_hhi",
+          "importance": 3.81
+        },
+        {
+          "name": "pe_op_basic",
+          "importance": 3.14
+        },
+        {
+          "name": "fcf_to_revenue",
+          "importance": 3.0
+        },
+        {
+          "name": "mom_6m",
+          "importance": 2.58
+        },
+        {
+          "name": "inst_ownership_change",
+          "importance": 2.53
+        },
+        {
+          "name": "mom_12_2",
+          "importance": 2.32
+        },
+        {
+          "name": "peg_1yrforward",
+          "importance": 2.18
+        },
+        {
+          "name": "bm",
+          "importance": 2.16
+        }
+      ]
+    },
+    "small": {
+      "n_features": 69,
+      "features": [
+        "accrual",
+        "accruals_to_cash_flow",
+        "altman_z_score",
+        "analyst_dispersion",
+        "analyst_revision",
+        "beat_miss_streak",
+        "beneish_aqi",
+        "beneish_gmi",
+        "beneish_m_score",
+        "beneish_sgi",
+        "bm",
+        "capex_intensity",
+        "capex_to_depreciation",
+        "cash_conversion_cycle",
+        "ccc_trend",
+        "cf_earnings_divergence",
+        "debt_maturity_risk",
+        "debt_to_equity_change",
+        "dsri",
+        "earnings_persistence",
+        "earnings_smoothness",
+        "eps_dispersion_trend",
+        "eps_revision_1m",
+        "eps_revision_3m",
+        "fcf_to_revenue",
+        "fcf_to_revenue_trend",
+        "gross_margin_trend",
+        "gross_margin_vol",
+        "gsector",
+        "idio_vol",
+        "insider_buy_ratio",
+        "insider_buy_ratio_6m",
+        "insider_ceo_buy",
+        "insider_cluster_buy",
+        "insider_num_sells",
+        "inst_breadth",
+        "inst_hhi",
+        "inst_ownership_change",
+        "interest_coverage_trend",
+        "log_market_cap",
+        "margin_divergence",
+        "mom_12_2",
+        "mom_1m",
+        "mom_6m",
+        "montier_c_score",
+        "net_debt_to_ebitda",
+        "net_margin_trend",
+        "net_operating_assets",
+        "non_current_accruals",
+        "num_analysts_fy1",
+        "num_institutions",
+        "ohlson_o_score",
+        "operating_leverage",
+        "operating_margin_trend",
+        "pe_op_basic",
+        "peg_1yrforward",
+        "peg_ltgforward",
+        "piotroski_f_score",
+        "rd_intensity",
+        "realized_vol",
+        "revenue_acceleration",
+        "revenue_cagr_2yr",
+        "revenue_growth_yoy",
+        "revision_breadth",
+        "sue",
+        "sue_ibes",
+        "total_inst_shares",
+        "turnover",
+        "working_capital_accruals"
+      ],
+      "n_trees": 576,
+      "best_iteration": 576,
+      "val_ic": 0.1285,
+      "train_rows": 113041,
+      "val_rows": 9477,
+      "train_years": "2014-2023",
+      "val_year": 2024,
+      "top_features": [
+        {
+          "name": "realized_vol",
+          "importance": 9.97
+        },
+        {
+          "name": "pe_op_basic",
+          "importance": 5.13
+        },
+        {
+          "name": "idio_vol",
+          "importance": 4.35
+        },
+        {
+          "name": "inst_ownership_change",
+          "importance": 3.94
+        },
+        {
+          "name": "inst_hhi",
+          "importance": 3.52
+        },
+        {
+          "name": "mom_6m",
+          "importance": 2.59
+        },
+        {
+          "name": "turnover",
+          "importance": 2.37
+        },
+        {
+          "name": "mom_1m",
+          "importance": 2.22
+        },
+        {
+          "name": "mom_12_2",
+          "importance": 2.22
+        },
+        {
+          "name": "peg_1yrforward",
+          "importance": 2.21
+        }
+      ]
+    }
+  }
+}

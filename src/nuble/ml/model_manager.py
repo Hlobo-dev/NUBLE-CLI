@@ -179,7 +179,12 @@ class ModelManager:
         return info
 
     def _check_per_ticker_health(self) -> Dict[str, Dict[str, Any]]:
-        """Check per-ticker model files (legacy MLP/LSTM/etc)."""
+        """Check per-ticker model files (legacy MLP/LSTM/etc).
+        
+        DEPRECATED: Per-ticker .pt models are no longer used for production decisions.
+        System B multi-tier LightGBM ensemble + LivePredictor is the sole signal source.
+        These models remain for reference only.
+        """
         result = {}
 
         if not self.model_dir.exists():
@@ -194,10 +199,12 @@ class ModelManager:
                 age = datetime.now() - mtime
                 result[symbol] = {
                     "exists": True,
+                    "deprecated": True,  # Mark as deprecated
                     "age_days": age.days,
                     "fresh": age.days < _PER_TICKER_STALE_DAYS,
                     "path": str(f),
                     "size_kb": f.stat().st_size / 1024,
+                    "note": "DEPRECATED: Use LivePredictor (System B multi-tier ensemble) instead",
                 }
 
         return result
