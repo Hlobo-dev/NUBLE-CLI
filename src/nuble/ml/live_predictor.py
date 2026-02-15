@@ -58,6 +58,10 @@ class LivePredictor:
       composite = 0.70 × fundamental_score + 0.30 × timing_score
       fundamental_score = LightGBM(live features from Polygon)
       timing_score      = universal_technical_model (P(up) - P(down))
+
+    Model hierarchy:
+      1. Production models  (trained on 221 Polygon-available features → 100% coverage)
+      2. Research models     (trained on all GKX features → 23% coverage live)
     """
 
     def __init__(self):
@@ -65,6 +69,9 @@ class LivePredictor:
         self._wrds_predictor = None   # lazy
         self._timing_model = None     # lazy
         self._timing_features = None  # feature names for timing model
+        self._production_models = {}  # tier → lgb.Booster (production)
+        self._production_features = {} # tier → list of feature names
+        self._production_loaded = False
 
     # ─────────────────────────────────────────────────────────────
     # LAZY LOADERS
@@ -88,6 +95,45 @@ class LivePredictor:
             from nuble.ml.wrds_predictor import get_wrds_predictor
             self._wrds_predictor = get_wrds_predictor()
         return self._wrds_predictor
+
+    def _load_production_models(self):
+        """Load production models trained on ONLY Polygon-available features."""
+        if self._production_loaded:
+            return
+        self._production_loaded = True
+
+        import json
+        try:
+            import lightgbm as lgb
+        except ImportError:
+            logger.warning("LightGBM not available for production models")
+            return
+
+        registry_path = os.path.join(_PROJECT_ROOT, "models", "production",
+                                     "production_registry.json")
+        if not os.path.exists(registry_path):
+            logger.warning(f"Production registry not found: {registry_path}")
+            return
+
+        with open(registry_path) as f:
+            registry = json.load(f)
+
+        loaded = 0
+        for tier, info in registry.get('tiers', {}).items():
+            model_path = info.get('model_file', '')
+            if os.path.exists(model_path):
+                try:
+                    self._production_models[tier] = lgb.Booster(model_file=model_path)
+                    self._production_features[tier] = info.get('features', [])
+                    loaded += 1
+                    logger.info(f"✅ Production model {tier}: "
+                               f"{len(self._production_features[tier])} features")
+                except Exception as e:
+                    logger.error(f"Failed to load production {tier}: {e}")
+            else:
+                logger.warning(f"Production model not found: {model_path}")
+
+        logger.info(f"Production models loaded: {loaded}/{len(registry.get('tiers', {}))}")
 
     def _load_timing_model(self):
         """Load the universal_technical_model.txt for timing signals."""
@@ -118,10 +164,12 @@ class LivePredictor:
 
         Flow:
         1. Compute live features from Polygon
-        2. Score with trained LightGBM (per-tier)
+        2. Score with PRODUCTION LightGBM (221 Polygon-available features)
         3. Get timing signal from universal technical model
         4. Blend: 70% fundamental + 30% timing
         5. Compare to historical WRDS prediction for sanity check
+
+        Falls back to research models if production models unavailable.
         """
         engine = self._get_polygon_engine()
 
@@ -153,26 +201,40 @@ class LivePredictor:
         lmc = live_features.get('log_market_cap', 0)
         tier = self._classify_tier(lmc)
 
-        # Get the trained tier model from WRDSPredictor
-        wrds = self._get_wrds_predictor()
-        wrds._ensure_loaded()
-        model = wrds._models.get(tier)
+        # ── Try PRODUCTION model first (100% feature coverage) ──
+        self._load_production_models()
+        prod_model = self._production_models.get(tier)
+        prod_features = self._production_features.get(tier, [])
 
-        if model is None:
-            logger.warning(f"No model for tier {tier}, falling back to WRDS")
-            result = wrds.predict(ticker)
-            result['data_source'] = 'wrds_historical_fallback'
-            return result
+        if prod_model is not None and prod_features:
+            # Use production model → trained on exactly these Polygon features
+            feature_names = prod_features
+            feature_vector = np.array(
+                [live_features.get(f, 0.0) for f in feature_names],
+                dtype=np.float64
+            )
+            feature_vector = np.nan_to_num(feature_vector.reshape(1, -1), nan=0.0)
+            model = prod_model
+            data_source = 'live_polygon_production'
+        else:
+            # Fallback to research model (lower coverage)
+            logger.warning(f"No production model for {tier}, using research model")
+            wrds = self._get_wrds_predictor()
+            wrds._ensure_loaded()
+            model = wrds._models.get(tier)
+            if model is None:
+                result = wrds.predict(ticker)
+                result['data_source'] = 'wrds_historical_fallback'
+                return result
+            feature_names = wrds._feature_names.get(tier, model.feature_name())
+            feature_vector = np.array(
+                [live_features.get(f, 0.0) for f in feature_names],
+                dtype=np.float64
+            )
+            feature_vector = np.nan_to_num(feature_vector.reshape(1, -1), nan=0.0)
+            data_source = 'live_polygon_research'
 
-        # Build feature vector matching model's expected features
-        feature_names = wrds._feature_names.get(tier, model.feature_name())
-        feature_vector = np.array(
-            [live_features.get(f, 0.0) for f in feature_names],
-            dtype=np.float64
-        )
-        feature_vector = np.nan_to_num(feature_vector.reshape(1, -1), nan=0.0)
-
-        # ── Fundamental score (WRDS-trained model on live features) ──
+        # ── Fundamental score ──
         fundamental_score = float(model.predict(feature_vector)[0])
 
         # ── Timing score (universal technical model) ──
@@ -183,6 +245,7 @@ class LivePredictor:
 
         # ── Historical comparison (sanity check) ──
         try:
+            wrds = self._get_wrds_predictor()
             historical = wrds.predict(ticker)
             historical_score = historical.get('raw_score', 0) if 'error' not in historical else 0
         except Exception:
@@ -218,7 +281,8 @@ class LivePredictor:
             'decile': decile,
             'signal': signal,
             'confidence': round(confidence, 4),
-            'data_source': 'live_polygon',
+            'data_source': data_source,
+            'model_type': 'production' if prod_model is not None else 'research',
             'feature_coverage': f"{covered}/{total_model_features} ({coverage_pct:.1f}%)",
             'feature_coverage_pct': round(coverage_pct, 1),
             'features_missing': [f for f in feature_names if f not in live_features],
@@ -227,7 +291,7 @@ class LivePredictor:
             'market_cap_millions': round(mcap_millions, 1),
             'sector': live_features.get('gsector'),
             'top_drivers': drivers,
-            'macro_regime': wrds.get_market_regime(),
+            'macro_regime': self._get_wrds_predictor().get_market_regime(),
             'timestamp': datetime.now().isoformat(),
         }
 
