@@ -49,8 +49,9 @@ from scipy.stats import norm
 
 warnings.filterwarnings("ignore")
 
-DATA_DIR = "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds"
-RESULTS_DIR = "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/results"
+_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+DATA_DIR = os.path.join(_PROJECT_ROOT, "data", "wrds")
+RESULTS_DIR = os.path.join(os.path.dirname(__file__), "results")
 
 
 # ═══════════════════════════════════════════════════════════════

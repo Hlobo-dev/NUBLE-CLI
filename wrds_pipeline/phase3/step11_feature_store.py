@@ -12,8 +12,9 @@ import os
 import time
 import json
 
-DATA_DIR = "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds"
-STORE_DIR = "/Users/humbertolobo/Desktop/NUBLE-CLI/data/feature_store"
+_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+DATA_DIR = os.path.join(_PROJECT_ROOT, "data", "wrds")
+STORE_DIR = os.path.join(_PROJECT_ROOT, "data", "feature_store")
 
 
 class FeatureStore:

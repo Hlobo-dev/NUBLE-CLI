@@ -22,9 +22,12 @@ import gc
 
 warnings.filterwarnings("ignore")
 
-DATA_DIR = "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds"
+# Resolve paths relative to project root (portable across machines)
+_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+DATA_DIR = os.path.join(_PROJECT_ROOT, "data", "wrds")
+MODELS_DIR = os.path.join(_PROJECT_ROOT, "models", "lightgbm")
 S3_BUCKET = "nuble-data-warehouse"
-RESULTS_DIR = "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/results"
+RESULTS_DIR = os.path.join(os.path.dirname(__file__), "results")
 
 # LightGBM hyperparameters (GKX-style)
 LGB_PARAMS = {
@@ -185,9 +188,16 @@ def main():
 
         # Save latest model to disk for Step 10 (monthly refresh)
         if test_year == test_end:
-            model_path = os.path.join(DATA_DIR, "lgb_latest_model.txt")
-            model.save_model(model_path)
-            print(f"    → Saved latest model to {model_path}")
+            # Save to canonical models/ directory
+            os.makedirs(MODELS_DIR, exist_ok=True)
+            canonical_path = os.path.join(MODELS_DIR, "lgb_latest_model.txt")
+            model.save_model(canonical_path)
+            print(f"    → Saved latest model to {canonical_path}")
+
+            # Also save to data/wrds/ for backward compatibility
+            legacy_path = os.path.join(DATA_DIR, "lgb_latest_model.txt")
+            model.save_model(legacy_path)
+            print(f"    → (legacy copy) {legacy_path}")
 
         # Monthly metrics within test year
         test_df = test_data[["permno", "date", target_col]].copy()

@@ -1,0 +1,1670 @@
+# ROKET MASTER BUILD — THE DEFINITIVE SYSTEM UPGRADE
+# Execute sequentially. Verify after each phase. Do not skip steps.
+
+## WHO YOU ARE
+
+You are the world's best quantitative systems architect. You are upgrading
+NUBLE-CLI (ROKET) from a strong backtest system into a live, production-grade
+quantitative investment platform. You have unlimited patience and you write
+flawless code. Every function has error handling. Every assumption is validated.
+Every algorithm is the best known implementation.
+
+---
+
+## THE SYSTEM YOU'RE WORKING WITH
+
+```
+Location: ~/Desktop/NUBLE-CLI/
+Python: 3.11.14 in .venv (activate with: source .venv/bin/activate)
+Hardware: Apple M4 Pro, 12 cores, 24 GB RAM, MPS GPU, 72 GB free disk
+
+CODEBASE (293,708 lines total):
+├── src/nuble/           — 91 files, 46,332 lines
+│   ├── agents/          — 9 Claude-powered agents (orchestrator, market,
+│   │                      news, fundamental, quant, crypto, macro, risk, portfolio)
+│   ├── ml/              — ML pipeline (predictor, trainer, features, wrds_predictor)
+│   ├── decision/        — engine_v2.py (1275 lines)
+│   ├── data/            — providers (polygon, sec, crypto, news)
+│   └── cli.py           — Entry point: nuble = "nuble.cli:main"
+│
+├── src/institutional/   — 127 files, 57,559 lines
+│   ├── agents/          — 15 Tier 2 council agents (Bedrock-powered)
+│   ├── decision/        — ultimate_engine.py (1662), enrichment_engine.py (1431)
+│   ├── ml/              — 9 deep learning architectures (DeepAR, N-BEATS, TFT, etc.)
+│   ├── backtesting/     — Paper trader, walk-forward, multi-timeframe
+│   └── tier2/           — Council orchestrator, arbiter, circuit breaker
+│
+├── wrds_pipeline/       — 62 files, 29,832 lines (System B — WORKING, Grade A+)
+│   ├── phase3/results/  — 10 JSON audit results
+│   └── step6*.py        — 13 pipeline scripts (ensemble, hedging, audit)
+│
+├── data/wrds/           — 158 parquet files, 16 GB
+│   ├── gkx_panel.parquet              — 3.76M rows × 539 cols (THE panel)
+│   ├── gkx_panel_pre_level3.parquet   — 4.79 GB (before Level 3 features)
+│   ├── training_panel.parquet         — 1.78 GB (Phase 2 base)
+│   ├── institutional_holdings.parquet — 1.39 GB (13F data)
+│   ├── insider_trading.parquet        — 351 MB
+│   ├── daily_features.parquet         — 361 MB
+│   ├── rolling_betas.parquet          — 213 MB
+│   └── 99 CRSP daily files (1926-2024, 1.6 GB total)
+│
+├── models/
+│   ├── nuble/ml/        — 5 MLP .pt files (TSLA, SPY, AMD, XLK, SLV) ← DEPRECATED
+│   ├── universal/       — universal_technical_model.txt (8.3MB, 110 feats, multiclass)
+│   │                      universal_feature_pipeline.pkl (scaler)
+│   └── cross_sectional/ — cross_sectional_model.txt (138KB, 110 feats)
+│
+├── aws/                 — 5 Lambda handlers, 19 CloudFormation templates
+├── tests/               — 28 files, 8,575 lines
+├── validation/          — 27 files, 10,532 lines
+└── .env                 — ANTHROPIC_API_KEY, POLYGON_API_KEY, STOCKNEWS_API_KEY,
+                           CRYPTONEWS_API_KEY, AWS keys, DynamoDB table names
+
+SYSTEM B STATUS (DO NOT REBUILD — it works):
+  Grade: A+ (11/12)
+  Ensemble Sharpe: 2.04 | Sortino: 3.61 | Ann Return: 24.5%
+  FF6 Alpha t-stat: 8.58 | Market Beta: 0.0018 | Max DD: -15.1%
+  Per-tier IC: Mega=0.027, Large=0.019, Mid=0.038, Small=0.096
+  Tier weights: Mega 14.8%, Large 10.5%, Mid 21.3%, Small 53.4%
+  Strategies: Mega=raw, Large=hedged, Mid=raw, Small=VIX-scaled
+  Capacity: $113.8M/day ($568.9M/5-day)
+  ONLY failure: Large-cap IC=0.019 < 0.04 target (structural — return dispersion ceiling)
+
+CRITICAL PROBLEM: WRDS panel ends December 2024. System is 14 months stale.
+  Every prediction is based on data from over a year ago.
+  New IPOs since Jan 2025 don't exist in the universe.
+  This is THE #1 problem to solve.
+```
+
+---
+
+## THE COMPLETE BUILD — 7 PHASES
+
+Execute in order. Test after each phase. Do not proceed to the next phase
+until the current phase passes its verification tests.
+
+---
+
+# ═══════════════════════════════════════════════════════════════
+# PHASE 1: FIX THE BRIDGE (2 hours)
+# The WRDSPredictor loads the WRONG model.
+# ═══════════════════════════════════════════════════════════════
+
+## Problem
+
+`src/nuble/ml/wrds_predictor.py` (369 lines) loads `lgb_latest_model.txt`
+— the old single-model baseline with IC = 0.0136. It should load and serve
+the multi-tier ensemble that achieves Sharpe 2.04.
+
+## Step 1.1: Find the production models
+
+```bash
+# Find what step6d/step6f/step6h actually saved as models
+find ~/Desktop/NUBLE-CLI/wrds_pipeline -name "*.pkl" -o -name "*.txt" | head -30
+find ~/Desktop/NUBLE-CLI/data -name "*model*" -o -name "*tier*" | head -30
+
+# Check what the final audit script loaded
+grep -n "load\|model\|pkl\|txt\|joblib" ~/Desktop/NUBLE-CLI/wrds_pipeline/step6j_final_audit.py
+grep -n "load\|model\|pkl\|txt\|joblib" ~/Desktop/NUBLE-CLI/wrds_pipeline/step6h_large_cap_fix.py
+grep -n "load\|model\|pkl\|txt\|joblib" ~/Desktop/NUBLE-CLI/wrds_pipeline/step6f_multi_tier_ensemble.py
+
+# Also check if tier models are embedded in the pipeline scripts
+# (some scripts train + predict inline without saving separate model files)
+grep -n "lgb.train\|lgbm.train\|Booster\|save_model\|dump_model" ~/Desktop/NUBLE-CLI/wrds_pipeline/step6*.py
+```
+
+The models might be:
+- Saved as separate .pkl or .txt files per tier
+- Embedded inline in the step6 scripts (trained and used without saving)
+- Stored as part of a larger results dict
+
+**IMPORTANT:** If the tier models were NOT saved separately (they may have been
+trained inline in step6d/step6h), you need to:
+1. Extract the model-training code from those scripts
+2. Create a `train_and_save_tier_models.py` script that saves each tier model
+3. Run it once to create the model files
+4. Then upgrade WRDSPredictor to load them
+
+## Step 1.2: Read the current WRDSPredictor
+
+```bash
+cat ~/Desktop/NUBLE-CLI/src/nuble/ml/wrds_predictor.py
+```
+
+Understand every line before changing anything.
+
+## Step 1.3: Upgrade WRDSPredictor
+
+Rewrite `src/nuble/ml/wrds_predictor.py` to:
+
+```python
+"""
+WRDSPredictor v2 — Multi-Tier Ensemble Bridge
+=============================================
+Serves predictions from System B's production multi-tier ensemble.
+
+Architecture:
+  1. Loads 4 tier-specific LightGBM models (mega/large/mid/small)
+  2. Loads latest month of gkx_panel.parquet
+  3. Classifies stocks by market cap tier
+  4. Routes each stock to its tier model
+  5. Applies ensemble weights + hedging adjustments
+  6. Returns calibrated predictions with full metadata
+
+Tier definitions (from step6h IC-FIRST):
+  Mega:  mvel1 > 10000 ($10B+)
+  Large: 2000 < mvel1 <= 10000
+  Mid:   500 < mvel1 <= 2000
+  Small: mvel1 <= 500
+
+Ensemble weights (from final_audit_corrected.json):
+  Mega: 14.8%, Large: 10.5%, Mid: 21.3%, Small: 53.4%
+  Strategies: Mega=raw, Large=hedged, Mid=raw, Small=VIX-scaled
+"""
+
+import os
+import json
+import logging
+import numpy as np
+import pandas as pd
+import lightgbm as lgb
+from pathlib import Path
+from functools import lru_cache
+from typing import Optional, Dict, List, Any
+
+logger = logging.getLogger(__name__)
+
+# Tier configuration from final audit
+TIER_CONFIG = {
+    'mega':  {'min_mcap': 10000, 'max_mcap': float('inf'), 'weight': 0.148, 'strategy': 'raw'},
+    'large': {'min_mcap': 2000,  'max_mcap': 10000,        'weight': 0.105, 'strategy': 'hedged'},
+    'mid':   {'min_mcap': 500,   'max_mcap': 2000,         'weight': 0.213, 'strategy': 'raw'},
+    'small': {'min_mcap': 0,     'max_mcap': 500,          'weight': 0.534, 'strategy': 'vix_scaled'},
+}
+
+# VIX exposure map (from step6e)
+VIX_EXPOSURE = [
+    (15, 1.00), (20, 1.00), (25, 0.80),
+    (30, 0.60), (35, 0.40), (float('inf'), 0.20),
+]
+
+class WRDSPredictor:
+    """Multi-tier ensemble predictor bridging System B to System A."""
+
+    def __init__(self, data_dir: Optional[str] = None):
+        self._data_dir = data_dir or self._find_data_dir()
+        self._models = {}          # tier -> lgb.Booster
+        self._panel = None         # latest month DataFrame
+        self._ticker_map = {}      # ticker -> permno
+        self._permno_map = {}      # permno -> ticker
+        self._feature_names = {}   # tier -> list of feature names
+        self._loaded = False
+
+    def _find_data_dir(self) -> str:
+        """Find the WRDS data directory."""
+        candidates = [
+            Path.home() / 'Desktop' / 'NUBLE-CLI' / 'data' / 'wrds',
+            Path.home() / 'Desktop' / 'NUBLE-CLI' / 'wrds_pipeline',
+            Path.home() / 'NUBLE-CLI' / 'data' / 'wrds',
+        ]
+        for p in candidates:
+            if p.exists():
+                return str(p)
+        raise FileNotFoundError("Cannot find WRDS data directory")
+
+    def _ensure_loaded(self):
+        """Lazy load all models and data on first use."""
+        if self._loaded:
+            return
+        self._load_models()
+        self._load_panel()
+        self._build_ticker_map()
+        self._loaded = True
+
+    def _load_models(self):
+        """
+        Load the 4 tier-specific LightGBM models.
+        
+        IMPORTANT: Check what actually exists. The models may be:
+        - Separate .txt or .pkl files per tier
+        - A single model file used with different feature subsets
+        - Inline in step6d/step6h (need to extract and save first)
+        
+        If tier-specific models don't exist as files, fall back to
+        the best available single model and log a warning.
+        """
+        # TODO: This is the key part. You need to find the actual model files.
+        # Run the find commands from Step 1.1 first, then implement this.
+        #
+        # Pattern 1: Separate model files per tier
+        # for tier in ['mega', 'large', 'mid', 'small']:
+        #     model_path = Path(self._data_dir) / f'{tier}_model.txt'
+        #     if model_path.exists():
+        #         self._models[tier] = lgb.Booster(model_file=str(model_path))
+        #         self._feature_names[tier] = self._models[tier].feature_name()
+        #
+        # Pattern 2: Single model, different features per tier
+        # model = lgb.Booster(model_file=str(best_model_path))
+        # self._models = {tier: model for tier in TIER_CONFIG}
+        #
+        # Pattern 3: Models embedded in step6 results (need to retrain+save)
+        # Run train_and_save_tier_models.py first
+        pass
+
+    def _load_panel(self):
+        """Load the latest month of the GKX panel."""
+        panel_path = Path(self._data_dir) / 'gkx_panel.parquet'
+        if not panel_path.exists():
+            raise FileNotFoundError(f"GKX panel not found at {panel_path}")
+
+        # Read only the latest 2 months (for feature lags)
+        # Use pyarrow for memory efficiency — read only needed columns
+        import pyarrow.parquet as pq
+        pf = pq.ParquetFile(str(panel_path))
+
+        # Read date column first to find latest month
+        dates = pd.read_parquet(str(panel_path), columns=['date'])
+        latest_date = dates['date'].max()
+        second_latest = dates[dates['date'] < latest_date]['date'].max()
+
+        # Read full panel for latest 2 months only
+        self._panel = pd.read_parquet(
+            str(panel_path),
+            filters=[('date', '>=', str(second_latest))]
+        )
+        self._latest_date = latest_date
+        logger.info(f"Loaded panel: {len(self._panel)} rows, latest date: {latest_date}")
+
+    def _build_ticker_map(self):
+        """Build bidirectional ticker <-> PERMNO mapping."""
+        # Try permno_ticker_map.parquet first
+        map_path = Path(self._data_dir) / 'permno_ticker_map.parquet'
+        if map_path.exists():
+            mapping = pd.read_parquet(str(map_path))
+            # Use the most recent mapping for each permno
+            if 'date' in mapping.columns:
+                mapping = mapping.sort_values('date').drop_duplicates('permno', keep='last')
+            for _, row in mapping.iterrows():
+                ticker = str(row.get('ticker', '')).strip()
+                permno = int(row['permno'])
+                if ticker:
+                    self._ticker_map[ticker.upper()] = permno
+                    self._permno_map[permno] = ticker.upper()
+        else:
+            # Fall back: build from panel itself
+            latest = self._panel[self._panel['date'] == self._latest_date]
+            if 'ticker' in latest.columns:
+                for _, row in latest.iterrows():
+                    ticker = str(row.get('ticker', '')).strip()
+                    permno = int(row['permno'])
+                    if ticker:
+                        self._ticker_map[ticker.upper()] = permno
+                        self._permno_map[permno] = ticker.upper()
+
+        logger.info(f"Ticker map: {len(self._ticker_map)} stocks")
+
+    def _classify_tier(self, mvel: float) -> str:
+        """Classify a stock into its market cap tier."""
+        for tier, cfg in TIER_CONFIG.items():
+            if cfg['min_mcap'] < mvel <= cfg['max_mcap']:
+                return tier
+        return 'small'  # default
+
+    def _get_vix_exposure(self, vix: float) -> float:
+        """Get VIX-based exposure multiplier."""
+        for threshold, exposure in VIX_EXPOSURE:
+            if vix <= threshold:
+                return exposure
+        return 0.20
+
+    def predict(self, ticker: str) -> Dict[str, Any]:
+        """
+        Get prediction for a single stock.
+        
+        Returns dict with: ticker, permno, tier, raw_score, ensemble_score,
+        cross_sectional_rank, decile, signal, confidence, market_cap, sector,
+        top_drivers, latest_date.
+        """
+        self._ensure_loaded()
+
+        ticker = ticker.upper()
+        permno = self._ticker_map.get(ticker)
+        if permno is None:
+            return {'ticker': ticker, 'error': f'Ticker {ticker} not found in WRDS universe'}
+
+        # Get latest data for this stock
+        latest = self._panel[
+            (self._panel['date'] == self._latest_date) &
+            (self._panel['permno'] == permno)
+        ]
+        if latest.empty:
+            return {'ticker': ticker, 'error': f'No data for {ticker} in latest month'}
+
+        row = latest.iloc[0]
+        mvel = row.get('mvel1', row.get('market_cap', 0))
+        tier = self._classify_tier(mvel)
+
+        # Get tier model
+        model = self._models.get(tier)
+        if model is None:
+            return {'ticker': ticker, 'error': f'No model loaded for tier {tier}'}
+
+        # Get features for this tier
+        feature_names = self._feature_names.get(tier, model.feature_name())
+        features = row[feature_names].values.reshape(1, -1)
+        features = np.nan_to_num(features, nan=0.0)
+
+        # Predict
+        raw_score = float(model.predict(features)[0])
+
+        # Cross-sectional ranking (within the same tier)
+        tier_mask = self._panel['date'] == self._latest_date
+        # Classify all stocks by tier
+        all_latest = self._panel[tier_mask].copy()
+        mcap_col = 'mvel1' if 'mvel1' in all_latest.columns else 'market_cap'
+        all_latest['_tier'] = all_latest[mcap_col].apply(self._classify_tier)
+        tier_stocks = all_latest[all_latest['_tier'] == tier]
+
+        # Predict all stocks in this tier
+        tier_features = tier_stocks[feature_names].values
+        tier_features = np.nan_to_num(tier_features, nan=0.0)
+        tier_scores = model.predict(tier_features)
+        
+        # Compute rank
+        rank_pct = float((tier_scores < raw_score).mean() * 100)
+        decile = min(10, max(1, int(rank_pct / 10) + 1))
+
+        # Signal classification
+        if rank_pct >= 80:
+            signal = 'STRONG_BUY'
+        elif rank_pct >= 60:
+            signal = 'BUY'
+        elif rank_pct >= 40:
+            signal = 'HOLD'
+        elif rank_pct >= 20:
+            signal = 'SELL'
+        else:
+            signal = 'STRONG_SELL'
+
+        # Confidence based on score magnitude relative to tier distribution
+        score_std = np.std(tier_scores)
+        z_score = abs(raw_score - np.mean(tier_scores)) / (score_std + 1e-8)
+        confidence = min(1.0, z_score / 3.0)  # normalize: z=3 → confidence=1.0
+
+        # Feature importance / top drivers
+        top_drivers = []
+        if hasattr(model, 'feature_importance'):
+            importances = model.feature_importance(importance_type='gain')
+            feat_imp = sorted(zip(feature_names, importances), key=lambda x: -x[1])
+            for fname, imp in feat_imp[:5]:
+                val = row.get(fname, np.nan)
+                top_drivers.append({
+                    'feature': fname,
+                    'importance': round(float(imp), 2),
+                    'value': round(float(val), 4) if not np.isnan(val) else None,
+                })
+
+        # Sector
+        sector = None
+        for col in ['gsector', 'sic', 'siccd']:
+            if col in row.index and not pd.isna(row[col]):
+                sector = int(row[col])
+                break
+
+        return {
+            'ticker': ticker,
+            'permno': int(permno),
+            'tier': tier,
+            'raw_score': round(raw_score, 6),
+            'ensemble_score': round(raw_score * TIER_CONFIG[tier]['weight'], 6),
+            'cross_sectional_rank': round(rank_pct, 1),
+            'decile': decile,
+            'signal': signal,
+            'confidence': round(confidence, 3),
+            'market_cap_millions': round(float(mvel), 1),
+            'sector': sector,
+            'strategy': TIER_CONFIG[tier]['strategy'],
+            'tier_weight': TIER_CONFIG[tier]['weight'],
+            'top_drivers': top_drivers,
+            'latest_date': str(self._latest_date),
+            'data_staleness_days': (pd.Timestamp.now() - self._latest_date).days,
+        }
+
+    def get_top_picks(self, n: int = 20, tier: Optional[str] = None) -> List[Dict]:
+        """Get top N stock picks, optionally filtered by tier."""
+        self._ensure_loaded()
+        
+        latest = self._panel[self._panel['date'] == self._latest_date].copy()
+        mcap_col = 'mvel1' if 'mvel1' in latest.columns else 'market_cap'
+        latest['_tier'] = latest[mcap_col].apply(self._classify_tier)
+        
+        if tier:
+            latest = latest[latest['_tier'] == tier]
+        
+        results = []
+        for _, row in latest.iterrows():
+            permno = int(row['permno'])
+            ticker = self._permno_map.get(permno, f'PERMNO_{permno}')
+            result = self.predict(ticker)
+            if 'error' not in result:
+                results.append(result)
+        
+        # Sort by raw_score descending
+        results.sort(key=lambda x: x['raw_score'], reverse=True)
+        return results[:n]
+
+    def get_universe_snapshot(self) -> List[Dict]:
+        """Get predictions for ALL stocks in the latest month."""
+        return self.get_top_picks(n=99999)
+
+    def get_tier_predictions(self, tier: str) -> List[Dict]:
+        """Get predictions for all stocks in a specific tier."""
+        return self.get_top_picks(n=99999, tier=tier)
+
+    def get_market_regime(self) -> Dict:
+        """Get current macro regime information."""
+        self._ensure_loaded()
+        latest = self._panel[self._panel['date'] == self._latest_date].iloc[0]
+        
+        regime = {}
+        for col in ['vix', 'credit_spread', 'term_spread', 'tbl', 'lty']:
+            if col in latest.index and not pd.isna(latest[col]):
+                regime[col] = float(latest[col])
+        
+        # VIX-based exposure
+        vix = regime.get('vix', 20)
+        regime['vix_exposure'] = self._get_vix_exposure(vix)
+        
+        # Simple regime classification
+        if vix > 35:
+            regime['regime'] = 'crisis'
+        elif vix > 25:
+            regime['regime'] = 'stress'
+        elif regime.get('term_spread', 0) < 0:
+            regime['regime'] = 'late_cycle'
+        else:
+            regime['regime'] = 'normal'
+        
+        return regime
+
+
+# Singleton
+_instance = None
+
+def get_wrds_predictor(**kwargs) -> WRDSPredictor:
+    global _instance
+    if _instance is None:
+        _instance = WRDSPredictor(**kwargs)
+    return _instance
+```
+
+**IMPORTANT:** The `_load_models()` method above has a TODO. You MUST:
+1. Run the find commands from Step 1.1 to discover what model files exist
+2. Check how step6h/step6d/step6f saved their models
+3. If models are inline (trained in the script without saving), extract the
+   training code and save the models as separate files first
+4. Then implement _load_models() to load whatever you find
+
+If NO tier-specific model files exist and models were trained inline,
+create this script first:
+
+```python
+# wrds_pipeline/save_tier_models.py
+"""
+Extract and save the 4 tier-specific models from the step6 pipeline.
+Run ONCE to create model files that WRDSPredictor can load.
+"""
+# Read step6h_large_cap_fix.py or step6d_curated_features.py
+# Find where models are trained per tier
+# Execute just the training portion
+# Save each model: lgb_mega.txt, lgb_large.txt, lgb_mid.txt, lgb_small.txt
+```
+
+## Phase 1 Verification
+
+```python
+import sys
+sys.path.insert(0, 'src')
+from nuble.ml.wrds_predictor import get_wrds_predictor
+
+wp = get_wrds_predictor()
+
+# Test 1: Single stock prediction
+result = wp.predict('AAPL')
+assert 'error' not in result, f"AAPL prediction failed: {result}"
+assert result['tier'] in ('mega', 'large'), f"AAPL should be mega/large, got {result['tier']}"
+assert 1 <= result['decile'] <= 10
+assert result['signal'] in ('STRONG_BUY', 'BUY', 'HOLD', 'SELL', 'STRONG_SELL')
+print(f"✅ AAPL: tier={result['tier']}, decile={result['decile']}, signal={result['signal']}")
+
+# Test 2: Multiple stocks
+for ticker in ['MSFT', 'GOOGL', 'AMZN', 'NVDA', 'JPM', 'XOM', 'JNJ', 'PG']:
+    r = wp.predict(ticker)
+    status = '✅' if 'error' not in r else '❌'
+    print(f"{status} {ticker}: {r.get('tier', 'ERR')} D{r.get('decile', '?')} {r.get('signal', r.get('error', ''))}")
+
+# Test 3: Top picks
+top = wp.get_top_picks(10)
+assert len(top) > 0, "No top picks returned"
+print(f"\n✅ Top 10 picks:")
+for p in top:
+    print(f"  {p['ticker']}: {p['tier']} D{p['decile']} score={p['raw_score']:.4f}")
+
+# Test 4: Per-tier
+for tier in ['mega', 'large', 'mid', 'small']:
+    preds = wp.get_tier_predictions(tier)
+    print(f"✅ {tier}: {len(preds)} stocks")
+
+# Test 5: Market regime
+regime = wp.get_market_regime()
+print(f"\n✅ Regime: {regime}")
+
+# Test 6: Data staleness warning
+print(f"\n⚠️  Data staleness: {result['data_staleness_days']} days old")
+print(f"   Latest date in panel: {result['latest_date']}")
+```
+
+**DO NOT PROCEED TO PHASE 2 UNTIL ALL 6 TESTS PASS.**
+
+---
+
+# ═══════════════════════════════════════════════════════════════
+# PHASE 2: POLYGON REAL-TIME FEATURE ENGINE (the most critical build)
+# Makes the system see the present, not 14-month-old data.
+# ═══════════════════════════════════════════════════════════════
+
+## The Architecture
+
+```
+WRDS GKX Panel (Dec 2024)     Polygon Live Data (today)
+        │                              │
+        │                              │
+    ┌───▼───┐                    ┌─────▼─────┐
+    │ Train │                    │  Compute   │
+    │ Model │                    │  Same 280  │
+    │(done) │                    │  Features  │
+    └───┬───┘                    └─────┬──────┘
+        │                              │
+        │   Trained LightGBM           │  Live feature vector
+        │   knows what patterns        │  matches WRDS columns
+        │   predict returns            │  exactly
+        │                              │
+        └──────────┬───────────────────┘
+                   │
+            ┌──────▼──────┐
+            │   Predict   │
+            │  (trained   │
+            │   model +   │
+            │ live feats) │
+            └──────┬──────┘
+                   │
+              Live Signal
+```
+
+The KEY INSIGHT: The trained LightGBM doesn't care where the features come
+from. It learned "stocks with high realized_vol and negative earnings revisions
+underperform." If you compute realized_vol from Polygon OHLCV data using the
+exact same formula as WRDS, the model applies identically.
+
+## Step 2.1: Create the Polygon Feature Engine
+
+Create `src/nuble/data/polygon_feature_engine.py`:
+
+This module must:
+
+1. **Fetch daily OHLCV** for a given ticker from Polygon (last 12 months minimum)
+2. **Compute exactly the same features** as WRDS, using the same column names
+3. **Handle the feature groups** that CAN be replicated from Polygon:
+
+```
+FULLY REPLICABLE FROM POLYGON (~160 features):
+─────────────────────────────────────────────
+Price/Momentum:
+  mom_1m     = ret(t-21, t)
+  mom_3m     = ret(t-63, t)
+  mom_6m     = ret(t-126, t)
+  mom_12m    = ret(t-252, t)
+  mom_12_2   = ret(t-252, t-21)    [skip recent month]
+  mom_36m    = ret(t-756, t)
+  short_rev  = ret(t-1, t)          [1-day reversal]
+  
+Volume/Liquidity:
+  turnover        = volume / shares_outstanding (need Polygon ref data)
+  log_turnover    = log(turnover)
+  amihud_illiq    = mean(|ret| / dollar_volume) over 21 days
+  zero_trade_days = count(volume == 0) over 21 days
+  dollar_volume   = mean(close × volume) over 21 days
+  
+Volatility:
+  realized_vol    = std(daily_ret) × sqrt(252), trailing 21 days
+  realized_vol_3m = std(daily_ret) × sqrt(252), trailing 63 days  
+  idio_vol        = std(residuals from FF3 regression), trailing 252 days
+  max_ret         = max(daily_ret) over 21 days
+  
+Size:
+  log_market_cap  = log(price × shares_outstanding)
+  mvel1           = price × shares_outstanding / 1e6  [millions]
+  
+Technical:
+  rsi_14          = standard RSI(14)
+  macd            = EMA(12) - EMA(26)
+  log_price       = log(adjusted_close)
+  52w_high_pct    = close / max(close, 252 days)
+
+PARTIALLY REPLICABLE (~40 features):
+─────────────────────────────────────────────
+Valuation (from Polygon financials API):
+  bm              = book_value / market_cap  (Polygon has 10-K/10-Q data)
+  ep              = earnings / price
+  pe_op_basic     = price / operating_earnings
+  ps              = price / sales
+  pcf             = price / cash_flow
+  
+Level 3 (from Polygon financials):
+  piotroski_f_score = compute from quarterly financials
+  gross_margin      = gross_profit / revenue
+  operating_margin  = operating_income / revenue
+  revenue_growth    = revenue / lag(revenue, 4Q) - 1
+  total_accruals    = (net_income - operating_cash_flow) / total_assets
+
+Macro (from FRED API — free):
+  vix, tbl, lty, dfy, dfr, tms, ntis, infl, svar
+  breakeven_10y, credit_spread, term_spread
+  ted_spread, fed_funds_rate
+  
+CANNOT REPLICATE (~217 features):
+─────────────────────────────────────────────
+  IBES analyst data (sue_ibes, eps_revision, beat_miss_streak, analyst_dispersion)
+  → Build PROXIES from Polygon earnings actuals vs estimates (partial coverage)
+  
+  Char×Macro interactions (195 ix_* columns)
+  → CAN compute these: just multiply replicable chars × macro values
+  → But only for chars we can replicate
+  
+  Some Compustat-specific (noa, oa_, working_capital_accruals, Beneish components)
+  → Partial replication from Polygon financials
+```
+
+The feature engine implementation:
+
+```python
+"""
+Polygon Real-Time Feature Engine
+================================
+Computes WRDS-compatible features from Polygon live data.
+Feature names match GKX panel columns EXACTLY so the trained
+LightGBM model can score them directly.
+
+Usage:
+    engine = PolygonFeatureEngine(api_key='...')
+    features = engine.compute_features('AAPL')
+    # features is a dict with keys matching gkx_panel column names
+"""
+
+import os
+import logging
+import numpy as np
+import pandas as pd
+from datetime import datetime, timedelta
+from typing import Dict, Optional, List
+from functools import lru_cache
+
+logger = logging.getLogger(__name__)
+
+class PolygonFeatureEngine:
+    """Computes WRDS-compatible features from Polygon live data."""
+
+    def __init__(self, api_key: Optional[str] = None):
+        self.api_key = api_key or os.environ.get('POLYGON_API_KEY')
+        if not self.api_key:
+            raise ValueError("POLYGON_API_KEY not found")
+        self._base_url = "https://api.polygon.io"
+        self._cache = {}
+
+    def compute_features(self, ticker: str) -> Dict[str, float]:
+        """
+        Compute all replicable WRDS features for a ticker.
+        Returns dict with keys matching gkx_panel column names.
+        """
+        # Fetch data
+        ohlcv = self._fetch_daily_ohlcv(ticker, days=800)  # ~3 years
+        if ohlcv is None or len(ohlcv) < 252:
+            logger.warning(f"Insufficient data for {ticker}: {len(ohlcv) if ohlcv is not None else 0} days")
+            return {}
+
+        ref = self._fetch_reference_data(ticker)
+        financials = self._fetch_financials(ticker)
+        macro = self._fetch_macro_data()
+
+        features = {}
+
+        # 1. Price/Momentum features
+        features.update(self._compute_momentum(ohlcv))
+
+        # 2. Volume/Liquidity features
+        features.update(self._compute_liquidity(ohlcv, ref))
+
+        # 3. Volatility features
+        features.update(self._compute_volatility(ohlcv))
+
+        # 4. Size features
+        features.update(self._compute_size(ohlcv, ref))
+
+        # 5. Technical features
+        features.update(self._compute_technicals(ohlcv))
+
+        # 6. Valuation features (from Polygon financials)
+        if financials:
+            features.update(self._compute_valuation(ohlcv, financials))
+
+        # 7. Level 3 financial statement features
+        if financials:
+            features.update(self._compute_financial_quality(financials))
+
+        # 8. Macro features (from FRED)
+        features.update(macro)
+
+        # 9. Char × Macro interactions
+        features.update(self._compute_interactions(features, macro))
+
+        # 10. Sector classification
+        if ref:
+            features['gsector'] = self._map_sic_to_gsector(ref.get('sic_code'))
+
+        return features
+
+    def _fetch_daily_ohlcv(self, ticker: str, days: int = 800) -> Optional[pd.DataFrame]:
+        """Fetch daily OHLCV from Polygon."""
+        import requests
+        
+        end = datetime.now()
+        start = end - timedelta(days=days)
+        url = (f"{self._base_url}/v2/aggs/ticker/{ticker}/range/1/day/"
+               f"{start.strftime('%Y-%m-%d')}/{end.strftime('%Y-%m-%d')}"
+               f"?adjusted=true&sort=asc&limit=50000&apiKey={self.api_key}")
+        
+        try:
+            resp = requests.get(url, timeout=30)
+            resp.raise_for_status()
+            data = resp.json()
+            
+            if data.get('resultsCount', 0) == 0:
+                return None
+            
+            df = pd.DataFrame(data['results'])
+            df['date'] = pd.to_datetime(df['t'], unit='ms')
+            df = df.rename(columns={
+                'o': 'open', 'h': 'high', 'l': 'low',
+                'c': 'close', 'v': 'volume', 'vw': 'vwap'
+            })
+            df = df.set_index('date').sort_index()
+            df['ret'] = df['close'].pct_change()
+            return df
+            
+        except Exception as e:
+            logger.error(f"Polygon OHLCV fetch failed for {ticker}: {e}")
+            return None
+
+    def _fetch_reference_data(self, ticker: str) -> Optional[Dict]:
+        """Fetch ticker reference data (shares outstanding, SIC, etc.)."""
+        import requests
+        url = f"{self._base_url}/v3/reference/tickers/{ticker}?apiKey={self.api_key}"
+        try:
+            resp = requests.get(url, timeout=15)
+            resp.raise_for_status()
+            return resp.json().get('results', {})
+        except Exception as e:
+            logger.error(f"Polygon reference fetch failed for {ticker}: {e}")
+            return None
+
+    def _fetch_financials(self, ticker: str) -> Optional[List[Dict]]:
+        """Fetch quarterly financials from Polygon."""
+        import requests
+        url = (f"{self._base_url}/vX/reference/financials"
+               f"?ticker={ticker}&limit=12&sort=period_of_report_date"
+               f"&order=desc&apiKey={self.api_key}")
+        try:
+            resp = requests.get(url, timeout=15)
+            resp.raise_for_status()
+            return resp.json().get('results', [])
+        except Exception as e:
+            logger.error(f"Polygon financials fetch failed for {ticker}: {e}")
+            return None
+
+    def _fetch_macro_data(self) -> Dict[str, float]:
+        """
+        Fetch macro indicators from FRED.
+        Uses fredapi if available, otherwise requests.
+        Caches for 24 hours.
+        """
+        cache_key = 'macro'
+        if cache_key in self._cache:
+            cached_time, cached_data = self._cache[cache_key]
+            if (datetime.now() - cached_time).seconds < 86400:
+                return cached_data
+        
+        macro = {}
+        # FRED series IDs mapping to WRDS column names
+        fred_map = {
+            'VIXCLS': 'vix',
+            'DTB3': 'tbl',           # 3-month T-bill
+            'GS10': 'lty',           # 10-year Treasury
+            'T10Y2Y': 'tms',         # term spread
+            'BAAFFM': 'dfy',         # default yield spread (Baa - Aaa)
+            'T10YIE': 'breakeven_10y',
+            'FEDFUNDS': 'fed_funds_rate',
+            'TEDRATE': 'ted_spread',
+        }
+        
+        try:
+            from fredapi import Fred
+            fred_key = os.environ.get('FRED_API_KEY', '')
+            if fred_key:
+                fred = Fred(api_key=fred_key)
+                for series_id, col_name in fred_map.items():
+                    try:
+                        data = fred.get_series(series_id)
+                        if data is not None and len(data) > 0:
+                            macro[col_name] = float(data.dropna().iloc[-1])
+                    except:
+                        pass
+        except ImportError:
+            # Fall back to direct FRED API
+            import requests
+            for series_id, col_name in fred_map.items():
+                try:
+                    url = f"https://api.stlouisfed.org/fred/series/observations?series_id={series_id}&sort_order=desc&limit=5&api_key={os.environ.get('FRED_API_KEY','')}&file_type=json"
+                    resp = requests.get(url, timeout=10)
+                    obs = resp.json().get('observations', [])
+                    for o in obs:
+                        if o['value'] != '.':
+                            macro[col_name] = float(o['value'])
+                            break
+                except:
+                    pass
+        
+        self._cache[cache_key] = (datetime.now(), macro)
+        return macro
+
+    def _compute_momentum(self, df: pd.DataFrame) -> Dict[str, float]:
+        """Compute momentum features matching WRDS definitions."""
+        features = {}
+        close = df['close']
+        
+        # mom_Xm = cumulative return over X months (21 trading days per month)
+        if len(close) >= 21:
+            features['mom_1m'] = float(close.iloc[-1] / close.iloc[-21] - 1)
+        if len(close) >= 63:
+            features['mom_3m'] = float(close.iloc[-1] / close.iloc[-63] - 1)
+        if len(close) >= 126:
+            features['mom_6m'] = float(close.iloc[-1] / close.iloc[-126] - 1)
+        if len(close) >= 252:
+            features['mom_12m'] = float(close.iloc[-1] / close.iloc[-252] - 1)
+            # mom_12_2: 12-month return skipping most recent month
+            features['mom_12_2'] = float(close.iloc[-21] / close.iloc[-252] - 1)
+        if len(close) >= 756:
+            features['mom_36m'] = float(close.iloc[-1] / close.iloc[-756] - 1)
+        
+        # Short-term reversal
+        if len(close) >= 2:
+            features['short_rev'] = float(close.iloc[-1] / close.iloc[-2] - 1)
+        
+        return features
+
+    def _compute_liquidity(self, df: pd.DataFrame, ref: Optional[Dict]) -> Dict[str, float]:
+        """Compute liquidity features matching WRDS definitions."""
+        features = {}
+        
+        shares_out = ref.get('weighted_shares_outstanding', ref.get('share_class_shares_outstanding', 0)) if ref else 0
+        
+        if shares_out > 0:
+            # Turnover = volume / shares_outstanding
+            recent = df.tail(21)
+            avg_vol = recent['volume'].mean()
+            features['turnover'] = float(avg_vol / shares_out)
+            features['log_turnover'] = float(np.log(features['turnover'] + 1e-10))
+        
+        # Amihud illiquidity
+        recent = df.tail(21)
+        dollar_vol = (recent['close'] * recent['volume']).replace(0, np.nan)
+        amihud = (recent['ret'].abs() / dollar_vol).mean()
+        features['amihud_illiq'] = float(amihud) if not np.isnan(amihud) else 0.0
+        
+        # Zero trading days
+        features['zero_trade_days'] = float((df.tail(21)['volume'] == 0).sum())
+        
+        # Dollar volume
+        features['dollar_volume'] = float((df.tail(21)['close'] * df.tail(21)['volume']).mean())
+        
+        return features
+
+    def _compute_volatility(self, df: pd.DataFrame) -> Dict[str, float]:
+        """Compute volatility features matching WRDS definitions."""
+        features = {}
+        rets = df['ret'].dropna()
+        
+        # Realized vol (annualized)
+        if len(rets) >= 21:
+            features['realized_vol'] = float(rets.tail(21).std() * np.sqrt(252))
+        if len(rets) >= 63:
+            features['realized_vol_3m'] = float(rets.tail(63).std() * np.sqrt(252))
+        
+        # Max daily return (lottery demand proxy)
+        if len(rets) >= 21:
+            features['max_ret'] = float(rets.tail(21).max())
+        
+        # Idiosyncratic vol (simplified — use residuals from market model)
+        # Full version would use FF3 regression, but market model is close enough
+        # for real-time scoring
+        if len(rets) >= 252:
+            # We'd need market returns here — approximate with own vol
+            features['idio_vol'] = float(rets.tail(252).std() * np.sqrt(252))
+        
+        return features
+
+    def _compute_size(self, df: pd.DataFrame, ref: Optional[Dict]) -> Dict[str, float]:
+        """Compute size features."""
+        features = {}
+        
+        shares_out = ref.get('weighted_shares_outstanding', 0) if ref else 0
+        price = df['close'].iloc[-1] if len(df) > 0 else 0
+        
+        if shares_out > 0 and price > 0:
+            mcap = price * shares_out
+            features['mvel1'] = float(mcap / 1e6)  # millions
+            features['log_market_cap'] = float(np.log(mcap))
+        
+        return features
+
+    def _compute_technicals(self, df: pd.DataFrame) -> Dict[str, float]:
+        """Compute technical features."""
+        features = {}
+        close = df['close']
+        
+        # RSI 14
+        if len(close) >= 15:
+            delta = close.diff()
+            gain = delta.where(delta > 0, 0).rolling(14).mean()
+            loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
+            rs = gain / (loss + 1e-10)
+            rsi = 100 - (100 / (1 + rs))
+            features['rsi_14'] = float(rsi.iloc[-1])
+        
+        # MACD
+        if len(close) >= 26:
+            ema12 = close.ewm(span=12).mean()
+            ema26 = close.ewm(span=26).mean()
+            features['macd'] = float(ema12.iloc[-1] - ema26.iloc[-1])
+        
+        # Log price
+        features['log_price'] = float(np.log(close.iloc[-1]))
+        
+        # 52-week high proximity
+        if len(close) >= 252:
+            features['52w_high_pct'] = float(close.iloc[-1] / close.tail(252).max())
+        
+        return features
+
+    def _compute_valuation(self, df: pd.DataFrame, financials: List[Dict]) -> Dict[str, float]:
+        """Compute valuation ratios from Polygon financials."""
+        features = {}
+        
+        if not financials:
+            return features
+        
+        latest = financials[0]  # most recent filing
+        fin = latest.get('financials', {})
+        
+        # Extract key items
+        income = fin.get('income_statement', {})
+        balance = fin.get('balance_sheet', {})
+        cf = fin.get('cash_flow_statement', {})
+        
+        price = df['close'].iloc[-1] if len(df) > 0 else 0
+        shares = balance.get('common_stock', {}).get('value', 0) or 1
+        market_cap = price * shares
+        
+        # Book value
+        total_equity = balance.get('equity', {}).get('value', 0)
+        if total_equity and market_cap:
+            features['bm'] = float(total_equity / market_cap)
+        
+        # Earnings yield
+        net_income = income.get('net_income_loss', {}).get('value', 0)
+        if net_income and market_cap:
+            features['ep'] = float(net_income * 4 / market_cap)  # annualize quarterly
+        
+        # Revenue-based
+        revenue = income.get('revenues', {}).get('value', 0)
+        if revenue and market_cap:
+            features['ps'] = float(market_cap / (revenue * 4))
+        
+        # Operating earnings
+        op_income = income.get('operating_income_loss', {}).get('value', 0)
+        if op_income and price:
+            features['pe_op_basic'] = float(price / (op_income * 4 / shares))
+        
+        return features
+
+    def _compute_financial_quality(self, financials: List[Dict]) -> Dict[str, float]:
+        """Compute Level 3 financial quality features."""
+        features = {}
+        
+        if len(financials) < 2:
+            return features
+        
+        latest = financials[0].get('financials', {})
+        prior = financials[1].get('financials', {}) if len(financials) > 1 else {}
+        
+        inc = latest.get('income_statement', {})
+        bal = latest.get('balance_sheet', {})
+        cf = latest.get('cash_flow_statement', {})
+        
+        inc_prior = prior.get('income_statement', {})
+        bal_prior = prior.get('balance_sheet', {})
+        
+        # Helper to safely get values
+        def get_val(stmt, key, default=0):
+            item = stmt.get(key, {})
+            return item.get('value', default) if isinstance(item, dict) else default
+        
+        revenue = get_val(inc, 'revenues')
+        revenue_prior = get_val(inc_prior, 'revenues')
+        total_assets = get_val(bal, 'assets') or 1
+        net_income = get_val(inc, 'net_income_loss')
+        op_cf = get_val(cf, 'net_cash_flow_from_operating_activities')
+        gross_profit = get_val(inc, 'gross_profit')
+        
+        # Revenue growth
+        if revenue and revenue_prior and revenue_prior != 0:
+            features['revenue_growth_qoq'] = float(revenue / revenue_prior - 1)
+        
+        # Gross margin
+        if revenue and gross_profit:
+            features['gross_margin'] = float(gross_profit / revenue)
+        
+        # Operating margin
+        op_income = get_val(inc, 'operating_income_loss')
+        if revenue and op_income:
+            features['operating_margin'] = float(op_income / revenue)
+        
+        # Total accruals (earnings quality)
+        if net_income is not None and op_cf is not None and total_assets:
+            features['total_accruals'] = float((net_income - op_cf) / total_assets)
+        
+        # Piotroski F-Score (simplified — needs 9 binary signals)
+        f_score = 0
+        if net_income > 0: f_score += 1  # Positive ROA
+        if op_cf > 0: f_score += 1       # Positive CFO
+        if op_cf > net_income: f_score += 1  # CFO > NI (quality)
+        # Add more components if data available...
+        features['piotroski_f_score'] = float(f_score)
+        
+        return features
+
+    def _compute_interactions(self, features: Dict, macro: Dict) -> Dict[str, float]:
+        """Compute char × macro interaction features matching ix_* columns."""
+        interactions = {}
+        
+        # Only compute for features and macro vars that exist
+        char_names = ['mom_1m', 'mom_12_2', 'bm', 'ep', 'realized_vol',
+                      'turnover', 'log_market_cap', 'idio_vol', 'max_ret']
+        macro_names = ['vix', 'tbl', 'lty', 'tms', 'dfy']
+        
+        for char in char_names:
+            if char not in features or np.isnan(features[char]):
+                continue
+            for mac in macro_names:
+                if mac not in macro or np.isnan(macro[mac]):
+                    continue
+                col_name = f'ix_{char}_x_{mac}'
+                interactions[col_name] = float(features[char] * macro[mac])
+        
+        return interactions
+
+    def _map_sic_to_gsector(self, sic_code) -> float:
+        """Map SIC code to GICS sector number."""
+        if not sic_code:
+            return np.nan
+        sic = int(sic_code)
+        # Approximate SIC → GICS mapping
+        if 100 <= sic <= 999: return 30    # Energy (mining)
+        elif 1000 <= sic <= 1499: return 15  # Materials
+        elif 1500 <= sic <= 1799: return 20  # Industrials (construction)
+        elif 2000 <= sic <= 3999: return 20  # Industrials (manufacturing)
+        elif 4000 <= sic <= 4999: return 50  # Communication/Utilities
+        elif 5000 <= sic <= 5199: return 30  # Consumer Staples (wholesale)
+        elif 5200 <= sic <= 5999: return 25  # Consumer Discretionary (retail)
+        elif 6000 <= sic <= 6799: return 40  # Financials
+        elif 7000 <= sic <= 8999: return 45  # IT/Healthcare/Services
+        elif 9000 <= sic <= 9999: return 60  # Government → Real Estate
+        return 20  # default to Industrials
+```
+
+**Step 2.2: Create the Live Predictor**
+
+Create `src/nuble/ml/live_predictor.py`:
+
+```python
+"""
+Live Predictor — Real-Time Predictions Using Polygon + Trained WRDS Models
+==========================================================================
+Combines:
+  1. PolygonFeatureEngine → computes ~280 live features
+  2. Trained LightGBM from System B → scores the features
+  3. Universal Technical Model → daily timing signal
+  4. Composite scoring: 70% fundamental (monthly) + 30% timing (daily)
+"""
+
+class LivePredictor:
+    """
+    Production predictor that uses live Polygon data.
+    Falls back to historical WRDS data when Polygon is unavailable.
+    """
+    
+    def __init__(self):
+        self._polygon_engine = None  # lazy
+        self._wrds_predictor = None  # lazy (Phase 1 upgrade)
+        self._timing_model = None    # universal_technical_model.txt
+    
+    def predict(self, ticker: str) -> Dict[str, Any]:
+        """
+        Get a live prediction for a ticker.
+        
+        Architecture:
+        1. Compute live features from Polygon
+        2. Score with trained LightGBM (per-tier)
+        3. Get timing signal from universal technical model
+        4. Blend: 70% fundamental + 30% timing
+        5. Compare to historical WRDS prediction for sanity check
+        """
+        # Get live features
+        live_features = self._get_polygon_engine().compute_features(ticker)
+        
+        if not live_features:
+            # Fallback to historical WRDS prediction
+            logger.warning(f"No live data for {ticker}, falling back to WRDS historical")
+            return self._get_wrds_predictor().predict(ticker)
+        
+        # Determine tier
+        mvel = live_features.get('mvel1', 0)
+        tier = self._classify_tier(mvel)
+        
+        # Get tier model
+        wrds_pred = self._get_wrds_predictor()
+        wrds_pred._ensure_loaded()
+        model = wrds_pred._models.get(tier)
+        
+        if model is None:
+            logger.warning(f"No model for tier {tier}, using WRDS fallback")
+            return wrds_pred.predict(ticker)
+        
+        # Build feature vector matching model's expected features
+        feature_names = wrds_pred._feature_names.get(tier, model.feature_name())
+        feature_vector = np.array([live_features.get(f, 0.0) for f in feature_names])
+        feature_vector = np.nan_to_num(feature_vector.reshape(1, -1), nan=0.0)
+        
+        # Fundamental score (from WRDS-trained model on live features)
+        fundamental_score = float(model.predict(feature_vector)[0])
+        
+        # Timing score (from universal technical model)
+        timing_score = self._get_timing_score(ticker, live_features)
+        
+        # Composite: 70% fundamental + 30% timing
+        composite_score = 0.70 * fundamental_score + 0.30 * timing_score
+        
+        # Historical comparison (sanity check)
+        historical = wrds_pred.predict(ticker)
+        historical_score = historical.get('raw_score', 0) if 'error' not in historical else 0
+        
+        # Feature coverage report
+        total_model_features = len(feature_names)
+        covered = sum(1 for f in feature_names if f in live_features and not np.isnan(live_features[f]))
+        coverage_pct = covered / total_model_features * 100
+        
+        # Signal
+        # Use composite for signal, but flag low confidence if coverage < 60%
+        ...  # same signal logic as WRDSPredictor
+        
+        return {
+            'ticker': ticker,
+            'tier': tier,
+            'fundamental_score': round(fundamental_score, 6),
+            'timing_score': round(timing_score, 6),
+            'composite_score': round(composite_score, 6),
+            'signal': signal,
+            'confidence': confidence,
+            'data_source': 'live_polygon',
+            'feature_coverage': f"{covered}/{total_model_features} ({coverage_pct:.0f}%)",
+            'features_missing': [f for f in feature_names if f not in live_features],
+            'historical_score': round(historical_score, 6),
+            'score_drift': round(composite_score - historical_score, 6),
+            'market_cap_millions': round(mvel, 1),
+            'sector': live_features.get('gsector'),
+            'macro_regime': wrds_pred.get_market_regime(),
+            'timestamp': datetime.now().isoformat(),
+        }
+    
+    def _get_timing_score(self, ticker: str, features: Dict) -> float:
+        """
+        Score using the universal_technical_model.txt (8.3MB, 110 features, multiclass).
+        This model classifies into 3 categories (up/flat/down).
+        Convert to a continuous score: P(up) - P(down).
+        """
+        if self._timing_model is None:
+            model_path = Path.home() / 'Desktop' / 'NUBLE-CLI' / 'models' / 'universal' / 'universal_technical_model.txt'
+            if model_path.exists():
+                self._timing_model = lgb.Booster(model_file=str(model_path))
+            else:
+                return 0.0
+        
+        # Get the feature names this model expects
+        timing_features = self._timing_model.feature_name()
+        vector = np.array([features.get(f, 0.0) for f in timing_features])
+        vector = np.nan_to_num(vector.reshape(1, -1), nan=0.0)
+        
+        # Predict probabilities (multiclass → 3 classes)
+        probs = self._timing_model.predict(vector)[0]
+        
+        if len(probs) == 3:
+            # Assume: [P(down), P(flat), P(up)]
+            return float(probs[2] - probs[0])  # P(up) - P(down)
+        else:
+            return float(probs[0])  # single regression output
+```
+
+## Phase 2 Verification
+
+```python
+from nuble.ml.live_predictor import LivePredictor
+
+lp = LivePredictor()
+
+# Test live prediction
+result = lp.predict('AAPL')
+print(f"AAPL Live: score={result['composite_score']:.4f}, "
+      f"signal={result['signal']}, coverage={result['feature_coverage']}, "
+      f"source={result['data_source']}")
+
+# Compare live vs historical
+print(f"  Live score:       {result['composite_score']:.4f}")
+print(f"  Historical score: {result['historical_score']:.4f}")
+print(f"  Drift:            {result['score_drift']:.4f}")
+
+# Test multiple stocks
+for t in ['MSFT', 'GOOGL', 'NVDA', 'JPM', 'XOM', 'TSLA']:
+    r = lp.predict(t)
+    print(f"{t}: {r['signal']:12s} score={r['composite_score']:.4f} "
+          f"cov={r['feature_coverage']} drift={r['score_drift']:.4f}")
+
+# Verify feature coverage is reasonable (should be >50% for mega-caps)
+assert float(result['feature_coverage'].split('(')[1].rstrip('%)')) > 40, \
+    f"Feature coverage too low: {result['feature_coverage']}"
+```
+
+---
+
+# ═══════════════════════════════════════════════════════════════
+# PHASE 3: KILL OLD ML, UNIFY SIGNAL ARCHITECTURE (1 hour)
+# ═══════════════════════════════════════════════════════════════
+
+## Step 3.1: Deprecate per-ticker MLP models
+
+The 5 .pt models (TSLA, SPY, AMD, XLK, SLV) trained on 81 days of OHLCV
+with 35 features are noise generators. Don't delete them, but ensure
+no code path uses them for production decisions.
+
+Find every reference:
+```bash
+grep -rn "MLPPredictor\|mlp_predict\|\.pt\b\|torch.load" src/nuble/ --include="*.py" | grep -v "__pycache__"
+```
+
+For each reference, add a deprecation wrapper that:
+1. Logs a warning: "DEPRECATED: Using WRDS ensemble instead of per-ticker MLP"
+2. Redirects to LivePredictor.predict() instead
+
+## Step 3.2: Wire LivePredictor as the primary signal source
+
+In the orchestrator (src/nuble/agents/orchestrator.py), find where
+predictions are made (around line 528) and update:
+
+```python
+# BEFORE (old):
+# wrds_pred = get_wrds_predictor()
+# prediction = wrds_pred.predict(ticker)
+
+# AFTER (new):
+from nuble.ml.live_predictor import get_live_predictor
+predictor = get_live_predictor()
+prediction = predictor.predict(ticker)
+# prediction now has: composite_score, fundamental_score, timing_score,
+# signal, confidence, feature_coverage, macro_regime, etc.
+```
+
+## Step 3.3: Reframe agent signal weights
+
+In whatever decision engine the orchestrator uses, change the weighting:
+
+```python
+# OLD: System B signal = one of many inputs
+# NEW: System B signal = THE decision, agents = explanation only
+
+final_decision = {
+    'signal': prediction['signal'],           # FROM System B
+    'confidence': prediction['confidence'],   # FROM System B
+    'position_size': kelly_fraction(prediction['confidence']),
+    'reasoning': {
+        'quantitative_signal': prediction,    # The actual decision
+        'fundamental_context': agent_results.get('fundamental', ''),  # Explanation
+        'news_context': agent_results.get('news', ''),               # Explanation
+        'macro_context': agent_results.get('macro', ''),             # Explanation
+        'risk_flags': agent_results.get('risk', ''),                 # Explanation
+        'technical_context': agent_results.get('technical', ''),     # Explanation
+    }
+}
+```
+
+The agents DO NOT override the quantitative signal. They EXPLAIN it.
+The only exception: if the Risk agent flags a critical risk (earnings in
+2 days, pending FDA decision, litigation risk), reduce confidence by 50%.
+
+---
+
+# ═══════════════════════════════════════════════════════════════
+# PHASE 4: FIX IBES DATA (2 hours)
+# The highest-IC features for large-cap are 50-86% null.
+# ═══════════════════════════════════════════════════════════════
+
+## Step 4.1: Diagnose the IBES join problem
+
+```bash
+# Read the IBES join logic in step5b
+grep -n "ibes\|IBES\|merge\|join\|iclink" ~/Desktop/NUBLE-CLI/wrds_pipeline/step5b_financial_intelligence.py
+
+# Check what IBES data exists locally
+find ~/Desktop/NUBLE-CLI/data/wrds -name "*ibes*" -o -name "*analyst*" | head -10
+
+# Check IBES coverage by market cap
+python3 << 'EOF'
+import pandas as pd
+panel = pd.read_parquet('data/wrds/gkx_panel.parquet',
+                        columns=['permno', 'date', 'mvel1', 'sue_ibes',
+                                 'eps_revision_1m', 'analyst_dispersion',
+                                 'beat_miss_streak', 'num_analysts_fy1'])
+
+# Coverage by tier
+for tier, low, high in [('mega', 10000, 1e9), ('large', 2000, 10000),
+                          ('mid', 500, 2000), ('small', 0, 500)]:
+    mask = (panel['mvel1'] >= low) & (panel['mvel1'] < high)
+    for col in ['sue_ibes', 'eps_revision_1m', 'analyst_dispersion']:
+        cov = panel.loc[mask, col].notna().mean()
+        print(f"{tier} {col}: {cov*100:.1f}%")
+EOF
+```
+
+## Step 4.2: Fix the joins
+
+The problem is almost certainly one of:
+1. **Missing ICLINK mapping** — IBES uses TICKER, CRSP uses PERMNO. Need the ICLINK table.
+2. **Exact date match instead of merge_asof** — IBES data has different dates than the monthly panel.
+3. **Incomplete download** — the IBES data wasn't fully downloaded from WRDS.
+
+Fix by:
+```python
+# If ICLINK is missing, download it:
+import wrds
+db = wrds.Connection(wrds_username='hlobo')
+iclink = db.raw_sql("""
+    SELECT permno, ticker, score
+    FROM ibes.iclink
+    WHERE score <= 2
+""")
+iclink.to_parquet('data/wrds/iclink.parquet')
+
+# Then re-merge IBES with the panel using merge_asof:
+panel = pd.read_parquet('data/wrds/gkx_panel.parquet')
+ibes = pd.read_parquet('data/wrds/ibes_summary.parquet')  # or wherever IBES data is
+
+# Map IBES ticker → PERMNO via ICLINK
+ibes = ibes.merge(iclink[['ticker', 'permno']], on='ticker', how='left')
+
+# Merge with panel using most-recent-prior date
+panel = panel.sort_values('date')
+ibes = ibes.sort_values('date')
+merged = pd.merge_asof(panel, ibes, on='date', by='permno', direction='backward')
+```
+
+## Step 4.3: Recover dropped Level 3 features
+
+Check which of the 97 computed features didn't make it into the final panel:
+```python
+# Read step5b to find all feature names it computes
+# Read gkx_panel to find what columns exist
+# The difference = dropped features
+# Add them back to the merge in step5_gkx_panel.py
+```
+
+## Step 4.4: Verify improvement
+
+After fixing IBES and recovering features:
+```python
+new_panel = pd.read_parquet('data/wrds/gkx_panel.parquet')
+print(f"Columns: {new_panel.shape[1]}")  # Should be > 600
+
+# IBES coverage should improve
+for col in ['sue_ibes', 'eps_revision_1m', 'analyst_dispersion']:
+    mega_cov = new_panel[new_panel['mvel1'] > 10000][col].notna().mean()
+    print(f"Mega-cap {col} coverage: {mega_cov*100:.1f}%")
+    # Target: > 70% for mega-cap (these stocks ALL have analyst coverage)
+```
+
+---
+
+# ═══════════════════════════════════════════════════════════════
+# PHASE 5: SECTOR-NEUTRAL FEATURES + RETRAIN LARGE-CAP (3 hours)
+# ═══════════════════════════════════════════════════════════════
+
+## Step 5.1: Add industry-demeaned features
+
+```python
+# Add to step5_gkx_panel.py or create step5c_sector_neutral.py
+
+base_features = [
+    'bm', 'ep', 'ps', 'pe_op_basic', 'pcf',  # valuation
+    'mom_1m', 'mom_3m', 'mom_6m', 'mom_12_2',  # momentum
+    'realized_vol', 'idio_vol',  # volatility
+    'turnover', 'amihud_illiq',  # liquidity
+    'total_accruals', 'piotroski_f_score',  # quality
+    'sue_ibes', 'eps_revision_1m',  # earnings
+    'inst_breadth', 'insider_buy_ratio',  # flows
+    'log_market_cap', 'rsi_14', 'max_ret',
+    # ... add all base features
+]
+
+for feat in base_features:
+    if feat in panel.columns:
+        panel[f'{feat}_ind_neutral'] = panel.groupby(['date', 'gsector'])[feat].transform(
+            lambda x: (x - x.median()) / (x.std() + 1e-8)
+        )
+```
+
+This creates ~30-40 new features that capture WITHIN-SECTOR variation.
+
+## Step 5.2: Retrain mega/large tiers
+
+Run the step6d curated feature selection + step6h IC-FIRST process,
+but include the new `_ind_neutral` features as candidates. The feature
+selection should automatically pick the most predictive ones.
+
+## Step 5.3: Verify gsector importance drops
+
+```python
+# After retraining, check feature importance
+mega_model = lgb.Booster(model_file='path/to/new_mega_model.txt')
+imp = mega_model.feature_importance(importance_type='gain')
+names = mega_model.feature_name()
+pairs = sorted(zip(names, imp), key=lambda x: -x[1])
+
+# gsector should be < 5% of total importance now
+gsector_imp = dict(pairs).get('gsector', 0) / sum(imp)
+print(f"gsector importance: {gsector_imp*100:.1f}%")  # Target: < 5%
+
+# Check if ind_neutral features appear in top 20
+print("Top 20 features:")
+for name, val in pairs[:20]:
+    print(f"  {name}: {val/sum(imp)*100:.1f}%")
+```
+
+---
+
+# ═══════════════════════════════════════════════════════════════
+# PHASE 6: HMM REGIME DETECTION (2 hours)
+# Replace hardcoded VIX thresholds with learned regime model.
+# ═══════════════════════════════════════════════════════════════
+
+Replace the rule-based regime detection in step6e with a proper
+Hidden Markov Model. Use hmmlearn (already compatible with your env):
+
+```python
+from hmmlearn import GaussianHMM
+import numpy as np
+
+# Train on macro features: VIX, credit_spread, term_spread, market_return
+# Use 20+ years of data for robust state estimation
+# 3 states: bull, neutral, crisis
+
+model = GaussianHMM(n_components=3, covariance_type='full', n_iter=200)
+model.fit(macro_features)  # shape: (T, 4)
+
+# Decode current regime
+current_state = model.predict(latest_macro_features)[-1]
+
+# State mapping (post-hoc: assign labels based on state means)
+state_means = model.means_
+# State with lowest VIX mean → bull
+# State with highest VIX mean → crisis
+# Other → neutral
+```
+
+Wire this into the dynamic hedging layer to replace the hardcoded thresholds.
+
+---
+
+# ═══════════════════════════════════════════════════════════════
+# PHASE 7: END-TO-END INTEGRATION TEST (1 hour)
+# ═══════════════════════════════════════════════════════════════
+
+```python
+"""
+Complete system test: User asks "Analyze NVDA"
+Expected flow:
+  1. CLI receives query
+  2. LivePredictor scores NVDA with live Polygon features
+  3. 9 agents analyze NVDA with WRDS-enriched data
+  4. Decision: System B signal is THE decision
+  5. Agents provide explanation context
+  6. Output includes: signal, confidence, reasoning, risk flags
+"""
+
+import asyncio
+import sys
+sys.path.insert(0, 'src')
+
+async def test_full_system():
+    from nuble.ml.live_predictor import get_live_predictor
+    from nuble.data.wrds_data_service import WRDSDataService
+    
+    # 1. Live prediction
+    lp = get_live_predictor()
+    pred = lp.predict('NVDA')
+    print(f"NVDA Prediction:")
+    print(f"  Signal: {pred['signal']}")
+    print(f"  Confidence: {pred['confidence']}")
+    print(f"  Composite Score: {pred['composite_score']:.4f}")
+    print(f"  Feature Coverage: {pred['feature_coverage']}")
+    print(f"  Data Source: {pred['data_source']}")
+    
+    # 2. WRDS enrichment
+    wrds = WRDSDataService()
+    fundamentals = wrds.get_stock_fundamentals('NVDA')
+    print(f"\n  Piotroski F-Score: {fundamentals.get('piotroski_f_score')}")
+    print(f"  Beneish M-Score: {fundamentals.get('beneish_m_score')}")
+    
+    earnings = wrds.get_earnings_intelligence('NVDA')
+    print(f"  SUE: {earnings.get('sue_ibes')}")
+    print(f"  Beat/Miss Streak: {earnings.get('beat_miss_streak')}")
+    
+    risk = wrds.get_risk_profile('NVDA')
+    print(f"  Market Beta: {risk.get('beta_mkt')}")
+    print(f"  Idio Vol: {risk.get('idio_vol')}")
+    
+    # 3. Regime
+    regime = lp._get_wrds_predictor().get_market_regime()
+    print(f"\n  Market Regime: {regime.get('regime')}")
+    print(f"  VIX: {regime.get('vix')}")
+    print(f"  VIX Exposure: {regime.get('vix_exposure')}")
+    
+    print("\n✅ Full system test PASSED")
+
+asyncio.run(test_full_system())
+```
+
+## Git Commit
+
+```bash
+cd ~/Desktop/NUBLE-CLI
+git add -A
+git commit -m "ROKET v7: Live predictions, multi-tier bridge, WRDS agents, unified signals"
+git push origin main
+```
+
+---
+
+# COMPLETION CHECKLIST
+
+```
+Phase 1: Multi-Tier Bridge
+  □ Found tier model files (or extracted and saved them)
+  □ WRDSPredictor v2 loads all 4 tier models
+  □ predict() routes by market cap tier
+  □ All 6 verification tests pass
+
+Phase 2: Polygon Real-Time Engine  
+  □ PolygonFeatureEngine computes ~160+ features
+  □ Feature names match GKX panel columns exactly
+  □ LivePredictor blends fundamental (70%) + timing (30%)
+  □ Feature coverage > 40% for mega-caps
+  □ Graceful fallback to WRDS historical when Polygon fails
+
+Phase 3: Signal Architecture
+  □ MLP predictors deprecated
+  □ LivePredictor is sole signal source in orchestrator
+  □ Agents provide explanation, not signal
+  □ Risk agent can reduce confidence (only exception)
+
+Phase 4: IBES Data Fix
+  □ Diagnosed root cause of 50-86% missing rates
+  □ Fixed joins (ICLINK + merge_asof)
+  □ Recovered 64+ dropped Level 3 features
+  □ Mega-cap IBES coverage > 70%
+
+Phase 5: Sector-Neutral Features
+  □ ~30-40 industry-demeaned features added
+  □ Mega/large tiers retrained
+  □ gsector importance < 5%
+  □ Large-cap IC improved (target: 0.025+)
+
+Phase 6: HMM Regime Detection
+  □ GaussianHMM trained on VIX + credit + term + returns
+  □ 3 states identified and labeled
+  □ Integrated into dynamic hedging layer
+
+Phase 7: End-to-End Test
+  □ Full system processes "Analyze NVDA" correctly
+  □ Live Polygon features → trained model → prediction
+  □ WRDS data enriches agent explanations  
+  □ Signal + confidence + reasoning all present
+  □ Git committed and pushed
+```
+
+## EXECUTE PHASE 1 FIRST. REPORT BACK BEFORE MOVING TO PHASE 2.

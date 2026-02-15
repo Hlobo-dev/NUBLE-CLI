@@ -17,7 +17,7 @@ import sys
 import json
 from datetime import datetime
 
-sys.path.insert(0, "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3")
+sys.path.insert(0, os.path.dirname(__file__))
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -99,7 +99,8 @@ async def root():
 @app.get("/health")
 async def health():
     """System health check."""
-    DATA_DIR = "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds"
+    _PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    DATA_DIR = os.path.join(_PROJECT_ROOT, "data", "wrds")
     checks = {}
 
     for fname in ["gkx_panel.parquet", "ensemble_predictions.parquet",

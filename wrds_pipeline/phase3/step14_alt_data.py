@@ -17,10 +17,11 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
-sys.path.insert(0, "/Users/humbertolobo/Desktop/NUBLE-CLI")
+_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+sys.path.insert(0, _PROJECT_ROOT)
 
-DATA_DIR = "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds"
-RESULTS_DIR = "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/results"
+DATA_DIR = os.path.join(_PROJECT_ROOT, "data", "wrds")
+RESULTS_DIR = os.path.join(os.path.dirname(__file__), "results")
 
 
 def integrate_polygon_realtime():
@@ -28,7 +29,7 @@ def integrate_polygon_realtime():
     print("\n📊 1. POLYGON.IO REAL-TIME INTEGRATION")
 
     # Check if Polygon module exists
-    polygon_path = "/Users/humbertolobo/Desktop/NUBLE-CLI/src/nuble/data/polygon_universe.py"
+    polygon_path = os.path.join(_PROJECT_ROOT, "src", "nuble", "data", "polygon_universe.py")
     if os.path.exists(polygon_path):
         print("  ✅ Polygon universe module found")
         print("  Connection: WRDS monthly fundamentals + Polygon daily prices")
@@ -137,7 +138,7 @@ def integrate_sec_edgar():
     """Connect existing SEC EDGAR NLP to WRDS pipeline."""
     print("\n📊 3. SEC EDGAR NLP INTEGRATION")
 
-    edgar_path = "/Users/humbertolobo/Desktop/NUBLE-CLI/src/nuble/data/sec_edgar.py"
+    edgar_path = os.path.join(_PROJECT_ROOT, "src", "nuble", "data", "sec_edgar.py")
     if os.path.exists(edgar_path):
         print("  ✅ SEC EDGAR module found")
         print("  Connection: NLP sentiment from 10-K/10-Q filings + WRDS fundamentals")
@@ -158,7 +159,7 @@ def integrate_sec_edgar():
         integration = {"source": "sec_edgar", "status": "not_found"}
 
     # Check TENK_SOURCE
-    tenk_path = "/Users/humbertolobo/Desktop/NUBLE-CLI/TENK_SOURCE"
+    tenk_path = os.path.join(_PROJECT_ROOT, "TENK_SOURCE")
     if os.path.exists(tenk_path):
         print(f"  ✅ TENK_SOURCE found — 10-K filing analysis available")
         integration["tenk_available"] = True

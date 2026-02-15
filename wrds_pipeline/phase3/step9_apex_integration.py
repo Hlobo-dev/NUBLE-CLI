@@ -11,11 +11,12 @@ import sys
 import json
 
 # Add project root to path
-sys.path.insert(0, "/Users/humbertolobo/Desktop/NUBLE-CLI")
-sys.path.insert(0, "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3")
+_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+sys.path.insert(0, _PROJECT_ROOT)
+sys.path.insert(0, os.path.dirname(__file__))
 
-DATA_DIR = "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds"
-RESULTS_DIR = "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/results"
+DATA_DIR = os.path.join(_PROJECT_ROOT, "data", "wrds")
+RESULTS_DIR = os.path.join(os.path.dirname(__file__), "results")
 
 
 class APEXIntegration:
@@ -28,7 +29,7 @@ class APEXIntegration:
 
     def _load_apex_config(self):
         """Load APEX system configuration."""
-        manifest_path = "/Users/humbertolobo/Desktop/NUBLE-CLI/system_manifest.json"
+        manifest_path = os.path.join(_PROJECT_ROOT, "system_manifest.json")
         if os.path.exists(manifest_path):
             with open(manifest_path) as f:
                 self.manifest = json.load(f)

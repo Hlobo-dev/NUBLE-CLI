@@ -86,20 +86,33 @@ class WRDSPredictor:
             return
 
         # ── Load trained LightGBM model ──────────────────────────────
-        model_path = os.path.join(self.data_dir, "lgb_latest_model.txt")
-        if not os.path.exists(model_path) and self._dm:
-            # Try downloading from S3 via data manager
+        # The model may live in data/wrds/ (legacy) or models/lightgbm/ (canonical).
+        # Check both local paths before falling back to S3.
+        model_candidates = [
+            os.path.join(self.data_dir, "lgb_latest_model.txt"),             # legacy: data/wrds/
+            os.path.join(os.path.dirname(__file__), "..", "..", "..",         # canonical: models/lightgbm/
+                         "models", "lightgbm", "lgb_latest_model.txt"),
+        ]
+        model_path = None
+        for candidate in model_candidates:
+            candidate = os.path.abspath(candidate)
+            if os.path.exists(candidate):
+                model_path = candidate
+                break
+
+        # S3 fallback if not found locally
+        if model_path is None and self._dm:
             try:
                 downloaded = self._dm.load_model("lightgbm/lgb_latest_model.txt")
                 model_path = str(downloaded)
             except Exception as e:
                 logger.debug(f"Model not in S3: {e}")
 
-        if os.path.exists(model_path):
+        if model_path and os.path.exists(model_path):
             self._model = lgb.Booster(model_file=model_path)
             logger.info(f"WRDS model loaded: {model_path}")
         else:
-            logger.warning(f"WRDS model not found at {model_path}")
+            logger.warning("WRDS LightGBM model not found locally or in S3")
             return
 
         # ── Load GKX panel (last 24 months only for memory) ─────────

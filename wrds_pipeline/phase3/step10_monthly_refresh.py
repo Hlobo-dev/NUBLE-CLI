@@ -16,11 +16,14 @@ import json
 import subprocess
 from datetime import datetime, timedelta
 
-sys.path.insert(0, "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3")
+sys.path.insert(0, os.path.dirname(__file__))
 
-DATA_DIR = "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds"
+# Resolve paths relative to project root (portable across machines)
+_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+DATA_DIR = os.path.join(_PROJECT_ROOT, "data", "wrds")
+MODELS_DIR = os.path.join(_PROJECT_ROOT, "models", "lightgbm")
 S3_BUCKET = "nuble-data-warehouse"
-LOG_DIR = "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/logs"
+LOG_DIR = os.path.join(os.path.dirname(__file__), "logs")
 
 WRDS_PARAMS = {
     "host": os.environ.get("WRDS_PGHOST", "wrds-pgdata.wharton.upenn.edu"),
@@ -171,8 +174,17 @@ def step6_generate_predictions():
         latest_data = gkx[gkx["date"] == latest_date]
 
         # Load latest model (would be saved by step6)
-        model_path = os.path.join(DATA_DIR, "lgb_latest_model.txt")
-        if os.path.exists(model_path):
+        # Check canonical path first, then legacy path
+        model_path = None
+        for candidate in [
+            os.path.join(MODELS_DIR, "lgb_latest_model.txt"),   # canonical
+            os.path.join(DATA_DIR, "lgb_latest_model.txt"),     # legacy
+        ]:
+            if os.path.exists(candidate):
+                model_path = candidate
+                break
+
+        if model_path:
             model = lgb.Booster(model_file=model_path)
             id_cols = ["permno", "date", "cusip", "ticker", "siccd", "ret_forward"]
             feature_cols = [c for c in latest_data.columns if c not in id_cols

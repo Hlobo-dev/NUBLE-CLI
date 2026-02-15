@@ -49,8 +49,9 @@ from scipy import stats
 
 warnings.filterwarnings("ignore")
 
-DATA_DIR = "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds"
-RESULTS_DIR = "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/results"
+_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+DATA_DIR = os.path.join(_PROJECT_ROOT, "data", "wrds")
+RESULTS_DIR = os.path.join(os.path.dirname(__file__), "results")
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
 # ════════════════════════════════════════════════════════════
@@ -1102,9 +1103,7 @@ def main():
         result = subprocess.run(
             ["python", "wrds_pipeline/phase3/step6e_dynamic_hedging.py"],
             capture_output=True, text=True, timeout=120,
-            cwd="/Users/humbertolobo/Desktop/NUBLE-CLI",
-            env={**os.environ, "VIRTUAL_ENV": "/Users/humbertolobo/Desktop/NUBLE-CLI/.venv",
-                 "PATH": "/Users/humbertolobo/Desktop/NUBLE-CLI/.venv/bin:" + os.environ.get("PATH", "")}
+            cwd=_PROJECT_ROOT,
         )
         if result.returncode == 0:
             print("  ✓ Hedging re-run complete")
@@ -1125,9 +1124,7 @@ def main():
         result = subprocess.run(
             ["python", "wrds_pipeline/phase3/step6f_multi_tier_ensemble.py"],
             capture_output=True, text=True, timeout=120,
-            cwd="/Users/humbertolobo/Desktop/NUBLE-CLI",
-            env={**os.environ, "VIRTUAL_ENV": "/Users/humbertolobo/Desktop/NUBLE-CLI/.venv",
-                 "PATH": "/Users/humbertolobo/Desktop/NUBLE-CLI/.venv/bin:" + os.environ.get("PATH", "")}
+            cwd=_PROJECT_ROOT,
         )
         if result.returncode == 0:
             print("  ✓ Ensemble re-run complete")

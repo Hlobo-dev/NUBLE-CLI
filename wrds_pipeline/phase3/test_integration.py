@@ -13,18 +13,21 @@ import os
 import sys
 import json
 
-sys.path.insert(0, "/Users/humbertolobo/Desktop/NUBLE-CLI")
-sys.path.insert(0, "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3")
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+sys.path.insert(0, os.path.dirname(__file__))
 
-DATA_DIR = "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds"
-RESULTS_DIR = "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/results"
+_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+DATA_DIR = os.path.join(_PROJECT_ROOT, "data", "wrds")
+MODELS_DIR = os.path.join(_PROJECT_ROOT, "models", "lightgbm")
+RESULTS_DIR = os.path.join(os.path.dirname(__file__), "results")
 
 
 def test_step6_outputs():
     """Verify Step 6 produced all expected outputs."""
     print("\n📋 TEST 1: Step 6 Outputs")
     files = {
-        "Model": os.path.join(DATA_DIR, "lgb_latest_model.txt"),
+        "Model (canonical)": os.path.join(MODELS_DIR, "lgb_latest_model.txt"),
+        "Model (legacy)": os.path.join(DATA_DIR, "lgb_latest_model.txt"),
         "Predictions": os.path.join(DATA_DIR, "lgb_predictions.parquet"),
         "Metrics": os.path.join(RESULTS_DIR, "walk_forward_metrics.csv"),
         "Feature Importance": os.path.join(RESULTS_DIR, "feature_importance.csv"),

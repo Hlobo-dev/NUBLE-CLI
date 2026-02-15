@@ -23,11 +23,11 @@ import subprocess
 import json
 import argparse
 
-BASE_DIR = "/Users/humbertolobo/Desktop/NUBLE-CLI"
-PIPELINE_DIR = os.path.join(BASE_DIR, "wrds_pipeline/phase3")
-DATA_DIR = os.path.join(BASE_DIR, "data/wrds")
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+PIPELINE_DIR = os.path.join(BASE_DIR, "wrds_pipeline", "phase3")
+DATA_DIR = os.path.join(BASE_DIR, "data", "wrds")
 RESULTS_DIR = os.path.join(PIPELINE_DIR, "results")
-PYTHON = os.path.join(BASE_DIR, ".venv/bin/python")
+PYTHON = sys.executable  # Use whichever Python is running this script
 
 
 def run_step(script_name: str, step_label: str) -> bool:
