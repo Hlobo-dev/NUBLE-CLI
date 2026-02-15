@@ -554,7 +554,7 @@ async def system_status():
             components['wrds_predictor'] = {
                 'available': True,
                 'is_ready': wrds.is_ready,
-                'tickers': len(wrds._ticker_map) if wrds._ticker_map else 0,
+                'tickers': len(wrds._ticker_to_permno) if wrds._ticker_to_permno else 0,
                 'models_loaded': list(wrds._models.keys()) if wrds._models else [],
             }
         except Exception as e:
@@ -576,6 +576,8 @@ async def system_status():
         _PROJECT_ROOT = os.path.abspath(
             os.path.join(os.path.dirname(__file__), "..", "..", "..")
         )
+
+        # Research models
         lgb_dir = os.path.join(_PROJECT_ROOT, "models", "lightgbm")
         if os.path.isdir(lgb_dir):
             for fname in os.listdir(lgb_dir):
@@ -583,6 +585,22 @@ async def system_status():
                 if fname.endswith('.txt'):
                     models[fname] = {
                         'path': fpath,
+                        'type': 'research',
+                        'size_mb': round(os.path.getsize(fpath) / 1e6, 2),
+                        'modified': datetime.fromtimestamp(
+                            os.path.getmtime(fpath)
+                        ).isoformat(),
+                    }
+
+        # Production models
+        prod_dir = os.path.join(_PROJECT_ROOT, "models", "production")
+        if os.path.isdir(prod_dir):
+            for fname in os.listdir(prod_dir):
+                fpath = os.path.join(prod_dir, fname)
+                if fname.endswith('.txt'):
+                    models[fname] = {
+                        'path': fpath,
+                        'type': 'production',
                         'size_mb': round(os.path.getsize(fpath) / 1e6, 2),
                         'modified': datetime.fromtimestamp(
                             os.path.getmtime(fpath)

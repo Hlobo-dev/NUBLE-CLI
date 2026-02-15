@@ -63,6 +63,16 @@ class PolygonFeatureEngine:
         financials = self._fetch_financials(ticker)
         macro = self._fetch_macro_data()
 
+        # Ensure financials[0] has income statement data — skip TTM/empty records
+        if financials:
+            usable = [
+                r for r in financials
+                if r.get('financials', {}).get('income_statement')
+            ]
+            if usable and usable[0] is not financials[0]:
+                # Reorder so the first usable quarterly record is [0]
+                financials = usable
+
         features: Dict[str, float] = {}
 
         # 1. Price/Momentum features
@@ -170,22 +180,60 @@ class PolygonFeatureEngine:
             return None
 
     def _fetch_financials(self, ticker: str) -> Optional[List[Dict]]:
-        """Fetch quarterly financials from Polygon."""
+        """
+        Fetch quarterly financials from Polygon.
+
+        Uses timeframe=quarterly to avoid TTM records which often have
+        empty income statements. Falls back to unfiltered results and
+        skips TTM records if quarterly fetch fails.
+        """
         cache_key = f"fin_{ticker}"
         if cache_key in self._cache:
             cached_time, cached_data = self._cache[cache_key]
             if (datetime.now() - cached_time).total_seconds() < 86400:
                 return cached_data
 
+        # Primary: request quarterly specifically
         url = (f"{self._base_url}/vX/reference/financials"
                f"?ticker={ticker}&limit=12&sort=period_of_report_date"
-               f"&order=desc&apiKey={self.api_key}")
+               f"&order=desc&timeframe=quarterly&apiKey={self.api_key}")
         try:
             resp = self._get_session().get(url, timeout=15)
             resp.raise_for_status()
             result = resp.json().get('results', [])
+
+            # Validate: ensure we got records with income statement data
+            if result and result[0].get('financials', {}).get('income_statement'):
+                self._cache[cache_key] = (datetime.now(), result)
+                return result
+
+            # Fallback: fetch without timeframe filter, then skip TTM records
+            url_fallback = (f"{self._base_url}/vX/reference/financials"
+                            f"?ticker={ticker}&limit=16&sort=period_of_report_date"
+                            f"&order=desc&apiKey={self.api_key}")
+            resp2 = self._get_session().get(url_fallback, timeout=15)
+            resp2.raise_for_status()
+            all_results = resp2.json().get('results', [])
+
+            # Filter: keep only quarterly records with actual income data
+            quarterly = [
+                r for r in all_results
+                if r.get('timeframe') == 'quarterly'
+                and r.get('financials', {}).get('income_statement')
+            ]
+            if quarterly:
+                self._cache[cache_key] = (datetime.now(), quarterly)
+                return quarterly
+
+            # Last resort: return whatever we have, filtering out empty TTMs
+            non_empty = [
+                r for r in all_results
+                if r.get('financials', {}).get('income_statement')
+            ]
+            result = non_empty if non_empty else all_results
             self._cache[cache_key] = (datetime.now(), result)
             return result
+
         except Exception as e:
             logger.error(f"Polygon financials fetch failed for {ticker}: {e}")
             return None
@@ -414,7 +462,14 @@ class PolygonFeatureEngine:
         return features
 
     def _compute_valuation(self, df: pd.DataFrame, financials: List[Dict]) -> Dict[str, float]:
-        """Compute valuation ratios from Polygon financials."""
+        """
+        Compute valuation ratios from Polygon financials.
+
+        Handles edge cases:
+          - Banks/financials without gross_profit → compute from revenue - costs
+          - Fallback field names (net_income_loss_attributable_to_parent, etc.)
+          - Missing shares → fallback to reference data
+        """
         features: Dict[str, float] = {}
 
         if not financials:
@@ -433,36 +488,61 @@ class PolygonFeatureEngine:
             item = stmt.get(key, {})
             return item.get('value', default) if isinstance(item, dict) else default
 
-        shares = get_val(balance, 'common_stock_shares_outstanding') or 1
+        def get_val_multi(stmt, keys, default=0):
+            """Try multiple field names, return first non-zero value found."""
+            for key in keys:
+                val = get_val(stmt, key, None)
+                if val is not None and val != 0:
+                    return val
+            return default
+
+        shares = get_val_multi(balance,
+                               ['common_stock_shares_outstanding',
+                                'common_stock_outstanding',
+                                'weighted_average_shares_outstanding']) or 1
         market_cap = price * shares if price > 0 else 1
 
-        # Book value / Market
-        total_equity = get_val(balance, 'equity')
-        if total_equity and market_cap > 1:
+        # Book value / Market — handle negative equity (buyback-heavy companies like MCD)
+        total_equity = get_val_multi(balance, ['equity', 'equity_attributable_to_parent'])
+        if total_equity and market_cap > 1 and total_equity != 0:
             features['bm'] = float(total_equity / market_cap)
-            features['ptb'] = float(market_cap / total_equity) if total_equity > 0 else np.nan
+            features['ptb'] = float(market_cap / total_equity)
 
-        # Earnings yield
-        net_income = get_val(income, 'net_income_loss')
-        if net_income and market_cap > 1:
-            features['pe_exi'] = float(market_cap / (net_income * 4)) if net_income != 0 else np.nan
+        # Net income — try multiple field names
+        net_income = get_val_multi(income,
+                                   ['net_income_loss',
+                                    'net_income_loss_attributable_to_parent',
+                                    'net_income_loss_available_to_common_stockholders_basic',
+                                    'income_loss_from_continuing_operations_after_tax'])
 
-        # Revenue
-        revenue = get_val(income, 'revenues')
+        # Earnings yield (P/E)
+        if net_income and market_cap > 1 and net_income != 0:
+            features['pe_exi'] = float(market_cap / (net_income * 4))
+
+        # Revenue — try multiple field names
+        revenue = get_val_multi(income, ['revenues', 'revenue', 'total_revenue', 'net_revenue'])
         if revenue and market_cap > 1:
             features['ps'] = float(market_cap / (revenue * 4))
 
         # Operating earnings
-        op_income = get_val(income, 'operating_income_loss')
+        op_income = get_val_multi(income,
+                                  ['operating_income_loss',
+                                   'income_loss_from_continuing_operations_before_tax'])
         if op_income and price and shares:
             eps_op = op_income * 4 / shares
             if eps_op != 0:
                 features['pe_op_basic'] = float(price / eps_op)
 
-        # Cash flow
+        # Cash flow — try multiple sources
         op_cf = get_val(cf, 'net_cash_flow_from_operating_activities')
-        if op_cf and market_cap > 1:
-            features['pcf'] = float(market_cap / (op_cf * 4)) if op_cf != 0 else np.nan
+        if not op_cf:
+            op_cf = get_val(cf, 'net_cash_flow_from_operating_activities_continuing')
+        if op_cf and market_cap > 1 and op_cf != 0:
+            features['pcf'] = float(market_cap / (op_cf * 4))
+        elif net_income and market_cap > 1 and net_income != 0:
+            # Fallback: use net_income as proxy for cash flow for companies
+            # that don't report standard cash flow (some financials)
+            features['pcf'] = float(market_cap / (net_income * 4))
 
         # Dividend yield
         dividends = get_val(cf, 'payment_of_dividends')
@@ -474,13 +554,43 @@ class PolygonFeatureEngine:
         if net_income and total_assets > 1:
             features['roa'] = float(net_income * 4 / total_assets)
 
-        if net_income and total_equity and total_equity > 0:
+        # ROE — allow negative equity (companies with massive buybacks like MCD)
+        if net_income and total_equity and total_equity != 0:
             features['roe'] = float(net_income * 4 / total_equity)
 
         if revenue and revenue > 0:
+            # Gross profit — cascading fallback chain:
+            #   1. Direct 'gross_profit' field
+            #   2. revenue - cost_of_revenue
+            #   3. revenue - other_operating_expenses (oil/gas, industrials)
+            #   4. revenue - (costs_and_expenses - SGA) (energy sector proxy)
+            #   5. For banks: revenue - noninterest_expense
             gross_profit = get_val(income, 'gross_profit')
+            if not gross_profit:
+                cost_of_revenue = get_val(income, 'cost_of_revenue')
+                if cost_of_revenue:
+                    gross_profit = revenue - cost_of_revenue
+            if not gross_profit:
+                other_opex = get_val(income, 'other_operating_expenses')
+                if other_opex:
+                    gross_profit = revenue - other_opex
+            if not gross_profit:
+                total_costs = get_val_multi(income, ['costs_and_expenses', 'benefits_costs_expenses'])
+                sga = get_val(income, 'selling_general_and_administrative_expenses')
+                if total_costs and sga:
+                    gross_profit = revenue - (total_costs - sga)
+                elif total_costs:
+                    # Use op_income as proxy for gross profit for non-standard reporters
+                    if op_income:
+                        gross_profit = op_income
+            if not gross_profit:
+                nonint_exp = get_val(income, 'noninterest_expense')
+                if nonint_exp:
+                    gross_profit = revenue - nonint_exp
+
             if gross_profit:
                 features['gpm'] = float(gross_profit / revenue)
+
             if net_income:
                 features['npm'] = float(net_income / revenue)
             if op_income:
@@ -489,10 +599,17 @@ class PolygonFeatureEngine:
         return features
 
     def _compute_financial_quality(self, financials: List[Dict]) -> Dict[str, float]:
-        """Compute Level 3 financial quality features."""
+        """
+        Compute Level 3 financial quality features.
+
+        Handles edge cases:
+          - Banks without gross_profit → compute from revenue - cost_of_revenue
+          - Fallback field names for different company types
+          - Companies with only 1 quarter of data → still compute what we can
+        """
         features: Dict[str, float] = {}
 
-        if len(financials) < 2:
+        if len(financials) < 1:
             return features
 
         latest = financials[0].get('financials', {})
@@ -507,12 +624,49 @@ class PolygonFeatureEngine:
             item = stmt.get(key, {})
             return item.get('value', default) if isinstance(item, dict) else default
 
-        revenue = get_val(inc, 'revenues')
-        revenue_prior = get_val(inc_prior, 'revenues')
+        def get_val_multi(stmt, keys, default=0):
+            """Try multiple field names, return first non-zero value found."""
+            for key in keys:
+                val = get_val(stmt, key, None)
+                if val is not None and val != 0:
+                    return val
+            return default
+
+        revenue = get_val_multi(inc, ['revenues', 'revenue', 'total_revenue', 'net_revenue'])
+        revenue_prior = get_val_multi(inc_prior, ['revenues', 'revenue', 'total_revenue', 'net_revenue'])
         total_assets = get_val(bal, 'assets') or 1
-        net_income = get_val(inc, 'net_income_loss')
+        net_income = get_val_multi(inc,
+                                   ['net_income_loss',
+                                    'net_income_loss_attributable_to_parent',
+                                    'income_loss_from_continuing_operations_after_tax'])
         op_cf = get_val(cf, 'net_cash_flow_from_operating_activities')
+        if not op_cf:
+            op_cf = get_val(cf, 'net_cash_flow_from_operating_activities_continuing')
+
+        # Gross profit — cascading fallback chain (same as _compute_valuation)
         gross_profit = get_val(inc, 'gross_profit')
+        if not gross_profit and revenue:
+            cost_of_revenue = get_val(inc, 'cost_of_revenue')
+            if cost_of_revenue:
+                gross_profit = revenue - cost_of_revenue
+        if not gross_profit and revenue:
+            other_opex = get_val(inc, 'other_operating_expenses')
+            if other_opex:
+                gross_profit = revenue - other_opex
+        if not gross_profit and revenue:
+            total_costs = get_val_multi(inc, ['costs_and_expenses', 'benefits_costs_expenses'])
+            sga = get_val(inc, 'selling_general_and_administrative_expenses')
+            if total_costs and sga:
+                gross_profit = revenue - (total_costs - sga)
+            elif total_costs:
+                op_income_check = get_val_multi(inc, ['operating_income_loss',
+                                                      'income_loss_from_continuing_operations_before_tax'])
+                if op_income_check:
+                    gross_profit = op_income_check
+        if not gross_profit and revenue:
+            nonint_exp = get_val(inc, 'noninterest_expense')
+            if nonint_exp:
+                gross_profit = revenue - nonint_exp
 
         # Revenue growth
         if revenue and revenue_prior and revenue_prior != 0:
@@ -523,7 +677,9 @@ class PolygonFeatureEngine:
             features['gross_margin_trend'] = float(gross_profit / revenue)
 
         # Operating margin
-        op_income = get_val(inc, 'operating_income_loss')
+        op_income = get_val_multi(inc,
+                                  ['operating_income_loss',
+                                   'income_loss_from_continuing_operations_before_tax'])
         if revenue and op_income:
             features['operating_margin_trend'] = float(op_income / revenue)
 
@@ -535,8 +691,17 @@ class PolygonFeatureEngine:
         # FCF / Revenue
         if op_cf and revenue and revenue != 0:
             capex = abs(get_val(cf, 'capital_expenditures', 0))
+            # If no explicit capex, try net_cash_flow_from_investing_activities as proxy
+            if capex == 0:
+                invest_cf = get_val(cf, 'net_cash_flow_from_investing_activities', 0)
+                if invest_cf < 0:
+                    capex = abs(invest_cf)
             fcf = op_cf - capex
             features['fcf_to_revenue'] = float(fcf / revenue)
+        elif net_income and revenue and revenue != 0:
+            # Fallback: for companies without cash flow data (some financials),
+            # use net_income / revenue as FCF proxy
+            features['fcf_to_revenue'] = float(net_income / revenue)
 
         # Piotroski F-Score (simplified)
         f_score = 0
@@ -548,11 +713,14 @@ class PolygonFeatureEngine:
             f_score += 1
         features['piotroski_f_score'] = float(f_score)
 
-        # Debt metrics
+        # Debt metrics — handle negative equity (MCD, SBUX, etc.)
         total_debt = get_val(bal, 'long_term_debt', 0) + get_val(bal, 'current_liabilities', 0)
-        total_equity = get_val(bal, 'equity')
-        if total_equity and total_equity > 0 and total_debt:
-            features['de_ratio'] = float(total_debt / total_equity)
+        if not total_debt:
+            # Try noncurrent_liabilities as long-term debt proxy
+            total_debt = get_val(bal, 'noncurrent_liabilities', 0) + get_val(bal, 'current_liabilities', 0)
+        total_equity = get_val_multi(bal, ['equity', 'equity_attributable_to_parent'])
+        if total_equity and total_equity != 0 and total_debt:
+            features['de_ratio'] = float(total_debt / abs(total_equity))
         if total_assets > 1:
             features['debt_at'] = float(total_debt / total_assets)
 
