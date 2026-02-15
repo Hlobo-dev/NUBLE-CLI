@@ -81,6 +81,14 @@ except ImportError:
     INTEL_ROUTER_AVAILABLE = False
     intel_router = None
 
+# Import ROKET API router (Data Access Layer + REST endpoints)
+try:
+    from .roket import router as roket_router
+    ROKET_ROUTER_AVAILABLE = True
+except ImportError:
+    ROKET_ROUTER_AVAILABLE = False
+    roket_router = None
+
 # Import Tool Executor router (Claude ↔ Tools server-side loop)
 try:
     from .tool_executor import router as tool_router
@@ -654,6 +662,11 @@ app.add_middleware(
 if INTEL_ROUTER_AVAILABLE and intel_router is not None:
     app.include_router(intel_router)
     logger.info("✅ Intelligence API registered at /api/intel/*")
+
+# Register ROKET API router (Data Access Layer endpoints)
+if ROKET_ROUTER_AVAILABLE and roket_router is not None:
+    app.include_router(roket_router)
+    logger.info("✅ ROKET API registered at /api/roket/*")
 
 # Register Tool Executor router (Claude ↔ Tools server-side loop)
 if TOOL_ROUTER_AVAILABLE and tool_router is not None:

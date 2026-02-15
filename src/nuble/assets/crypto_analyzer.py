@@ -11,7 +11,8 @@ from enum import Enum
 
 # Import our clients
 import sys
-sys.path.insert(0, "/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI")
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")))
 
 from src.nuble.news.crypto_client import CryptoNewsClient
 from src.nuble.news.coindesk_client import CoinDeskClient

@@ -492,7 +492,9 @@ def run_paper_trading_demo():
                   f"(Current: ${pos.current_price:.2f}, P&L: {pos.pnl_pct:+.2%})")
     
     # Save state
-    save_path = "/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI/data/paper_trading_state.json"
+    import os
+    _root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+    save_path = os.path.join(_root, "data", "paper_trading_state.json")
     trader.save_state(save_path)
     print(f"\n💾 State saved to: {save_path}")
     

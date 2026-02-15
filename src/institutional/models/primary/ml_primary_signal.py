@@ -718,12 +718,14 @@ class RegimeAdaptivePrimarySignal(MLPrimarySignal):
 if __name__ == "__main__":
     # Test the model
     import sys
-    sys.path.insert(0, '/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI')
+    import os
+    _root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
+    sys.path.insert(0, _root)
     
     from src.institutional.labeling.triple_barrier import TripleBarrierLabeler
     
     # Load data
-    df = pd.read_csv('/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI/data/train/SPY.csv',
+    df = pd.read_csv(os.path.join(_root, 'data', 'train', 'SPY.csv'),
                      index_col=0, parse_dates=True)
     
     print(f"Data: {len(df)} rows")

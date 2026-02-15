@@ -424,10 +424,9 @@ async def universe_stats():
         panel_end = ""
         try:
             import pandas as pd
-            _PROJECT_ROOT = os.path.abspath(
-                os.path.join(os.path.dirname(__file__), "..", "..", "..")
-            )
-            panel_path = os.path.join(_PROJECT_ROOT, "data", "wrds", "gkx_panel.parquet")
+            from nuble.data.data_service import get_data_service
+            _ds = get_data_service()
+            panel_path = str(_ds.data_dir / "gkx_panel.parquet")
             if os.path.exists(panel_path):
                 pf = pd.read_parquet(panel_path, columns=['date'])
                 panel_rows = len(pf)
@@ -573,12 +572,11 @@ async def system_status():
 
         # Models
         models = {}
-        _PROJECT_ROOT = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), "..", "..", "..")
-        )
+        from nuble.data.data_service import get_data_service
+        _ds = get_data_service()
 
         # Research models
-        lgb_dir = os.path.join(_PROJECT_ROOT, "models", "lightgbm")
+        lgb_dir = str(_ds.models_dir / "lightgbm")
         if os.path.isdir(lgb_dir):
             for fname in os.listdir(lgb_dir):
                 fpath = os.path.join(lgb_dir, fname)
@@ -593,7 +591,7 @@ async def system_status():
                     }
 
         # Production models
-        prod_dir = os.path.join(_PROJECT_ROOT, "models", "production")
+        prod_dir = str(_ds.models_dir / "production")
         if os.path.isdir(prod_dir):
             for fname in os.listdir(prod_dir):
                 fpath = os.path.join(prod_dir, fname)
@@ -608,7 +606,7 @@ async def system_status():
                     }
 
         # Regime model
-        regime_path = os.path.join(_PROJECT_ROOT, "models", "regime", "hmm_regime_model.pkl")
+        regime_path = str(_ds.models_dir / "regime" / "hmm_regime_model.pkl")
         if os.path.exists(regime_path):
             models['hmm_regime_model.pkl'] = {
                 'path': regime_path,
@@ -620,7 +618,7 @@ async def system_status():
 
         # Data freshness
         data_freshness = {}
-        panel_path = os.path.join(_PROJECT_ROOT, "data", "wrds", "gkx_panel.parquet")
+        panel_path = str(_ds.data_dir / "gkx_panel.parquet")
         if os.path.exists(panel_path):
             data_freshness['gkx_panel'] = {
                 'exists': True,
@@ -639,7 +637,7 @@ async def system_status():
             except Exception:
                 pass
 
-        ticker_path = os.path.join(_PROJECT_ROOT, "data", "wrds", "ticker_permno_map.parquet")
+        ticker_path = str(_ds.data_dir / "ticker_permno_map.parquet")
         if os.path.exists(ticker_path):
             data_freshness['ticker_permno_map'] = {
                 'exists': True,

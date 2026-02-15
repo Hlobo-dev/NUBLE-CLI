@@ -42,11 +42,21 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-# ── Project paths ─────────────────────────────────────────────────────
-_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-_DATA_DIR = os.path.join(_PROJECT_ROOT, "data", "wrds")
-_MODELS_DIR = os.path.join(_PROJECT_ROOT, "models", "lightgbm")
-_RESULTS_DIR = os.path.join(_PROJECT_ROOT, "wrds_pipeline", "phase3", "results")
+# ── Project paths (via DataService) ───────────────────────────────────
+def _get_data_service():
+    """Lazy import DataService to avoid circular deps at module level."""
+    try:
+        from nuble.data.data_service import get_data_service
+        return get_data_service()
+    except Exception:
+        return None
+
+_ds = _get_data_service()
+_PROJECT_ROOT = str(_ds.project_root) if _ds else os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+_DATA_DIR = str(_ds.data_dir) if _ds else os.path.join(_PROJECT_ROOT, "data", "wrds")
+_MODELS_DIR = str(_ds.models_dir / "lightgbm") if _ds else os.path.join(_PROJECT_ROOT, "models", "lightgbm")
+_RESULTS_DIR = str(_ds.results_dir) if _ds else os.path.join(_PROJECT_ROOT, "wrds_pipeline", "phase3", "results")
 
 # ── Tier configuration (System B production — Grade A+) ──────────────
 TIER_CONFIG = {

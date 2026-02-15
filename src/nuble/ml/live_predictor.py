@@ -32,7 +32,17 @@ from typing import Dict, Any, Optional, List
 
 logger = logging.getLogger(__name__)
 
-_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+def _get_data_service():
+    """Lazy import DataService."""
+    try:
+        from nuble.data.data_service import get_data_service
+        return get_data_service()
+    except Exception:
+        return None
+
+_ds = _get_data_service()
+_PROJECT_ROOT = str(_ds.project_root) if _ds else os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
 # ── Signal thresholds (decile-based, same as WRDSPredictor v2) ───────
 _SIGNAL_THRESHOLDS = [

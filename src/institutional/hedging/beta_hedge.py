@@ -592,7 +592,7 @@ def run_beta_hedge_test():
     
     # Check for real data
     from pathlib import Path
-    data_dir = Path("/Users/humbertolobo/Desktop/bolt.new-main/NUBLE-CLI/data/test")
+    data_dir = Path(__file__).resolve().parents[3] / "data" / "test"
     
     spy_path = data_dir / "SPY.csv"
     aapl_path = data_dir / "AAPL.csv"

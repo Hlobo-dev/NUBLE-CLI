@@ -28,9 +28,20 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-_MODEL_PATH = os.path.join(_PROJECT_ROOT, "models", "regime", "hmm_regime_model.pkl")
-_DATA_DIR = os.path.join(_PROJECT_ROOT, "data", "wrds")
+def _get_data_service():
+    """Lazy import DataService."""
+    try:
+        from nuble.data.data_service import get_data_service
+        return get_data_service()
+    except Exception:
+        return None
+
+_ds = _get_data_service()
+_PROJECT_ROOT = str(_ds.project_root) if _ds else os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+_MODEL_PATH = str(_ds.models_dir / "regime" / "hmm_regime_model.pkl") if _ds else os.path.join(
+    _PROJECT_ROOT, "models", "regime", "hmm_regime_model.pkl")
+_DATA_DIR = str(_ds.data_dir) if _ds else os.path.join(_PROJECT_ROOT, "data", "wrds")
 
 
 class HMMRegimeDetector:
