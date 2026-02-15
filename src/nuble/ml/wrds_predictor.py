@@ -660,7 +660,7 @@ class WRDSPredictor:
         return self.get_top_picks(n=99999, tier=tier)
 
     def get_market_regime(self) -> Dict:
-        """Get current macro regime information from the panel."""
+        """Get current macro regime information from the panel + HMM."""
         self._ensure_loaded()
         if not self._ready:
             return {"regime": "unknown"}
@@ -687,17 +687,35 @@ class WRDSPredictor:
                 regime[output_name] = round(float(latest[panel_col]), 4)
 
         vix = regime.get("vix", 20)
+
+        # Try HMM regime detection first, fall back to rule-based
+        try:
+            from nuble.ml.hmm_regime import get_regime_detector
+            detector = get_regime_detector()
+            hmm_result = detector.detect_regime({
+                'vix': vix,
+                'term_spread_10y2y': regime.get('term_spread', 0.5),
+                'corp_spread_bbb': regime.get('credit_spread', 4.0),
+                'realized_vol': float(latest.get('realized_vol', 0.3)) if 'realized_vol' in latest.index else 0.3,
+                'mom_1m': float(latest.get('mom_1m', 0.0)) if 'mom_1m' in latest.index else 0.0,
+            })
+            regime["regime"] = hmm_result['state']
+            regime["regime_confidence"] = hmm_result['confidence']
+            regime["regime_probabilities"] = hmm_result['probabilities']
+            regime["regime_method"] = "hmm"
+        except Exception:
+            # Rule-based fallback
+            if vix > 35:
+                regime["regime"] = "crisis"
+            elif vix > 25:
+                regime["regime"] = "stress"
+            elif regime.get("term_spread", 0) < 0:
+                regime["regime"] = "late_cycle"
+            else:
+                regime["regime"] = "normal"
+            regime["regime_method"] = "rule_based"
+
         regime["vix_exposure"] = self._get_vix_exposure(vix)
-
-        if vix > 35:
-            regime["regime"] = "crisis"
-        elif vix > 25:
-            regime["regime"] = "stress"
-        elif regime.get("term_spread", 0) < 0:
-            regime["regime"] = "late_cycle"
-        else:
-            regime["regime"] = "normal"
-
         regime["latest_date"] = str(self._latest_date.date()) if self._latest_date else None
         return regime
 
