@@ -73,6 +73,22 @@ from ..manager import Manager, CRYPTO_TICKERS, _get_polygon_key
 from ..router import SmartRouter, QueryIntent
 from .. import __version__
 
+# Import Intelligence API router (System A+B endpoints)
+try:
+    from .intelligence import router as intel_router
+    INTEL_ROUTER_AVAILABLE = True
+except ImportError:
+    INTEL_ROUTER_AVAILABLE = False
+    intel_router = None
+
+# Import Tool Executor router (Claude ↔ Tools server-side loop)
+try:
+    from .tool_executor import router as tool_router
+    TOOL_ROUTER_AVAILABLE = True
+except ImportError:
+    TOOL_ROUTER_AVAILABLE = False
+    tool_router = None
+
 logger = logging.getLogger(__name__)
 
 
@@ -633,6 +649,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Register Intelligence API router (System A+B endpoints)
+if INTEL_ROUTER_AVAILABLE and intel_router is not None:
+    app.include_router(intel_router)
+    logger.info("✅ Intelligence API registered at /api/intel/*")
+
+# Register Tool Executor router (Claude ↔ Tools server-side loop)
+if TOOL_ROUTER_AVAILABLE and tool_router is not None:
+    app.include_router(tool_router)
+    logger.info("✅ Tool Executor registered at /api/intel/chat-with-tools")
 
 _start_time = datetime.now()
 _conversations = ConversationStore()

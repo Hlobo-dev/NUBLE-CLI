@@ -7,7 +7,7 @@ Supports streaming responses and multi-turn conversations.
 """
 
 import os
-from typing import Optional, List, Dict, Any, Generator, Callable
+from typing import Optional, List, Dict, Any, Generator, Callable, Union
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -125,7 +125,7 @@ Available Tools:
         self,
         message: str,
         stream: bool = False,
-    ) -> str | Generator[str, None, None]:
+    ) -> "Union[str, Generator[str, None, None]]":
         """
         Send a message and get a response.
         
