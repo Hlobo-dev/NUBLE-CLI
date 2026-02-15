@@ -1,74 +1,13 @@
 """
-NUBLE Core - Unified Agent Orchestration System
-================================================
+NUBLE Core — DEPRECATED
+========================
 
-This module provides the unified architecture that connects:
-- UltimateDecisionEngine (28+ data points)
-- ML Prediction Pipeline (46M+ parameters)
-- Multi-Agent System (9 specialized agents)
-- Lambda Real-Time Data (40+ endpoints)
-- SEC Filings Analysis (TENK integration)
+The original core orchestrator, tools, tool_handlers, and memory modules
+were removed in v7 (Phase 2 cleanup). They were superseded by:
 
-Architecture:
-    User Query → UnifiedOrchestrator → {
-        Fast Path (no LLM) → Direct data response
-        Decision Path → UltimateDecisionEngine → Trade signals
-        Research Path → Multi-Agent → Claude synthesis
-    }
+  - agents/orchestrator.py     → OrchestratorAgent (9-agent pipeline)
+  - memory.py                  → MemoryManager (root-level)
+  - decision/                  → UltimateDecisionEngine
+
+These modules had zero runtime imports and ~3,100 lines of dead code.
 """
-
-from .unified_orchestrator import (
-    UnifiedOrchestrator,
-    OrchestratorConfig,
-    QueryResult,
-    ExecutionPath,
-)
-
-from .tools import (
-    ToolRegistry,
-    Tool,
-    ToolResult,
-    get_all_tools,
-)
-
-from .memory import (
-    ConversationMemory,
-    PredictionTracker,
-    UserPreferences,
-    MemoryManager,
-)
-
-# Alias for compatibility
-MemoryStore = MemoryManager
-
-from .tool_handlers import (
-    ToolHandlers,
-)
-
-# Alias
-handle_tool_call = ToolHandlers.dispatch
-
-__all__ = [
-    # Main orchestrator
-    'UnifiedOrchestrator',
-    'OrchestratorConfig',
-    'QueryResult',
-    'ExecutionPath',
-    
-    # Tools
-    'ToolRegistry',
-    'Tool',
-    'ToolResult',
-    'get_all_tools',
-    
-    # Memory
-    'ConversationMemory',
-    'PredictionTracker',
-    'UserPreferences',
-    'MemoryManager',
-    'MemoryStore',  # Alias
-    
-    # Tool handlers
-    'ToolHandlers',
-    'handle_tool_call',
-]

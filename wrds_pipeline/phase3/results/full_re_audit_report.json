@@ -1,0 +1,42 @@
+{
+  "audit": "full_re_audit_prompt5",
+  "timestamp": "2026-02-13 20:49:31",
+  "total_time_min": 0.1,
+  "tier_ics": {
+    "mega": 0.02678820806031621,
+    "large": 0.019019670787928544,
+    "mid": 0.03843688852379491,
+    "small": 0.09641873901401617
+  },
+  "tier_irs": {
+    "mega": 0.2077129568685168,
+    "large": 0.15925672117683862,
+    "mid": 0.4653123759716844,
+    "small": 0.8985352127437974
+  },
+  "ensemble": {
+    "sharpe": 2.0363794801675437,
+    "sortino": 3.605753017509717,
+    "calmar": 1.6295925931389892,
+    "max_dd": -0.15051714285634415,
+    "ann_return": 0.24528162113914154
+  },
+  "risk": {
+    "beta_full": 0.0018346456533324437,
+    "beta_crisis": 0.005395522162971353
+  },
+  "scorecard": {
+    "passed": 9,
+    "total": 12,
+    "grade": "A-"
+  },
+  "red_flags": [
+    "! Ensemble Sharpe 2.04 exceeds most published results",
+    "\u26a0 Large-cap IC=+0.0190 below target (0.04-0.06)",
+    "\u26a0 Mega-cap IC=+0.0268 below target (0.04-0.06)",
+    "\u26a0 Total capacity $4.6M is LOW (target: $50-200M)",
+    "! Alpha is CONCENTRATED in small-cap (5.1\u00d7 large-cap)",
+    "\u2713 Very low R\u00b2 (0.015) = truly market-neutral",
+    "\u26a0 large monotonicity 0.442 is WEAK (<0.50)"
+  ]
+}

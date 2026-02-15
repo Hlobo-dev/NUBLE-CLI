@@ -1,0 +1,35 @@
+{
+  "model": "IC-weighted Ensemble (LGB_Huber + XGBoost + Ridge + ElasticNet)",
+  "test_period": "2005-2024",
+  "n_features": 535,
+  "total_predictions": 956993,
+  "total_months": 240,
+  "overall_ic": 0.1136,
+  "ic_std": 0.1157,
+  "ic_ir": 0.98,
+  "ic_positive_pct": 86.7,
+  "ic_by_model": {
+    "ensemble": 0.1136,
+    "lgb_huber": 0.1115,
+    "xgboost": 0.1112,
+    "ridge": 0.0961,
+    "elasticnet": 0.1032
+  },
+  "ls_sharpe": 1.35,
+  "oos_r2_pct": -44.553,
+  "avg_spread": 0.026,
+  "preprocessing": "rank_normalize_[-1,1]_per_month + ranked_target_invnorm",
+  "baseline_ic": 0.0136,
+  "top_10_features": [
+    "realized_vol",
+    "realized_vol_lag1",
+    "ret_crsp",
+    "ix_realized_vol_x_manufacturing_employment",
+    "ix_realized_vol_x_building_permits",
+    "mom_12_2",
+    "market_cap_trend3",
+    "ptb",
+    "ix_realized_vol_x_nonfarm_payrolls",
+    "log_price_trend3"
+  ]
+}

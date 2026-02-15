@@ -506,6 +506,35 @@ class EnrichmentEngine:
                 if key in fund_data:
                     result.fundamentals[key] = fund_data[key]
 
+            # ── SEC EDGAR XBRL ratios (Gu-Kelly-Xiu 40 fundamentals) ──
+            if 'xbrl_ratios' in fund_data:
+                ratios = fund_data['xbrl_ratios']
+                result.fundamentals['xbrl_ratios'] = ratios
+                # Surface key cross-sectional ratios for anomaly detection
+                # Ratios are in a flat dict (earnings_yield, book_to_market, etc.)
+                for ratio_name in ['earnings_to_price', 'book_to_market', 'cashflow_to_price',
+                                   'dividend_yield', 'sales_to_price']:
+                    val = ratios.get(ratio_name)
+                    if val is not None and np.isfinite(val):
+                        result.fundamentals[f'xbrl_{ratio_name}'] = val
+
+            if 'fundamental_quality' in fund_data:
+                quality = fund_data['fundamental_quality']
+                result.fundamentals['fundamental_quality'] = quality
+                score = quality.get('score')
+                if score is not None:
+                    result.fundamentals['quality_score_enriched'] = EnrichedMetric(
+                        name="fundamental_quality_score",
+                        value=float(score),
+                        unit="score_0_100",
+                        is_anomaly=(score < 25 or score > 90),
+                        anomaly_description=(
+                            f"Quality score {score:.0f}/100 ({quality.get('grade', '?')}) — "
+                            f"{'exceptionally high' if score > 90 else 'dangerously low'}"
+                            if (score < 25 or score > 90) else ""
+                        ),
+                    )
+
         except Exception as e:
             logger.warning(f"Fundamental enrichment failed: {e}")
 
@@ -539,6 +568,36 @@ class EnrichmentEngine:
                 for key in ['sector_performance', 'market_breadth', 'yield_curve',
                             'dollar', 'commodities', 'macro_news', 'sentiment']:
                     if key in macro_data:
+                        result.macro[key] = macro_data[key]
+
+                # ── FRED macro data (Gu-Kelly-Xiu 8 macro variables) ──
+                fred_data = macro_data.get('fred_macro')
+                if fred_data:
+                    result.macro['fred_macro'] = fred_data
+
+                    # Surface regime indicators as enriched metrics
+                    regimes = fred_data.get('regimes', {})
+                    if 'yield_curve' in regimes:
+                        yc = regimes['yield_curve']
+                        result.macro['yield_curve_fred'] = yc
+                        # Flag inverted yield curve as anomaly
+                        if yc == 'inverted':
+                            result.anomalies.append(Anomaly(
+                                metric_name="yield_curve_regime",
+                                current_value=fred_data.get('current', {}).get('term_spread', -1.0),
+                                z_score=-2.5,  # Inversion is rare
+                                description="Yield curve is INVERTED (10Y-3M < 0)",
+                                historical_context="Yield curve inversions have preceded every US recession since 1970 with 12-18 month lead time.",
+                            ))
+
+                    if 'credit_cycle' in regimes:
+                        result.macro['credit_cycle'] = regimes['credit_cycle']
+                    if 'monetary_policy' in regimes:
+                        result.macro['monetary_policy'] = regimes['monetary_policy']
+
+                # Pass through FRED-derived yield curve and regime fields
+                for key in ['yield_curve_fred', 'credit_cycle', 'monetary_policy']:
+                    if key in macro_data and key not in result.macro:
                         result.macro[key] = macro_data[key]
 
         except Exception as e:
@@ -646,9 +705,11 @@ class EnrichmentEngine:
 
             if pred and pred.get('confidence', 0) > 0:
                 result.ml_predictions['v2_prediction'] = pred
+                model_type = pred.get('model_type', 'per-ticker')
                 logger.info(
-                    "Enrichment: v2 ML prediction for %s → %s (%.0f%%)",
+                    "Enrichment: v2 ML prediction for %s → %s (%.0f%%) [%s model]",
                     symbol, pred.get('direction'), pred.get('confidence', 0) * 100,
+                    model_type,
                 )
         except ImportError:
             pass  # v2 ML module not installed — silent skip

@@ -1,0 +1,7 @@
+# Ignore test connection files with hardcoded credentials
+test_connect*.py
+test_connection.py
+
+# Python cache
+__pycache__/
+*.pyc

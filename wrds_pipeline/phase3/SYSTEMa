@@ -1,0 +1,719 @@
+# SYSTEM A ULTIMATE UPGRADE — PRODUCTION-GRADE EXPERT SYSTEM
+
+## CONTEXT — READ THIS FIRST
+
+You are upgrading NUBLE-CLI System A (APEX) to production-grade. A complete 3-phase forensic audit was just performed. Here is the EXACT state of the system:
+
+### What Exists (DO NOT rebuild — upgrade in place)
+```
+SYSTEM A: ~/Desktop/NUBLE-CLI/
+├── src/nuble/           — 91 files, 46,332 lines (9 agents, orchestrator, CLI)
+├── src/institutional/   — 127 files, 57,559 lines (Tier 2 council, 15 agents, backtesting)
+├── wrds_pipeline/       — 62 files, 29,832 lines (System B — DO NOT TOUCH)
+├── data/wrds/           — 158 parquet files, 16 GB (System B data)
+├── models/              — 5 MLP .pt files + 2 LightGBM .txt + 1 pipeline .pkl
+├── aws/                 — 19 CloudFormation templates, 5 Lambda handlers
+├── tests/               — 28 files, 8,575 lines
+├── validation/          — 27 files, 10,532 lines
+├── .env                 — 13 API keys (Anthropic, Polygon, StockNews, CryptoNews, AWS)
+└── .venv/               — Python 3.11, LightGBM 4.6, PyTorch 2.10, XGBoost 3.2
+
+SYSTEM B (Grade A+, 11/12):
+├── Multi-tier ensemble: Sharpe 2.04, FF6 alpha t=8.58, capacity $113.8M/day
+├── 4 tiers: mega(IC=0.027), large(IC=0.019), mid(IC=0.038), small(IC=0.096)
+├── gkx_panel.parquet: 3.76M rows × 539 columns
+├── Dynamic hedging: VIX-scaling + regime detection + factor hedging
+├── Tier weights: Mega 14.8%, Large 10.5%, Mid 21.3%, Small 53.4%
+└── WRDSPredictor bridge exists (369 lines) — BUT USES WRONG MODEL
+
+KEY HARDWARE: Apple M4 Pro, 12 cores, 24 GB RAM, 72 GB free disk, MPS GPU
+```
+
+### The 8 Problems Found (in priority order)
+```
+#1  WRDSPredictor loads lgb_latest_model.txt (old single model, IC=0.0136)
+    instead of the multi-tier ensemble (Sharpe 2.04). Every agent query
+    gets predictions from the WRONG model.
+
+#2  IBES features have 50-86% missing rates (sue=86%, analyst_dispersion=61%,
+    eps_revision=52%). These are THE highest-IC features for large-cap stocks.
+    The data exists in WRDS but the joins in step5b lost most rows.
+
+#3  97 Level 3 features were computed but only 33 survived into the GKX panel.
+    64 features dropped during merge (Beneish components, earnings persistence,
+    cash conversion trend, etc.) — features that matter most for large-cap.
+
+#4  gsector dominates ALL tiers at 10-13% feature importance. Model is making
+    sector bets, not stock-specific predictions. Needs sector-neutral features.
+
+#5  9 deep learning architectures defined (DeepAR, Informer, N-BEATS, NHiTS,
+    TFT, LSTM, Transformer, Ensemble, Regime) — ZERO have trained weights.
+
+#6  Individual agents (Fundamental, Earnings, Macro, Insider, Institutional)
+    don't query WRDS data directly. They only use Polygon + StockNews API.
+
+#7  3 decision engine versions exist (engine_v2, ultimate_engine,
+    enrichment_engine) — unclear which is production.
+
+#8  3 unpushed git commits, 36 changed files. Corrupted filings.db (OpenPGP).
+```
+
+---
+
+## UPGRADE PLAN — EXECUTE IN THIS EXACT ORDER
+
+### PHASE 1: FIX THE BRIDGE (Priority #1 — 30 minutes)
+
+The WRDSPredictor currently loads ONE old model. Upgrade it to serve the
+multi-tier production ensemble. This is the single highest-impact change.
+
+**Step 1A: Audit the current WRDSPredictor**
+
+```bash
+cat src/nuble/ml/wrds_predictor.py
+```
+
+Read every line. Understand exactly how it works.
+
+**Step 1B: Upgrade WRDSPredictor to Multi-Tier Ensemble**
+
+The upgraded predictor must:
+
+1. Load ALL 4 tier-specific models (mega, large, mid, small) from
+   `wrds_pipeline/phase3/` — find the actual model files by checking
+   what step6d/step6f/step6h saved. Look in:
+   - `wrds_pipeline/phase3/models/`
+   - `wrds_pipeline/phase3/`
+   - `data/wrds/`
+   - Search: `find ~/Desktop/NUBLE-CLI -name "*.pkl" -o -name "*tier*" -o -name "*mega*" -o -name "*large*" -o -name "*curated*" | head -30`
+
+2. Classify each stock into its tier by market cap:
+   - Mega: > $10B (mvel1 > 10000)
+   - Large: $2B - $10B
+   - Mid: $500M - $2B
+   - Small: < $500M
+
+3. Route predictions through the CORRECT tier model.
+
+4. Apply the ensemble weights from final_audit_corrected.json:
+   Mega 14.8%, Large 10.5%, Mid 21.3%, Small 53.4%
+   With strategies: Mega=raw, Large=hedged, Mid=raw, Small=VIX-scaled
+
+5. Apply dynamic hedging for the Large tier:
+   - Read the hedging params from step6e_dynamic_hedging.py
+   - VIX exposure map: ≤15→100%, 20-25→80%, 25-30→60%, 30-35→40%, >35→20%
+   - Factor hedging: subtract β_MKT × MKT returns
+
+6. Return a prediction dict with:
+   ```python
+   {
+       'ticker': str,
+       'permno': int,
+       'tier': str,  # mega/large/mid/small
+       'raw_score': float,  # model output
+       'ensemble_score': float,  # after tier weighting
+       'hedged_score': float,  # after hedging adjustment
+       'cross_sectional_rank': float,  # 0-100 percentile
+       'decile': int,  # 1-10
+       'signal': str,  # STRONG_BUY / BUY / HOLD / SELL / STRONG_SELL
+       'confidence': float,  # 0-1
+       'market_cap': float,
+       'sector': str,
+       'top_drivers': list,  # top 5 SHAP-like feature contributions
+   }
+   ```
+
+7. Add a method `get_universe_snapshot()` that returns predictions for
+   ALL stocks in the latest month, sorted by ensemble_score.
+
+8. Add a method `get_tier_predictions(tier)` that returns only stocks
+   in a specific tier.
+
+9. Keep backward compatibility — the existing `predict(ticker)` and
+   `get_top_picks(n)` methods must still work.
+
+10. Use SINGLETON pattern (already exists) but add lazy loading so
+    models load only on first use, not at import time.
+
+**Step 1C: Verify the upgrade**
+
+```python
+# Test the upgraded predictor
+from nuble.ml.wrds_predictor import get_wrds_predictor
+
+wp = get_wrds_predictor()
+
+# Test single stock
+result = wp.predict('AAPL')
+print(f"AAPL: tier={result['tier']}, score={result['ensemble_score']:.4f}, "
+      f"decile={result['decile']}, signal={result['signal']}")
+
+# Test universe snapshot
+universe = wp.get_universe_snapshot()
+print(f"Universe: {len(universe)} stocks")
+print(f"Top 5: {[(s['ticker'], s['signal'], s['decile']) for s in universe[:5]]}")
+print(f"Bottom 5: {[(s['ticker'], s['signal'], s['decile']) for s in universe[-5:]]}")
+
+# Test per-tier
+for tier in ['mega', 'large', 'mid', 'small']:
+    tier_preds = wp.get_tier_predictions(tier)
+    print(f"{tier}: {len(tier_preds)} stocks, "
+          f"avg_score={np.mean([s['ensemble_score'] for s in tier_preds]):.4f}")
+```
+
+---
+
+### PHASE 2: UPGRADE AGENTS TO USE WRDS DATA (Priority #6 — 2 hours)
+
+Each agent currently uses shallow external APIs. Upgrade the 5 data-heavy
+agents to query the WRDS goldmine directly.
+
+**Step 2A: Create WRDSDataService**
+
+Build a unified data access layer that agents can query. This is separate
+from WRDSPredictor (which does ML predictions). This is raw data access.
+
+Create `src/nuble/data/wrds_data_service.py`:
+
+```python
+class WRDSDataService:
+    """
+    Provides agent-level access to WRDS institutional data.
+    Loads from local parquet files in data/wrds/.
+    
+    Available datasets (from Phase 1 audit):
+    - gkx_panel.parquet (3.76M rows × 539 cols) — all features
+    - institutional_holdings.parquet (1.39G) — 13F holdings
+    - insider_trading.parquet (351M) — insider transactions
+    - daily_features.parquet (361M) — daily computed features
+    - rolling_betas.parquet (213M) — FF5+UMD factor betas
+    - training_panel.parquet (1.78G) — Phase 2 base panel
+    
+    Plus 53 other parquet files in data/wrds/.
+    """
+    
+    def get_stock_fundamentals(self, ticker: str) -> dict:
+        """
+        Returns from gkx_panel + training_panel:
+        - All 33 Level 3 features (Beneish, Piotroski, Altman, etc.)
+        - 70+ WRDS financial ratios
+        - Revenue/margin/capex trajectories
+        - Earnings quality scores
+        - Historical trend (last 12 months of feature values)
+        """
+    
+    def get_earnings_intelligence(self, ticker: str) -> dict:
+        """
+        Returns from IBES data in gkx_panel:
+        - SUE (Standardized Unexpected Earnings)
+        - Analyst revision breadth and momentum
+        - Forecast dispersion and trend
+        - Beat/miss streak
+        - Consensus EPS estimates
+        - Recommendation distribution
+        """
+    
+    def get_institutional_flows(self, ticker: str) -> dict:
+        """
+        Returns from institutional_holdings.parquet:
+        - Current institutional ownership %
+        - Quarter-over-quarter ownership change
+        - Breadth (% of institutions buying vs selling)
+        - Concentration (HHI of institutional holders)
+        - Top 10 institutional holders and their changes
+        """
+    
+    def get_insider_activity(self, ticker: str) -> dict:
+        """
+        Returns from insider_trading.parquet:
+        - Recent insider transactions (last 6 months)
+        - Buy/sell ratio
+        - CEO/CFO specific activity
+        - Cluster buying detection (multiple insiders buying)
+        - Dollar amounts
+        """
+    
+    def get_risk_profile(self, ticker: str) -> dict:
+        """
+        Returns from rolling_betas.parquet + daily_features.parquet:
+        - FF5+momentum factor betas (current + historical)
+        - Idiosyncratic volatility
+        - Realized volatility (various windows)
+        - Amihud illiquidity
+        - Maximum daily return (lottery demand)
+        - Drawdown statistics
+        """
+    
+    def get_macro_context(self) -> dict:
+        """
+        Returns current macro regime from gkx_panel macro columns:
+        - VIX level and regime classification
+        - Yield curve slope and inversion status
+        - Credit spreads
+        - Term premium
+        - FRED macro indicators
+        - HMM regime state (if available)
+        """
+    
+    def get_sector_peers(self, ticker: str, n: int = 20) -> list:
+        """
+        Returns n closest peers by GICS sector from gkx_panel.
+        For each peer: ticker, market cap, key metrics, ML score.
+        """
+    
+    def get_cross_sectional_rank(self, ticker: str, feature: str) -> dict:
+        """
+        Where does this stock rank on a specific feature vs all stocks?
+        Returns: rank, percentile, z-score, tier_rank, sector_rank.
+        """
+```
+
+Implementation notes:
+- Use lazy loading — only load parquet files when first queried
+- Cache with LRU — store last 100 ticker lookups
+- Memory-efficient: read only needed columns via pyarrow, not full panel
+- Handle ticker→PERMNO mapping via existing permno_ticker_map.parquet
+- All data is point-in-time from the latest available month in the panel
+- Return NaN/None gracefully for missing data (don't crash)
+
+**Step 2B: Upgrade the 5 key agents**
+
+For EACH agent below, add a WRDS data enrichment step. The agent should
+FIRST query external APIs as it does now (Polygon, StockNews, etc.),
+THEN enrich with WRDS data, THEN synthesize both into its analysis.
+
+**Fundamental Agent** (src/nuble/agents/fundamental_analyst.py, 842 lines):
+```
+CURRENT: Uses Polygon financials + SEC EDGAR
+ADD:
+- wrds_data_service.get_stock_fundamentals(ticker)
+  → Beneish M-Score (is the company manipulating earnings?)
+  → Piotroski F-Score (financial health, 0-9)
+  → Altman Z-Score (bankruptcy risk)
+  → Sloan accruals (earnings quality)
+  → Revenue acceleration/deceleration
+  → Margin trajectory (expanding vs contracting)
+  → Cash conversion efficiency
+  → Ohlson O-Score (distress probability)
+- wrds_data_service.get_cross_sectional_rank(ticker, 'bm')
+  → Where does this stock rank on value vs all stocks?
+- wrds_data_service.get_cross_sectional_rank(ticker, 'roe')
+  → Where does this stock rank on profitability?
+
+SYNTHESIS: Agent now says things like:
+  "AAPL's Beneish M-Score is -2.83 (below the -1.78 manipulation 
+   threshold — low fraud risk). Piotroski F-Score is 7/9 indicating
+   strong financial health. However, revenue growth is decelerating
+   from 8.1% to 4.2% QoQ, and the accruals ratio has increased,
+   suggesting declining earnings quality. Ranks in the 82nd percentile
+   on profitability but only 34th on value — expensive for its sector."
+```
+
+**Earnings Agent** (or the closest equivalent — check if QuantAnalystAgent handles this):
+```
+CURRENT: Uses StockNews API for earnings dates
+ADD:
+- wrds_data_service.get_earnings_intelligence(ticker)
+  → "Last quarter's SUE was +2.3σ (strong beat). Analysts have
+     revised EPS estimates up by 4.2% in the last 60 days (positive
+     revision momentum). Forecast dispersion is narrowing (consensus
+     building). Beat/miss streak: 5 consecutive beats. This pattern
+     historically predicts +1.8% excess return next month."
+```
+
+**Macro Agent** (src/nuble/agents/macro_analyst.py, 651 lines):
+```
+CURRENT: Uses graceful degradation (no FRED key)
+ADD:
+- wrds_data_service.get_macro_context()
+  → Current regime classification (expansion/late_cycle/slowdown/recession/crisis)
+  → VIX level and position in distribution
+  → Yield curve slope and what it implies
+  → Credit spread level and direction
+  → How current regime affects factor performance
+     (e.g., "In current low-VIX expansion regime, momentum and quality
+      factors historically outperform. Value tends to underperform.")
+```
+
+**Insider/Institutional Agent** (or equivalent):
+```
+ADD:
+- wrds_data_service.get_insider_activity(ticker)
+  → "3 insiders bought shares in the last 30 days totaling $2.4M.
+     CEO purchased $1.8M — the largest insider buy in 2 years.
+     Cluster buying pattern detected — this has historically 
+     preceded positive returns with 68% accuracy."
+     
+- wrds_data_service.get_institutional_flows(ticker)
+  → "Institutional ownership increased from 72% to 78% last quarter.
+     Breadth is positive (60% of institutions added shares).
+     Concentration decreased (more diverse ownership base).
+     Top holder Vanguard increased position by 12%."
+```
+
+**Risk Agent** (src/nuble/agents/risk_manager.py, 569 lines):
+```
+CURRENT: Calculates VaR, drawdown from Polygon data
+ADD:
+- wrds_data_service.get_risk_profile(ticker)
+  → Full factor exposure breakdown (MKT β=1.15, SMB β=-0.3, HML β=0.1...)
+  → Idiosyncratic risk vs systematic risk decomposition
+  → "This stock's risk is 65% systematic (market-driven) and 35%
+     idiosyncratic. Beta to market is 1.15, meaning it amplifies
+     market moves by 15%. Negative SMB beta means it behaves like
+     a large-cap (defensive). Amihud illiquidity is low — easy to
+     trade. Max daily return in past year: +8.2% (moderate lottery
+     demand)."
+```
+
+**Step 2C: Test each upgraded agent**
+
+```python
+# Test that each agent's analysis is enriched
+from nuble.agents import FundamentalAnalystAgent
+
+agent = FundamentalAnalystAgent()
+result = await agent.analyze("AAPL")
+
+# Verify WRDS data appears in the analysis
+assert "piotroski" in result.lower() or "f_score" in result.lower()
+assert "beneish" in result.lower() or "m_score" in result.lower()
+assert "percentile" in result.lower() or "rank" in result.lower()
+```
+
+---
+
+### PHASE 3: UNIFY DECISION ENGINE (Priority #7 — 1 hour)
+
+Three decision engines exist. Pick the best elements from each and
+create a single production engine.
+
+**Step 3A: Audit all three engines**
+
+```bash
+# Read the key methods from each
+grep -n "def \|class " src/nuble/decision/engine_v2.py | head -20
+grep -n "def \|class " src/institutional/decision/ultimate_engine.py | head -20
+grep -n "def \|class " src/institutional/enrichment_engine.py | head -20
+```
+
+**Step 3B: Create unified ProductionDecisionEngine**
+
+The production engine should combine:
+- From engine_v2: 4-layer scoring (signal → context → validation → risk)
+- From ultimate_engine: LuxAlgo, ML, HMM, FinBERT integration
+- From enrichment_engine: anomaly/divergence/conflict detection
+
+Architecture:
+```python
+class ProductionDecisionEngine:
+    """
+    Unified decision engine that fuses ALL available intelligence.
+    
+    Input sources (in priority order):
+    1. WRDSPredictor ensemble score (System B — highest weight)
+    2. Agent analyses (9 nuble agents + 15 Tier 2 council agents)
+    3. Technical signals (LuxAlgo multi-timeframe)
+    4. HMM regime state
+    5. FinBERT sentiment
+    
+    Decision layers:
+    Layer 1: SIGNAL FUSION
+      - Weighted combination of all input sources
+      - System B ensemble gets 40% weight (proven IC=0.027-0.096)
+      - Agent consensus gets 30% weight
+      - Technical signals get 20% weight
+      - Sentiment gets 10% weight
+    
+    Layer 2: CONTEXT ADJUSTMENT
+      - Macro regime adjustment (reduce conviction in crisis)
+      - Sector rotation overlay
+      - Earnings calendar proximity (reduce conviction near earnings)
+      - VIX-based position sizing recommendation
+    
+    Layer 3: CONFLICT DETECTION
+      - Flag when System B says BUY but agents say SELL (or vice versa)
+      - Flag when technical and fundamental disagree
+      - Escalate high-conflict decisions to Tier 2 council
+      - Compute disagreement score (0-1)
+    
+    Layer 4: RISK GATE
+      - Position sizing (Kelly criterion based on confidence)
+      - Sector exposure check (max 20% in any sector)
+      - Correlation check (don't add to correlated positions)
+      - Liquidity check (can we actually trade this?)
+      - Stop loss / take profit levels
+    
+    Output:
+    {
+        'decision': 'BUY' | 'SELL' | 'HOLD' | 'STRONG_BUY' | 'STRONG_SELL',
+        'confidence': float (0-1),
+        'position_size': float (% of portfolio),
+        'entry_price': float,
+        'stop_loss': float,
+        'take_profit': float,
+        'time_horizon': str,
+        'reasoning': {
+            'system_b_signal': str,
+            'agent_consensus': str,
+            'technical_signal': str,
+            'macro_context': str,
+            'conflicts': list,
+            'risk_flags': list,
+        },
+        'scores': {
+            'system_b': float,
+            'agent_consensus': float,
+            'technical': float,
+            'sentiment': float,
+            'combined': float,
+        },
+    }
+    """
+```
+
+**Step 3C: Wire the orchestrator to use ProductionDecisionEngine**
+
+The orchestrator (1700 lines) should route through the unified engine.
+Find the current decision-making logic (around line 528 where WRDSPredictor
+is called) and replace with:
+
+```python
+# In orchestrator.py, replace the current decision flow:
+engine = ProductionDecisionEngine()
+decision = await engine.decide(
+    ticker=ticker,
+    wrds_prediction=wrds_predictor.predict(ticker),
+    agent_analyses=agent_results,
+    # ... other signals
+)
+```
+
+---
+
+### PHASE 4: FIX IBES DATA + RECOVER LEVEL 3 FEATURES (Priority #2, #3 — 2 hours)
+
+This improves the underlying System B data, which flows up into everything.
+
+**Step 4A: Diagnose IBES missing data**
+
+```python
+# Check why IBES features are 50-86% missing
+import pandas as pd
+
+panel = pd.read_parquet('data/wrds/gkx_panel.parquet',
+                        columns=['permno', 'date', 'sue', 'sue_ibes',
+                                 'analyst_dispersion', 'eps_revision_1m',
+                                 'beat_miss_streak', 'num_analysts_fy1'])
+
+# How many stocks have IBES data by year?
+panel['year'] = panel['date'].dt.year
+coverage = panel.groupby('year')['sue_ibes'].apply(lambda x: x.notna().mean())
+print("IBES coverage by year:")
+print(coverage)
+
+# Which stocks have IBES data? (should be >$500M market cap mostly)
+# Load market cap
+panel_full = pd.read_parquet('data/wrds/gkx_panel.parquet',
+                              columns=['permno', 'date', 'mvel1', 'sue_ibes'])
+panel_full['has_ibes'] = panel_full['sue_ibes'].notna()
+
+# Coverage by market cap tier
+for tier, low, high in [('mega', 10000, 1e9), ('large', 2000, 10000),
+                          ('mid', 500, 2000), ('small', 0, 500)]:
+    mask = (panel_full['mvel1'] >= low) & (panel_full['mvel1'] < high)
+    cov = panel_full.loc[mask, 'has_ibes'].mean()
+    print(f"{tier}: {cov*100:.1f}% IBES coverage")
+```
+
+The problem is likely:
+1. IBES data was joined on PERMNO but IBES uses TICKER — need ICLINK table
+2. Or: IBES data was joined on exact date match instead of most-recent-prior
+3. Or: IBES data wasn't downloaded completely
+
+**Step 4B: Fix the IBES joins**
+
+Check `wrds_pipeline/step5b_financial_intelligence.py` function
+`compute_analyst_dynamics()`. The join logic probably drops rows where
+the IBES date doesn't exactly match the panel date. Fix by using
+`pd.merge_asof()` with `direction='backward'` to get the most recent
+IBES data available on or before each panel date.
+
+Also check: does the pipeline use the ICLINK table to map IBES TICKER
+to CRSP PERMNO? If not, add it. The ICLINK table is the standard
+mapping table and should be downloaded from WRDS:
+```sql
+SELECT * FROM ibes.iclink WHERE score <= 2
+```
+
+**Step 4C: Recover dropped Level 3 features**
+
+Check `wrds_pipeline/step5b_financial_intelligence.py` — it computes 97
+features. Check `wrds_pipeline/step5_gkx_panel.py` — it merges them into
+the panel. Some features are likely dropped due to:
+1. Column name collisions during merge (rename before merge)
+2. High missing rate filtering (lower the threshold or keep NaN)
+3. Explicit column selection (add the missing columns)
+
+Recover these specific features that are most valuable for large-cap:
+- All 8 Beneish M-Score components (dsri, gmi, aqi, depi, sgai, lvgi, tata, sgi)
+- earnings_persistence
+- earnings_smoothness
+- cash_conversion_cycle_trend
+- operating_leverage
+- debt_maturity metrics
+- Industry-relative versions of all base features
+
+**Step 4D: Rebuild GKX panel with recovered features**
+
+After fixing IBES joins and recovering features, rebuild the panel:
+```bash
+cd wrds_pipeline
+python3 step5b_financial_intelligence.py  # recompute Level 3
+python3 step5_gkx_panel.py               # rebuild panel with all features
+```
+
+Verify the new panel:
+```python
+new_panel = pd.read_parquet('data/wrds/gkx_panel.parquet')
+print(f"Columns: {new_panel.shape[1]}")  # Should be > 539
+print(f"IBES coverage: {new_panel['sue_ibes'].notna().mean()*100:.1f}%")  # Should be > 40%
+```
+
+---
+
+### PHASE 5: SECTOR-NEUTRAL FEATURES (Priority #4 — 45 minutes)
+
+gsector dominates at 10-13% importance. Fix by adding industry-demeaned
+versions of ALL base features.
+
+**Step 5A: Add sector-neutral feature computation**
+
+In the panel construction (step5_gkx_panel.py or a new step), add:
+
+```python
+# For every base feature, compute the industry-demeaned version
+industry_col = 'gsector'  # or 'siccd' for finer granularity
+base_features = [list of all non-macro, non-interaction features]
+
+for feat in base_features:
+    # Cross-sectional industry-demean within each month
+    panel[f'{feat}_ind_neutral'] = panel.groupby(['date', industry_col])[feat].transform(
+        lambda x: x - x.median()
+    )
+```
+
+This creates ~200 new features that capture WITHIN-SECTOR variation.
+When the model sees `bm_ind_neutral`, it's asking "is this stock cheap
+relative to its sector peers?" instead of "is this stock in a cheap sector?"
+
+**Step 5B: Retrain large-cap tier with sector-neutral features**
+
+After adding sector-neutral features, retrain ONLY the mega and large
+tiers. Use the step6d curated feature selection but include the new
+`_ind_neutral` features as candidates.
+
+Expected impact: gsector importance drops from 13% to <5%. Stock-specific
+features like `bm_ind_neutral`, `sue_ibes_ind_neutral` gain importance.
+Large-cap IC should improve from 0.019 toward 0.025-0.030.
+
+---
+
+### PHASE 6: CLEAN UP + GIT + PRODUCTION HARDENING (Priority #8 — 30 minutes)
+
+**Step 6A: Push unpushed commits**
+
+```bash
+cd ~/Desktop/NUBLE-CLI
+git status
+git add -A
+git commit -m "Production upgrade: multi-tier bridge, WRDS agents, unified engine"
+git push origin main
+```
+
+**Step 6B: Fix corrupted filings.db**
+
+The 3 filings_db files are OpenPGP encrypted, not SQLite. Either:
+- Decrypt them if you have the key
+- Or delete them if they're artifacts from an old experiment
+```bash
+file data/filings.db  # Check if really OpenPGP
+# If so and not needed:
+rm data/filings.db data/filings_db data/test_filings_db
+```
+
+**Step 6C: Verify the complete system end-to-end**
+
+```python
+# Full system test: user asks about NVDA
+import asyncio
+from nuble.cli import main
+
+# Simulate: "analyze NVDA"
+# This should:
+# 1. Orchestrator receives query
+# 2. WRDSPredictor loads multi-tier ensemble, predicts NVDA (mega tier)
+# 3. All 9 agents analyze NVDA with WRDS-enriched data
+# 4. ProductionDecisionEngine fuses all signals
+# 5. Output includes System B score, agent consensus, decision
+```
+
+---
+
+## EXECUTION CHECKLIST
+
+```
+□ Phase 1: WRDSPredictor upgraded to multi-tier ensemble
+  □ 1A: Audited current predictor
+  □ 1B: Implemented multi-tier routing + ensemble weights
+  □ 1C: Tested predict('AAPL'), universe_snapshot, tier_predictions
+
+□ Phase 2: Agents enriched with WRDS data
+  □ 2A: WRDSDataService created (8 methods, lazy loading, caching)
+  □ 2B: Fundamental agent enriched (Beneish, Piotroski, rankings)
+  □ 2B: Earnings agent enriched (SUE, revision momentum, streaks)
+  □ 2B: Macro agent enriched (regime, factor performance context)
+  □ 2B: Insider/Institutional agent enriched (flows, cluster buying)
+  □ 2B: Risk agent enriched (factor betas, idio vol decomposition)
+  □ 2C: All 5 agents tested
+
+□ Phase 3: Decision engine unified
+  □ 3A: Audited all 3 engines
+  □ 3B: ProductionDecisionEngine created (4 layers)
+  □ 3C: Orchestrator wired to new engine
+
+□ Phase 4: IBES + Level 3 features fixed
+  □ 4A: Diagnosed IBES missing data root cause
+  □ 4B: Fixed IBES joins (merge_asof + ICLINK)
+  □ 4C: Recovered 64 dropped Level 3 features
+  □ 4D: Rebuilt GKX panel (should be > 600 features)
+
+□ Phase 5: Sector-neutral features
+  □ 5A: Added ~200 industry-demeaned features
+  □ 5B: Retrained mega/large tiers, verified gsector < 5% importance
+
+□ Phase 6: Cleanup
+  □ 6A: Git pushed
+  □ 6B: Fixed/removed corrupted filings.db
+  □ 6C: Full end-to-end test passed
+```
+
+## CRITICAL RULES
+
+1. **DO NOT delete or rebuild anything that works.** System B is Grade A+. Don't touch it except to improve data quality (Phase 4) and add features (Phase 5).
+
+2. **Every change must be backward-compatible.** Existing CLI commands, Lambda handlers, and API endpoints must still work.
+
+3. **Test after each phase.** Don't stack 6 phases of untested changes.
+
+4. **Use the actual file paths** from the forensic audit. Don't guess.
+
+5. **Read existing code before writing new code.** The patterns, imports, and conventions are already established.
+
+6. **If a model file can't be found**, list what you DO find and ask before improvising.
+
+7. **Memory efficiency matters.** 24 GB RAM, 16 GB of parquet files. Use pyarrow column selection, don't load full panel into memory.
+
+8. **MPS GPU is available** (Apple M4 Pro). Use `device='mps'` for any PyTorch operations.
+
+## START WITH PHASE 1. REPORT BACK AFTER EACH PHASE.

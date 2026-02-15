@@ -177,6 +177,26 @@ Desktop.ini
 config.json
 .secrets
 api_keys.txt
+
+# Large data files (in S3, not in git)
+data/wrds/
+data/historical/
+data/train/
+data/test/
+data_cache/
+training_results/
+validation_results/
+models/*.pt
+models/cross_sectional/
+models/universal/
+
+# Context/credential docs (contain passwords — NEVER commit)
+Contextandphase3
+wrdscomplete
+WRDS2
+WRDS3
+src/nuble/WRDS
+
 # Reference source code (not needed in repo)
 
 # Local database files

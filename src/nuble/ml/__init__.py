@@ -38,6 +38,26 @@ from .predictor import (
     get_predictor,
 )
 
+# Phase 1 upgrade: Universal Technical Model
+try:
+    from .universal_model import UniversalTechnicalModel
+except ImportError:
+    UniversalTechnicalModel = None
+
+# Phase 2: Model lifecycle management
+try:
+    from .model_manager import ModelManager, get_model_manager
+except ImportError:
+    ModelManager = None
+    get_model_manager = None
+
+# Phase 3: WRDS institutional predictor (GKX walk-forward LightGBM)
+try:
+    from .wrds_predictor import WRDSPredictor, get_wrds_predictor
+except ImportError:
+    WRDSPredictor = None
+    get_wrds_predictor = None
+
 __all__ = [
     # Features (F1)
     "FeaturePipeline",
@@ -63,4 +83,12 @@ __all__ = [
     # Predictor (F4)
     "MLPredictor",
     "get_predictor",
+    # Universal model (Phase 1)
+    "UniversalTechnicalModel",
+    # Model manager (Phase 2)
+    "ModelManager",
+    "get_model_manager",
+    # WRDS predictor (Phase 3)
+    "WRDSPredictor",
+    "get_wrds_predictor",
 ]

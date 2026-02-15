@@ -126,6 +126,14 @@ class Manager:
         self._ml_predictor = None
         self._ml_predictor_v2 = None
         self._ml_integration = None
+        self._model_manager = None
+        
+        # Initialize model manager for freshness tracking
+        try:
+            from .ml.model_manager import get_model_manager
+            self._model_manager = get_model_manager()
+        except Exception:
+            pass
         
         if enable_ml and ML_V2_AVAILABLE:
             try:
@@ -452,13 +460,14 @@ class Manager:
                     if pred.get('confidence', 0) > 0:
                         direction = pred.get('direction', 'NEUTRAL')
                         confidence = pred.get('confidence', 0)
+                        model_type = pred.get('model_type', 'per-ticker')
                         explanation = pred.get('explanation', {})
                         top_feats = explanation.get('top_features', [])[:3]
                         feat_str = ""
                         if top_feats:
                             feat_parts = [f"{f.get('feature', '?')}" for f in top_feats]
                             feat_str = f" (key: {', '.join(feat_parts)})"
-                        return f"[bold]ML v2: {direction} ({confidence:.0%}){feat_str}[/bold]"
+                        return f"[bold]ML v2 [{model_type}]: {direction} ({confidence:.0%}){feat_str}[/bold]"
             
             # Fallback to v1
             if self._ml_predictor:
@@ -525,6 +534,7 @@ class Manager:
                     pred = self._ml_predictor_v2.predict(symbol, df)
                     if pred.get('confidence', 0) > 0:
                         response['ml_prediction'] = pred
+                        logger.info(f"Enhanced response with ML [{pred.get('model_type', 'per-ticker')}] for {symbol}")
                         return response
             
             # v1 fallback
@@ -1202,6 +1212,12 @@ class Manager:
         return result
 
     def process_prompt(self, prompt: str, conversation: list) -> str:
+        # Model freshness check (once per session)
+        if self._model_manager:
+            warning = self._model_manager.check_freshness_once()
+            if warning:
+                logger.warning(warning)
+
         # Handle commands using helpers
         if handle_command(prompt, conversation, self.agent, console):
             return ""

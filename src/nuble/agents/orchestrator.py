@@ -71,6 +71,14 @@ except ImportError:
     DECISION_ENGINE_AVAILABLE = False
     UltimateDecisionEngine = None
 
+# Import WRDS ML Predictor (institutional-grade, highest priority)
+try:
+    from ..ml.wrds_predictor import get_wrds_predictor
+    WRDS_PREDICTOR_AVAILABLE = True
+except ImportError:
+    WRDS_PREDICTOR_AVAILABLE = False
+    get_wrds_predictor = None
+
 # Import ML Predictor for predictions (v2 pipeline — F4)
 try:
     from ..ml.predictor import get_predictor as get_predictor_v2
@@ -198,11 +206,23 @@ class OrchestratorAgent:
             except Exception as e:
                 logger.warning(f"Decision Engine init failed: {e}")
         
-        # Initialize ML Predictor — prefer v2 (F4) over legacy v1
+        # Initialize ML Predictor — prefer WRDS (institutional) > v2 (F4) > v1 (legacy)
         self._ml_predictor = None
         self._ml_predictor_v2 = None
+        self._wrds_predictor = None
         if self.config.enable_ml_predictor:
-            # Try v2 first
+            # Try WRDS predictor first (institutional-grade, 3.76M observations)
+            if WRDS_PREDICTOR_AVAILABLE:
+                try:
+                    self._wrds_predictor = get_wrds_predictor()
+                    if self._wrds_predictor.is_ready:
+                        logger.info("✅ WRDS ML Predictor connected (institutional-grade, 461 features)")
+                    else:
+                        self._wrds_predictor = None
+                        logger.warning("WRDS predictor loaded but not ready (model not trained yet?)")
+                except Exception as e:
+                    logger.warning(f"WRDS Predictor init failed: {e}")
+            # Try v2 next
             if ML_PREDICTOR_V2_AVAILABLE:
                 try:
                     self._ml_predictor_v2 = get_predictor_v2()
@@ -500,11 +520,28 @@ class OrchestratorAgent:
             except Exception as e:
                 logger.warning(f"UltimateDecisionEngine failed: {e}")
         
-        # STEP 0.7: Get ML Predictions — v2 (F4 pipeline) or v1 legacy
+        # STEP 0.7: Get ML Predictions — WRDS (institutional) > v2 (F4) > v1 legacy
         ml_predictions = {}
         if symbols and is_trading_query:
             try:
-                if self._ml_predictor_v2:
+                # ── WRDS predictor: institutional-grade, 461 features, 3.76M obs ──
+                if self._wrds_predictor and self._wrds_predictor.is_ready:
+                    for symbol in symbols[:5]:  # WRDS can handle more symbols (no OHLCV fetch needed)
+                        prediction = await asyncio.get_event_loop().run_in_executor(
+                            None,
+                            lambda s=symbol: self._wrds_predictor.predict(s)
+                        )
+                        if prediction and prediction.get('confidence', 0) > 0:
+                            ml_predictions[symbol] = prediction
+                            logger.info(
+                                f"WRDS Prediction for {symbol}: "
+                                f"{prediction.get('direction', 'N/A')} "
+                                f"({prediction.get('confidence', 0):.0%}) "
+                                f"D{prediction.get('decile_rank', '?')} "
+                                f"[{prediction.get('model_type', 'wrds_lgb')} | "
+                                f"IC={prediction.get('model_ic', 'N/A')}]"
+                            )
+                elif self._ml_predictor_v2:
                     # ── v2 predictor: needs OHLCV DataFrame ───
                     for symbol in symbols[:2]:
                         # Fetch historical data for feature computation
@@ -516,10 +553,12 @@ class OrchestratorAgent:
                             )
                             if prediction and prediction.get('confidence', 0) > 0:
                                 ml_predictions[symbol] = prediction
+                                model_type = prediction.get('model_type', 'per-ticker')
                                 logger.info(
                                     f"ML v2 Prediction for {symbol}: "
                                     f"{prediction.get('direction', 'N/A')} "
-                                    f"({prediction.get('confidence', 0):.0%})"
+                                    f"({prediction.get('confidence', 0):.0%}) "
+                                    f"[{model_type} model]"
                                 )
                 elif self._ml_predictor:
                     # ── v1 legacy predictor ───
@@ -1435,13 +1474,35 @@ The user asked: {user_message}
         
         # Include ML Predictions - NEW!
         if ml_predictions:
-            parts.append("\n### 🤖 ML Model Predictions (46M+ Parameters)\n")
+            # Add model confidence context from backtest results
+            model_context = ""
+            try:
+                import json as _json
+                bt_path = "models/universal/backtest_results.json"
+                if os.path.exists(bt_path):
+                    with open(bt_path) as _f:
+                        _bt = _json.load(_f)
+                    ic_ir = _bt.get("ic_ir", 0)
+                    mean_ic = _bt.get("mean_ic", 0)
+                    ls_sharpe = _bt.get("long_short_sharpe", 0)
+                    if ic_ir >= 0.5 and mean_ic >= 0.02:
+                        model_context = f" (Walk-Forward IC IR: {ic_ir:.2f}, Mean IC: {mean_ic:.4f})"
+                    elif mean_ic > 0.01:
+                        model_context = f" (⚠️ Weak signal — IC: {mean_ic:.4f}, Sharpe: {ls_sharpe:.2f})"
+                    else:
+                        model_context = f" (⚠️ Unvalidated — backtest IC: {mean_ic:.4f}, treat with caution)"
+            except Exception:
+                pass
+
+            parts.append(f"\n### 🤖 ML Model Predictions{model_context}\n")
             for symbol, pred in ml_predictions.items():
                 parts.append(f"**{symbol}:**")
                 parts.append(f"  - Direction: {pred.get('direction', 'N/A')}")
                 parts.append(f"  - Confidence: {pred.get('confidence', 0):.1%}")
                 if pred.get('price_target'):
                     parts.append(f"  - Price Target: ${pred.get('price_target'):.2f}")
+                if pred.get('model_type'):
+                    parts.append(f"  - Model: {pred.get('model_type')}")
             parts.append("\n")
         
         # Include Lambda intelligence

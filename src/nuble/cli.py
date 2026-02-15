@@ -131,6 +131,17 @@ def show_system_status():
             pass
         console.print()
         
+        # Show ML Model health
+        try:
+            from nuble.ml.model_manager import get_model_manager
+            mmgr = get_model_manager()
+            console.print("[bold bright_cyan]🧠 ML Model Health:[/bold bright_cyan]")
+            console.print(mmgr.get_status_for_cli())
+        except Exception:
+            console.print("[bold bright_cyan]🧠 ML Model Health:[/bold bright_cyan]")
+            console.print("  [yellow]Model manager not available[/yellow]")
+        console.print()
+        
         # Show capabilities
         console.print("[bold bright_cyan]Available Commands:[/bold bright_cyan]")
         console.print("  [white]AAPL[/white]          - Quick quote")
@@ -187,6 +198,7 @@ def handle_quick_command(cmd: str, manager: Manager, messages: list = None) -> b
     if cmd_lower == '/help':
         console.print("\n[bold bright_cyan]NUBLE Commands:[/bold bright_cyan]\n")
         console.print("  [white]/status[/white]          — System component status")
+        console.print("  [white]/model-health[/white]    — ML model health + backtest results")
         console.print("  [white]/lambda SYMBOL[/white]   — Direct Lambda Decision Engine test")
         console.print("  [white]/luxalgo SYMBOL[/white]  — LuxAlgo premium signal status")
         console.print("  [white]/tenk SYMBOL[/white]     — SEC filing RAG search")
@@ -243,6 +255,69 @@ def handle_quick_command(cmd: str, manager: Manager, messages: list = None) -> b
             console.print(f"[red]LuxAlgo error: {e}[/red]")
         return True
     
+    # Model health / backtest results command
+    if cmd_lower in ('/model-health', '/model', '/model-status'):
+        console.print(f"\n[bold bright_cyan]🧠 ML Model Health & Backtest[/bold bright_cyan]")
+        console.print("[bold white]━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[/bold white]")
+        try:
+            from nuble.ml.model_manager import get_model_manager
+            mmgr = get_model_manager()
+            console.print(mmgr.get_status_for_cli())
+
+            # Show backtest details if available
+            import json
+            bt_path = "models/universal/backtest_results.json"
+            import os
+            if os.path.exists(bt_path):
+                with open(bt_path) as f:
+                    bt = json.load(f)
+                console.print(f"\n[bold bright_cyan]📊 Walk-Forward Backtest Results:[/bold bright_cyan]")
+                console.print(f"  Test period:   {bt.get('date_range_start', '?')} → {bt.get('date_range_end', '?')}")
+                console.print(f"  Test days:     {bt.get('total_test_days', '?')}")
+                console.print(f"  Windows:       {bt.get('total_retrain_windows', '?')}")
+                console.print(f"  Fwd horizon:   {bt.get('fwd_return_horizon', 10)} days")
+                console.print(f"  Mean IC:       {bt.get('mean_ic', 0):.4f}")
+                console.print(f"  IC IR:         {bt.get('ic_ir', 0):.2f}")
+                console.print(f"  L/S Sharpe:    {bt.get('long_short_sharpe', 0):.2f}")
+                console.print(f"  L/S Return:    {bt.get('cumulative_long_short_return', 0):.2%}")
+                console.print(f"  Max Drawdown:  {bt.get('max_drawdown', 0):.2%}")
+                console.print(f"  Decile Mono:   {bt.get('decile_monotonicity', 0):.3f}")
+                console.print(f"  IC Hit Rate:   {bt.get('ic_hit_rate', 0):.1%}")
+
+                # Verdict
+                ic_val = bt.get('mean_ic', 0)
+                sharpe_val = bt.get('long_short_sharpe', 0)
+                mono_val = bt.get('decile_monotonicity', 0)
+                if ic_val > 0.03 and sharpe_val > 1.0 and mono_val > 0.7:
+                    console.print(f"\n  [green]✅ DEPLOYABLE — Institutional-quality signal[/green]")
+                elif ic_val > 0.02 and sharpe_val > 0.5:
+                    console.print(f"\n  [yellow]⚠️  PROMISING — Needs risk management[/yellow]")
+                elif ic_val > 0.01:
+                    console.print(f"\n  [yellow]⚠️  WEAK — May work with portfolio construction[/yellow]")
+                else:
+                    console.print(f"\n  [red]❌ NOT READY — Model needs improvement[/red]")
+
+                # Signal analysis if available
+                sa_path = "models/universal/signal_analysis.json"
+                if os.path.exists(sa_path):
+                    with open(sa_path) as f:
+                        sa = json.load(f)
+                    if "signal_decay" in sa:
+                        console.print(f"\n  Signal half-life: {sa['signal_decay'].get('half_life_days', '?')} days")
+                    if "factor_exposure" in sa:
+                        console.print(f"  Alpha fraction:   {sa['factor_exposure'].get('alpha_fraction', 0):.1%}")
+                        console.print(f"  Dominant factor:  {sa['factor_exposure'].get('dominant_factor', '?')}")
+                    if "regime" in sa:
+                        robust = sa['regime'].get('is_regime_robust', False)
+                        console.print(f"  Regime robust:    {'✅ YES' if robust else '❌ NO'}")
+            else:
+                console.print(f"\n  [yellow]No backtest results. Run: python scripts/run_backtest.py[/yellow]")
+
+        except Exception as e:
+            console.print(f"[red]Error: {e}[/red]")
+        console.print()
+        return True
+
     # TENK SEC Filing RAG command
     if cmd_lower.startswith('/tenk'):
         parts = cmd_lower.split()

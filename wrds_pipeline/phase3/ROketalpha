@@ -1,0 +1,784 @@
+# ROKET ALPHA SYSTEM — THE COMPLETE EVOLUTION ROADMAP
+## From Phase 3 Completion Through World-Class Frontier
+
+**Author:** Claude × Humberto Lobo  
+**Date:** February 11, 2026  
+**Purpose:** Definitive architecture for building the most advanced AI-powered quantitative investment system achievable with available data and infrastructure.
+
+---
+
+## WHERE WE ARE RIGHT NOW
+
+**System B (WRDS Cross-Sectional Engine):**
+- Phase 1 COMPLETE: 290M rows, 27 datasets from WRDS
+- Phase 2 COMPLETE: 3.76M training panel × 155 features, IC = +0.053
+- Phase 3 IN PROGRESS: GKX 920-feature panel, LightGBM, backtesting
+
+**System A (APEX Research Assistant):**
+- 41K LOC, 9 agents, dual-brain architecture
+- ML on Polygon (IC ≈ 0) — waiting for System B bridge
+
+---
+
+## THE SEVEN LEVELS OF QUANTITATIVE ALPHA
+
+Most quant systems stop at Level 2 or 3. The best hedge funds operate at Level 5-6. Level 7 is the emerging frontier that nobody has fully cracked yet.
+
+### LEVEL 1 — Static Ratios (Where 90% of retail quants stop)
+**What it does:** PE, PB, ROE, ROA as flat features  
+**Alpha source:** Value premium, profitability premium  
+**Expected Sharpe:** 0.3-0.6  
+**We already have this ✓** (Phase 2 panel includes WRDS Financial Ratios)
+
+### LEVEL 2 — Cross-Sectional ML with Interactions (Current Phase 3 target)
+**What it does:** 920 features, macro × characteristic interactions, LightGBM  
+**Alpha source:** Nonlinear conditional relationships (GKX insight)  
+**Expected Sharpe:** 1.5-2.5  
+**Building this now** (Phase 3 Steps 5-7)
+
+### LEVEL 3 — Financial Statement Intelligence (Your question — CRITICAL ADDITION)
+**What it does:** Deep analysis of income statement, balance sheet, cash flow DYNAMICS  
+**Alpha source:** Earnings quality, manipulation detection, fundamental momentum  
+**Expected Sharpe improvement:** +0.3-0.5 over Level 2  
+**Data required:** Compustat Quarterly (ALREADY DOWNLOADED), IBES (ALREADY DOWNLOADED)
+
+### LEVEL 4 — Multi-Model Ensemble with Regime Awareness
+**What it does:** Multiple ML models (LightGBM + Neural Net + IPCA), regime-conditional weighting, conditional factor pricing  
+**Alpha source:** Model disagreement signals, regime adaptation  
+**Expected Sharpe improvement:** +0.2-0.4  
+**Data required:** Same data, different models
+
+### LEVEL 5 — Alternative Data + NLP Integration
+**What it does:** Earnings call NLP, 10-K/10-Q textual analysis, news sentiment, insider transaction patterns  
+**Alpha source:** Information asymmetry, behavioral signals  
+**Expected Sharpe improvement:** +0.3-0.5  
+**Data required:** SEC EDGAR full text (FREE), IBES detail (HAVE), insider transactions (HAVE from Phase 1)
+
+### LEVEL 6 — Autoencoder Factor Discovery + Supply Chain Intelligence
+**What it does:** Conditional autoencoder (Gu/Kelly/Xiu 2021) discovers LATENT factors, supply chain propagation models, cross-firm information spillovers  
+**Alpha source:** Factors the market hasn't named yet, lead-lag relationships  
+**Expected Sharpe improvement:** +0.2-0.3  
+**Data required:** Same WRDS data + Compustat Segment data + customer/supplier linkages
+
+### LEVEL 7 — The Frontier (Emerging, 2024-2026)
+**What it does:** LLM-powered alpha mining (Alpha-GPT), multi-agent portfolio construction, reinforcement learning for execution, synthetic data augmentation  
+**Alpha source:** Machine-discovered signals humans never imagined  
+**This is where APEX agents + WRDS data + Claude API converge**
+
+---
+
+## THE GAME PLAN — EXECUTION SEQUENCE
+
+```
+NOW:     Finish Phase 3 (Level 2)     ← Current focus
+NEXT:    Level 3 - Financial Stmt Intelligence
+THEN:    Level 4 - Multi-Model Ensemble  
+AFTER:   Bridge B → A (Phase 3 Step 9)
+THEN:    Level 5 - NLP + Alt Data
+THEN:    Level 6 - Autoencoder Factors
+ONGOING: Level 7 - LLM Alpha Mining via APEX
+```
+
+---
+
+## LEVEL 3: FINANCIAL STATEMENT INTELLIGENCE ENGINE
+### (Post-Phase 3, Pre-Bridge)
+
+This is the module you asked about. It transforms raw quarterly filings into predictive signals by analyzing the DYNAMICS of financial statements — not just snapshots.
+
+### 3.1 DATA SOURCES (All Already Downloaded)
+
+| Dataset | WRDS Library | Rows | What It Contains |
+|---------|-------------|------|------------------|
+| Compustat Quarterly | comp.fundq | ~2.6M | All quarterly financial statement items |
+| Compustat Annual | comp.funda | ~490K | Annual aggregates + additional items |
+| WRDS Financial Ratios | wrdsapps.firm_ratio | ~1.2M | 70 pre-computed ratios |
+| IBES Summary | ibes.statsumu_epsus | ~3.8M | Analyst consensus estimates |
+| IBES Detail | ibes.detu_epsus | ~8.2M | Individual analyst forecasts |
+| Insider Transactions | tfn.table1 | ~17M | Insider buy/sell activity |
+| Institutional Holdings | tfn.s34 | ~124M | 13F institutional positions |
+
+**Key insight: We have ALL the data. We just haven't extracted the intelligence from it.**
+
+### 3.2 FINANCIAL DYNAMICS FEATURES (~30 features)
+
+These capture the TRAJECTORY of financial health — not static snapshots.
+
+**Revenue & Growth Dynamics (8 features):**
+
+```python
+# Revenue acceleration — the change in growth rate
+# Companies accelerating growth outperform those decelerating
+revenue_growth_qoq       # Quarter-over-quarter revenue growth
+revenue_growth_yoy       # Year-over-year revenue growth  
+revenue_cagr_2yr         # 2-year compound annual growth rate
+revenue_acceleration     # Change in YoY growth rate (Q vs Q-4)
+                         # Positive = accelerating, most predictive signal
+
+# Operating leverage — how efficiently growth hits the bottom line  
+operating_leverage       # %Δ EBIT / %Δ Revenue
+                         # >1 means profits grow faster than revenue (good)
+                         # <1 means costs eating growth (bad)
+
+revenue_surprise         # Actual vs. analyst consensus (from IBES)
+revenue_beat_streak      # Consecutive quarters beating revenue estimates
+```
+
+**Margin Trajectory (6 features):**
+
+```python
+gross_margin_trend       # 4-quarter slope of gross margin
+                         # Expanding margins = pricing power = alpha
+operating_margin_trend   # 4-quarter slope of operating margin  
+net_margin_trend         # 4-quarter slope of net margin
+
+# Margin STABILITY matters as much as level
+gross_margin_vol         # Std dev of gross margin over 8 quarters
+                         # Low vol = predictable business = premium
+
+# Cross-margin divergence detection
+margin_divergence        # gross_margin improving but net_margin declining
+                         # = rising SGA or interest costs, red flag
+margin_vs_industry       # Margin relative to FF49 industry median
+```
+
+**Working Capital Efficiency (6 features):**
+
+```python
+# Cash Conversion Cycle — how fast cash cycles through the business
+days_sales_outstanding   # Receivables / (Revenue/365)
+days_inventory_outstanding  # Inventory / (COGS/365)  
+days_payable_outstanding # Payables / (COGS/365)
+cash_conversion_cycle    # DSO + DIO - DPO
+
+# The CHANGE in CCC is more predictive than the level
+ccc_trend                # 4-quarter slope of CCC
+                         # Rising CCC = deteriorating efficiency = bad
+                         # Falling CCC = improving efficiency = good
+
+# Beneish DSRI component — Days Sales in Receivables Index
+dsri                     # DSO(t) / DSO(t-1)
+                         # >1.0 suspicious: revenue recognized but cash not collected
+```
+
+**Capital Allocation (5 features):**
+
+```python
+capex_to_depreciation    # CapEx / Depreciation
+                         # <1.0 = underinvesting (harvesting assets)
+                         # >1.5 = heavy investing (building for future)
+
+capex_intensity_trend    # 4-quarter slope of CapEx/Revenue
+rd_intensity_trend       # 4-quarter slope of R&D/Revenue
+                         # Rising R&D intensity predicts innovation premium
+
+sga_efficiency           # Revenue / SGA expense
+sga_efficiency_trend     # 4-quarter slope — is the company getting
+                         # more revenue per dollar of selling cost?
+```
+
+**Debt & Leverage Dynamics (5 features):**
+
+```python
+debt_to_equity_change    # QoQ change in total debt / equity
+                         # Rapid leveraging = risk signal
+interest_coverage_trend  # 4-quarter slope of EBIT / Interest Expense
+                         # Declining coverage = approaching distress
+
+net_debt_to_ebitda       # (Total Debt - Cash) / EBITDA TTM
+debt_maturity_risk       # Short-term debt / Total debt
+                         # High ratio = refinancing risk
+free_cash_flow_yield_trend  # 4-quarter slope of FCF / Market Cap
+```
+
+### 3.3 EARNINGS QUALITY & MANIPULATION DETECTION (~20 features)
+
+This is where the real institutional edge lives. Detecting BAD earnings before the market does.
+
+**Accruals Analysis — The Sloan (1996) Framework (5 features):**
+
+```python
+# THE most robust anomaly in accounting literature
+# High accruals = earnings exceed cash flow = earnings are "low quality"
+# High accruals stocks underperform by 6-10% annually
+
+total_accruals           # (ΔCA - ΔCash - ΔCL + ΔSTD - Dep) / Avg Assets
+                         # Sloan (1996) original formula
+
+# Richardson et al. (2005) decomposition — more granular
+working_capital_accruals # Changes in operating working capital
+non_current_accruals     # Changes in non-current operating assets
+financing_accruals       # Changes in financial assets/liabilities
+
+accruals_to_cash_flow    # Total Accruals / |Operating Cash Flow|
+                         # >1.0 is a major red flag
+
+# Cash flow vs. earnings divergence
+# When earnings grow but cash flow doesn't, something is wrong
+cf_earnings_divergence   # (Operating CF - Net Income) / |Net Income|
+                         # Persistently negative = earnings manipulation risk
+```
+
+**Beneish M-Score Components (8 features):**
+
+Instead of just computing the composite M-Score, we feed EACH component as an individual feature to the ML model — letting it learn the nonlinear interactions:
+
+```python
+dsri    # Days Sales in Receivables Index — revenue recognition risk
+gmi     # Gross Margin Index — margin deterioration
+aqi     # Asset Quality Index — asset inflation via capitalization
+sgi     # Sales Growth Index — unsustainable growth
+depi    # Depreciation Index — under-depreciation
+sgai    # SGA Index — overhead management
+tata    # Total Accruals to Total Assets — earnings quality
+lvgi    # Leverage Index — increasing financial risk
+
+# Composite M-Score for reference
+beneish_m_score  # = -4.84 + 0.920×DSRI + 0.528×GMI + 0.404×AQI 
+                 #   + 0.892×SGI + 0.115×DEPI - 0.172×SGAI 
+                 #   + 4.679×TATA - 0.327×LVGI
+                 # > -1.78 = probable manipulator
+```
+
+**Additional Earnings Quality (5 features):**
+
+```python
+earnings_persistence     # Autocorrelation of quarterly EPS over 8Q
+                         # High persistence = high quality earnings
+
+earnings_smoothness      # σ(Net Income) / σ(Operating Cash Flow)
+                         # <1.0 suspicious — earnings smoother than cash flow
+                         # suggests management smoothing
+
+revenue_cash_ratio       # Revenue / Cash from Customers (if available)
+                         # >1.0 means recognizing revenue before collection
+
+deferred_revenue_change  # ΔDeferred Revenue / Revenue
+                         # Declining deferred revenue = pulling forward revenue
+
+# NOA — Net Operating Assets (Hirshleifer et al. 2004)
+net_operating_assets     # (Total Assets - Cash - Total Liabilities) / Lag Assets
+                         # High NOA predicts low future returns (bloated balance sheet)
+```
+
+### 3.4 COMPOSITE SCORING MODELS (~6 features)
+
+These are battle-tested models from decades of accounting research. Each one becomes a feature:
+
+**Piotroski F-Score (9 binary signals → 0-9 composite):**
+
+```python
+# Profitability signals (4):
+f1_roa_positive          # ROA > 0
+f2_cfo_positive          # Operating Cash Flow > 0  
+f3_roa_improving         # ROA(t) > ROA(t-1)
+f4_accruals_quality      # CFO > ROA (cash > accruals)
+
+# Leverage/Liquidity signals (3):
+f5_leverage_declining    # Long-term debt ratio declining
+f6_liquidity_improving   # Current ratio improving
+f7_no_dilution           # No new equity issuance
+
+# Efficiency signals (2):
+f8_margin_improving      # Gross margin improving
+f9_turnover_improving    # Asset turnover improving
+
+piotroski_f_score        # Sum of f1-f9 (0-9)
+                         # 8-9 = strong, 0-1 = weak
+                         # Long/short spread: +7.5%/year (Piotroski 2000)
+```
+
+**Altman Z-Score:**
+
+```python
+altman_z_score = (1.2 × WC/TA + 1.4 × RE/TA + 3.3 × EBIT/TA 
+                  + 0.6 × MVE/TL + 1.0 × Sales/TA)
+# >2.99 = Safe, 1.81-2.99 = Grey, <1.81 = Distress
+# Use as continuous feature, not just thresholds
+```
+
+**Ohlson O-Score (bankruptcy probability):**
+
+```python
+ohlson_o_score = (-1.32 - 0.407×log(TA/GNP) + 6.03×TL/TA 
+                  - 1.43×WC/TA + 0.076×CL/CA - 1.72×X 
+                  - 2.37×NI/TA - 1.83×FFO/TL + 0.285×Y 
+                  - 0.521×(NI_t - NI_t-1)/(|NI_t| + |NI_t-1|))
+# X = 1 if TL > TA, Y = 1 if net loss for last 2 years
+# Probability of bankruptcy = 1/(1 + exp(-O))
+```
+
+**Montier C-Score (6-point accounting quality):**
+
+```python
+c1_growing_net_assets    # Accruals increasing
+c2_cash_declining        # Cash from operations declining vs net income
+c3_receivables_growing   # Receivables growing faster than revenue
+c4_inventory_growing     # Inventory growing faster than COGS
+c5_sga_growing           # SGA growing faster than revenue
+c6_depreciation_declining # Depreciation declining as % of CapEx + PPE
+
+montier_c_score          # Sum of c1-c6 (0-6)
+                         # Higher = worse accounting quality
+```
+
+### 3.5 ANALYST DYNAMICS (~12 features)
+
+From IBES Summary + Detail (already downloaded):
+
+```python
+# Consensus dynamics — where the Street is MOVING, not where it IS
+eps_revision_1m          # Net % of analysts revising up vs down (1 month)
+eps_revision_3m          # Same, 3-month window
+revision_breadth         # (# up revisions - # down) / total analysts
+                         # Strong breadth = high conviction directional move
+
+# Estimate properties
+eps_dispersion           # Std dev of analyst estimates / |mean estimate|
+                         # High dispersion = high uncertainty = risk
+eps_dispersion_trend     # Is dispersion rising or falling?
+                         # Rising = growing disagreement (often before bad news)
+
+# Surprise dynamics
+sue                      # Standardized Unexpected Earnings
+                         # (Actual - Estimate) / σ(Actual - Estimate)
+sue_persistence          # Autocorrelation of SUE over 4 quarters
+                         # Post-Earnings Announcement Drift: SUE predicts
+                         # returns for 60-90 days after earnings
+beat_miss_streak         # Consecutive quarters of beating/missing
+                         # Persistent beaters tend to continue
+
+# Estimate momentum
+eps_estimate_momentum    # Δ(mean FY1 estimate) / |mean FY1 estimate| (3m)
+ltg_revision             # Change in long-term growth estimates
+                         # LTG revisions are slow to be priced in
+
+# Price target dynamics
+price_target_revision    # Net revision in mean analyst price target
+```
+
+### 3.6 INSTITUTIONAL & INSIDER SIGNALS (~10 features)
+
+From Thomson Reuters 13F (124M rows) and Insider Transactions (17M rows):
+
+```python
+# Institutional ownership dynamics
+inst_ownership_pct       # Total institutional ownership %
+inst_ownership_change_qoq  # Quarter-over-quarter change
+                           # Big increases = smart money accumulating
+
+# Institutional concentration
+inst_hhi                 # Herfindahl index of institutional holdings
+                         # High HHI = few large holders = information advantage
+top10_inst_change        # Change in top 10 holders' combined position
+
+# Smart money flow (separate HF from mutual funds if possible)
+inst_breadth             # (# institutions buying - selling) / total
+                         # Strong breadth + rising price = confirmed trend
+
+# Insider transactions — legally required to disclose, highly informative
+insider_buy_ratio        # Insider buys / (buys + sells) over 6 months
+insider_buy_value        # Dollar value of insider purchases
+insider_cluster_buy      # Multiple insiders buying in same month
+                         # Clustered insider buying is THE strongest insider signal
+                         # (Lakonishok & Lee 2001)
+insider_ceo_buy          # CEO specifically buying = strongest single signal
+```
+
+### 3.7 INDUSTRY-RELATIVE FEATURES (~10 features)
+
+Everything above measured RELATIVE to the FF49 industry median:
+
+```python
+# Relative valuation
+pe_vs_industry           # Stock PE / Industry median PE
+pb_vs_industry           # Stock PB / Industry median PB
+ev_ebitda_vs_industry    # Stock EV/EBITDA / Industry median
+
+# Relative fundamentals  
+roe_vs_industry_pctile   # Percentile rank of ROE within industry
+margin_vs_industry       # Gross margin - industry median gross margin
+growth_vs_industry       # Revenue growth - industry median growth
+
+# Relative quality
+accruals_vs_industry     # Accruals ratio - industry median
+earnings_quality_vs_ind  # CF/NI ratio relative to industry
+
+# Market share proxy
+revenue_share_trend      # Stock revenue / sum(industry revenue), QoQ change
+                         # Rising share = competitive advantage
+relative_capex_intensity # CapEx/Revenue vs. industry median
+                         # Over-investing vs. peers = growth or waste?
+```
+
+---
+
+## LEVEL 4: MULTI-MODEL ENSEMBLE + REGIME AWARENESS
+
+After Level 3 features are added to the GKX panel (~100+ new features bringing total to ~1,000+):
+
+### 4.1 Model Zoo
+
+Train MULTIPLE models on the same feature panel:
+
+```
+Model 1: LightGBM (tree-based, captures nonlinear interactions)
+Model 2: XGBoost (different tree algorithm, decorrelated errors)
+Model 3: Ridge Regression (linear baseline, robust to overfitting)
+Model 4: Elastic Net (sparse linear, feature selection built-in)
+Model 5: 3-layer Neural Network (captures deep nonlinearities)
+Model 6: IPCA — Instrumented PCA (Kelly/Pruitt/Su 2019)
+         Latent factors with time-varying loadings
+         The ONLY model here with economic structure (no-arbitrage)
+```
+
+### 4.2 Ensemble Methods
+
+```python
+# Method 1: Simple average (surprisingly hard to beat)
+prediction = mean(model_1_pred, ..., model_6_pred)
+
+# Method 2: IC-weighted average (weight by recent performance)
+weight_i = IC_i_last_12m / sum(IC_all_last_12m)
+prediction = sum(weight_i × model_i_pred)
+
+# Method 3: Stacking (train meta-model on model outputs)
+meta_features = [model_1_pred, ..., model_6_pred, macro_regime, vol_regime]
+meta_model = Ridge().fit(meta_features, actual_returns)
+
+# Method 4: Model disagreement as a feature
+model_disagreement = std(model_1_pred, ..., model_6_pred)
+# High disagreement → uncertain signal → reduce position size
+# Low disagreement → high conviction → increase position size
+```
+
+### 4.3 Regime Detection
+
+```python
+# Hidden Markov Model on macro indicators
+# States: Expansion, Slowdown, Recession, Recovery
+from hmmlearn import GaussianHMM
+
+macro_features = [term_spread, credit_spread, vol_regime, 
+                  industrial_production_yoy, unemployment_change]
+hmm = GaussianHMM(n_components=4).fit(macro_features)
+current_regime = hmm.predict(macro_features[-1:])
+
+# Regime-conditional model weighting
+# In recessions: upweight value + quality models
+# In expansions: upweight momentum + growth models  
+# In high-vol: upweight low-vol anomaly models
+# This is the GKX insight applied at the MODEL level, not just feature level
+```
+
+---
+
+## LEVEL 5: NLP + ALTERNATIVE DATA INTEGRATION
+
+### 5.1 SEC Filing NLP (10-K, 10-Q Full Text Analysis)
+
+```python
+# Data source: SEC EDGAR full text (FREE, no subscription needed)
+# URL: https://efts.sec.gov/LATEST/search-index?q=...
+# Or: https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany...
+
+# Feature extraction using sentence-level embeddings
+# Use FinBERT (pre-trained on financial text) or Claude API
+
+# Features from 10-K/10-Q text:
+filing_sentiment_score   # Overall sentiment of MD&A section
+sentiment_change         # Change vs. prior quarter filing
+                         # Deteriorating tone predicts negative returns
+
+risk_factor_changes      # Number of NEW risk factors added
+                         # Companies adding risk factors = emerging problems
+risk_factor_severity     # NLP-scored severity of risk language
+
+forward_looking_ratio    # Ratio of forward-looking to backward-looking sentences
+uncertainty_language      # Frequency of hedging words ("may", "could", "uncertain")
+                         # Rising uncertainty = management worried
+litigation_mentions      # Count of legal/regulatory risk mentions
+supply_chain_language    # Mentions of supply chain disruption, shortage, delay
+
+# CRITICAL: Compare CHANGES between filings, not absolute levels
+# A company that always uses cautious language is different from
+# one that suddenly starts using cautious language
+```
+
+### 5.2 Earnings Call Transcript Analysis
+
+```python
+# Data source: Can be obtained from SEC (8-K filings contain transcripts)
+# Or via Seeking Alpha / financial data APIs
+
+# Features from earnings calls:
+management_tone          # Sentiment of prepared remarks
+qa_tone                  # Sentiment of Q&A section (harder to script, more honest)
+tone_divergence          # prepared_tone - qa_tone
+                         # Big gap = management scripting positive spin
+                         # but getting challenged in Q&A
+
+cfo_hedging_score        # CFO-specific hedging language
+                         # CFOs use more hedging when they know bad news is coming
+
+analyst_question_urgency # Are analysts asking about risks or opportunities?
+non_answer_score         # How often management deflects or doesn't answer
+                         # Proxy for hidden problems
+
+# Chiang et al. (2025): Q&A alignment score
+# Measures how well answers actually address the questions asked
+# Low alignment = management being evasive
+qa_alignment_score       # Semantic similarity between Q and A embeddings
+```
+
+### 5.3 News & Social Sentiment (Real-Time Layer)
+
+```python
+# Use Claude API or FinBERT to score financial news
+# This feeds into the real-time prediction layer for APEX agents
+
+news_sentiment_5d        # Rolling 5-day news sentiment
+news_volume_spike        # Unusual news volume (pre-announcement signal)
+sentiment_momentum       # Sentiment improving or deteriorating over 30 days
+media_attention_score    # How much coverage vs. peers
+                         # Low attention + good fundamentals = opportunity
+```
+
+---
+
+## LEVEL 6: AUTOENCODER FACTOR DISCOVERY + SUPPLY CHAIN
+
+### 6.1 Conditional Autoencoder (Gu/Kelly/Xiu 2021)
+
+This is the cutting edge of academic asset pricing. Instead of HUMAN-DEFINED factors (value, momentum, etc.), the autoencoder DISCOVERS latent factors from the data:
+
+```python
+# Architecture: Conditional Autoencoder
+# Left side: Neural network maps characteristics → factor loadings (betas)
+# Right side: Linear combination of characteristic-managed portfolios → factors
+# Training: Minimize pricing errors subject to no-arbitrage constraint
+
+# Key insight: The model discovers that stocks respond to 
+# LATENT risk factors that can't be directly observed
+# These factors CHANGE over time based on stock characteristics
+
+# Implementation:
+# - Input: Stock characteristics (our 1000+ features) 
+# - Output: K latent factors (typically K=3-5)
+# - Betas are NONLINEAR functions of characteristics
+#   (Neural net with 1-3 hidden layers: 32→16→8 neurons)
+# - Factors are LINEAR combinations of characteristic-sorted portfolios
+#   (Long-short portfolios formed from sorting stocks on each characteristic)
+
+# Expected result:
+# - Sharpe ratio ~1.45 for long-short portfolio (Gu et al. 2021)
+# - Out-of-sample pricing errors far smaller than Fama-French 6-factor
+# - The autoencoder "discovers" that the market is really driven by
+#   a small number of time-varying factors, not 200+ named anomalies
+```
+
+### 6.2 Supply Chain Propagation
+
+```python
+# Data: Compustat Segment file + FactSet/Bloomberg supply chain data
+# (Can also extract from 10-K "Customer Concentration" disclosures)
+
+# Key insight: If Apple's iPhone sales are weak,
+# TSMC, Qualcomm, Corning, and Foxconn will feel it 3-6 months later
+# The market is SLOW to price supply chain propagation
+
+# Features:
+customer_revenue_growth   # Weighted avg revenue growth of known customers
+supplier_margin_trend     # Are suppliers' margins expanding? (demand signal)
+peer_revision_momentum    # Analyst revisions for industry peers
+                          # Leads own-stock revisions by 1-2 months
+
+# Lead-lag relationship exploitation:
+# Build graph network of supplier-customer relationships
+# When a major customer reports, predict suppliers' next quarter
+```
+
+### 6.3 Cross-Firm Information Spillover
+
+```python
+# Research shows returns of economically-linked firms are correlated
+# with a LAG (Cohen & Frazzini 2008 — "Economic Links and Predictable Returns")
+
+# Features:
+customer_stock_momentum   # Returns of known major customers
+supplier_stock_momentum   # Returns of known major suppliers  
+industry_leader_momentum  # Returns of top 3 firms in industry by market cap
+
+# These are LEADING indicators of own-stock returns
+# because information flows slowly through the economy
+```
+
+---
+
+## LEVEL 7: THE FRONTIER — LLM-POWERED ALPHA MINING
+
+This is where ROKET's unique architecture (APEX agents + WRDS data + Claude API) creates a system nobody else has:
+
+### 7.1 Alpha-GPT Style Signal Discovery
+
+```python
+# Use Claude API to GENERATE alpha signal hypotheses
+# Then test them programmatically against WRDS data
+
+# Prompt to Claude:
+# "Given that credit spreads have widened 50bps this quarter 
+#  and the yield curve just inverted, which stock characteristics
+#  historically predict outperformance in this regime?
+#  Generate 10 testable hypotheses."
+
+# Claude generates hypotheses like:
+# "Companies with low debt-to-equity AND high cash-to-assets 
+#  outperform when credit spreads widen because they don't need
+#  to refinance at higher rates"
+
+# System TESTS this against 50 years of WRDS data:
+# Is this signal statistically significant? What's the IC?
+# If IC > 0.03 and t-stat > 3.0, add to feature panel
+```
+
+### 7.2 Multi-Agent Portfolio Construction
+
+```python
+# APEX agents become specialized portfolio analysts:
+# 
+# Agent 1 (Fundamental): "Based on Level 3 analysis, these 50 stocks 
+#   have the best earnings quality + improving margins"
+# 
+# Agent 2 (Macro): "Current regime is late-cycle tightening. 
+#   Favor quality + low-leverage over growth + momentum"
+# 
+# Agent 3 (Quantitative): "ML model ranks these stocks in top decile
+#   with highest cross-model agreement"
+# 
+# Agent 4 (Risk): "Portfolio has 0.3 beta to rates, 0.5 to momentum.
+#   Suggest hedging rate exposure"
+# 
+# Decision Engine: Synthesizes all agents → final portfolio
+# Each agent's vote is weighted by recent predictive accuracy
+```
+
+### 7.3 Continuous Learning via APEX + Claude
+
+```python
+# Monthly cycle:
+# 1. WRDS auto-refresh pulls latest data
+# 2. Models retrain on expanded window
+# 3. Claude analyzes WHAT CHANGED:
+#    "Momentum IC dropped from 0.05 to 0.02 this quarter.
+#     Credit spread IC increased from 0.03 to 0.06.
+#     This pattern matches the 2007 regime shift."
+# 4. Claude suggests feature engineering modifications
+# 5. System tests suggestions, implements if validated
+# 6. Human (Humberto) reviews and approves/rejects
+```
+
+---
+
+## IMPLEMENTATION TIMELINE
+
+```
+PHASE 3 COMPLETION (Current)           ~4-7 hours
+  Steps 0-12: S3 upload, CZ predictors, 
+  FRED macro, GKX panel, LightGBM, backtest
+
+LEVEL 3 IMPLEMENTATION                 ~3-5 hours  
+  Financial dynamics features            1-2 hours
+  Earnings quality + Beneish/Piotroski   1-1.5 hours
+  Analyst dynamics from IBES             0.5-1 hour
+  Institutional/insider signals          0.5 hour
+  Industry-relative features             0.5 hour
+  Retrain GKX panel with ~100 new features
+
+BRIDGE B → A (Phase 3 Step 9)           ~1-2 hours
+  Wire WRDS predictions into APEX agents
+  WRDSAdvisor class integration
+
+LEVEL 4 IMPLEMENTATION                 ~3-5 hours
+  XGBoost + Neural Net + Ridge/ElasticNet training
+  IPCA model implementation
+  Ensemble stacking
+  Regime detection HMM
+  
+LEVEL 5 IMPLEMENTATION                 ~5-8 hours
+  SEC filing NLP pipeline
+  Earnings call analysis (if transcripts available)
+  News sentiment integration
+  
+LEVEL 6 IMPLEMENTATION                 ~5-8 hours
+  Conditional autoencoder (PyTorch)
+  Supply chain graph construction
+  Cross-firm spillover features
+
+LEVEL 7 INTEGRATION                    Ongoing
+  Claude API alpha hypothesis generation
+  Multi-agent portfolio construction
+  Continuous learning loop
+```
+
+**Total estimated time to world-class system: ~25-40 hours of focused implementation**
+
+---
+
+## EXPECTED PERFORMANCE AT EACH LEVEL
+
+| Level | Features | Monthly IC | OOS R² | Long-Short Sharpe | D10-D1 Spread |
+|-------|----------|-----------|--------|-------------------|---------------|
+| 1 (Static ratios) | 155 | 0.03-0.04 | 0.1-0.2% | 0.5-1.0 | 0.3-0.5%/mo |
+| 2 (GKX interactions) | 900 | 0.04-0.06 | 0.3-0.5% | 1.5-2.5 | 0.5-1.0%/mo |
+| 3 (+Financial stmt) | 1,000+ | 0.05-0.07 | 0.4-0.6% | 1.8-2.8 | 0.6-1.2%/mo |
+| 4 (+Multi-model) | 1,000+ | 0.06-0.08 | 0.5-0.8% | 2.0-3.0 | 0.8-1.5%/mo |
+| 5 (+NLP/alt data) | 1,100+ | 0.07-0.09 | 0.6-1.0% | 2.3-3.5 | 1.0-1.8%/mo |
+| 6 (+Autoencoder) | Latent | 0.08-0.10 | 0.7-1.2% | 2.5-4.0 | 1.2-2.0%/mo |
+| 7 (+LLM alpha) | Dynamic | ? | ? | ? | ? |
+
+**Context:** Renaissance Technologies' Medallion Fund achieves Sharpe ~6.0 but with HFT + proprietary data. GKX (2020) published Sharpe ~2.0. Level 4-5 targets are achievable with the data we have.
+
+---
+
+## WHY THIS SYSTEM IS DIFFERENT FROM EVERYONE ELSE
+
+1. **Data depth**: 290M+ rows of institutional WRDS data (most retail quants use Yahoo Finance)
+2. **Feature richness**: 1,000+ features vs. typical 50-100
+3. **Multi-model ensemble**: 6+ models vs. typical single model
+4. **Regime awareness**: Macro-conditional everything
+5. **NLP layer**: Financial text intelligence
+6. **Autoencoder factors**: Discovering signals humans haven't named
+7. **APEX integration**: 9 AI agents providing real-time research
+8. **Claude API**: LLM-powered continuous alpha discovery
+9. **Production infrastructure**: S3 data lake, auto-refresh, feature store
+10. **Academic rigor**: Every feature traced to published research with citations
+
+**No retail system combines all of these. Most institutional systems have only 3-4 of these 10.**
+
+---
+
+## NEXT STEP
+
+Finish Phase 3. Then paste this document into a fresh chat and say:
+
+*"Phase 3 is complete. Here's the evolution roadmap. Start implementing Level 3: Financial Statement Intelligence Engine. Use Compustat quarterly data already in S3."*
+
+---
+
+## KEY ACADEMIC REFERENCES
+
+- Gu, Kelly, Xiu (2020) — "Empirical Asset Pricing via Machine Learning" — Review of Financial Studies
+- Gu, Kelly, Xiu (2021) — "Autoencoder Asset Pricing Models" — Journal of Econometrics  
+- Chen, Zimmermann (2022) — "Open Source Cross-Sectional Asset Pricing" — 212 predictors
+- Sloan (1996) — "Do Stock Prices Fully Reflect Information in Accruals?" — THE accruals anomaly
+- Piotroski (2000) — "Value Investing: Use of Financial Statement Information" — F-Score
+- Beneish (1999) — "The Detection of Earnings Manipulation" — M-Score
+- Altman (1968) — "Financial Ratios, Discriminant Analysis and Prediction of Corporate Bankruptcy" — Z-Score
+- Ohlson (1980) — "Financial Ratios and the Probabilistic Prediction of Bankruptcy" — O-Score
+- Welch, Goyal (2008) — "A Comprehensive Look at Equity Premium Prediction" — 14 macro predictors
+- Kelly, Pruitt, Su (2019) — "Characteristics Are Covariances" — IPCA
+- Cohen, Frazzini (2008) — "Economic Links and Predictable Returns" — Customer-supplier alpha
+- Hirshleifer et al. (2004) — "Do Investors Overvalue Firms with Bloated Balance Sheets?" — NOA anomaly
+- Jegadeesh, Titman (1993) — "Returns to Buying Winners and Selling Losers" — Momentum
+- Fama, French (2015) — "A Five-Factor Model" — Value, Size, Profitability, Investment
+- Novy-Marx (2013) — "The Other Side of Value" — Gross Profitability

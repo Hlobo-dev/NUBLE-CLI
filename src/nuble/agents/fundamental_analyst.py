@@ -23,6 +23,22 @@ from .base import SpecializedAgent, AgentTask, AgentResult, AgentType
 
 logger = logging.getLogger(__name__)
 
+# ── SEC EDGAR XBRL integration (Phase 1 upgrade) ─────────────
+_sec_edgar = None
+
+
+def _get_sec_edgar():
+    """Lazy-load SEC EDGAR parser singleton."""
+    global _sec_edgar
+    if _sec_edgar is None:
+        try:
+            from ..data.sec_edgar import SECEdgarXBRL
+            _sec_edgar = SECEdgarXBRL()
+            logger.info("SEC EDGAR XBRL parser initialized")
+        except Exception as e:
+            logger.debug("SEC EDGAR not available: %s", e)
+    return _sec_edgar
+
 
 class FundamentalAnalystAgent(SpecializedAgent):
     """
@@ -330,6 +346,33 @@ class FundamentalAnalystAgent(SpecializedAgent):
         
         # === 8. TENK SEC Filing RAG — Deep SEC Filing Insights ===
         result['sec_filing_insights'] = self._get_tenk_filing_insights(symbol)
+        
+        # === 9. SEC EDGAR XBRL — Deep Fundamental Ratios (Phase 1 upgrade) ===
+        try:
+            edgar = _get_sec_edgar()
+            if edgar:
+                market_cap = result.get('company', {}).get('market_cap')
+                price_val = result.get('price', {}).get('current')
+                
+                # Get 40 Gu-Kelly-Xiu fundamental ratios
+                ratios = edgar.get_fundamental_ratios(
+                    symbol, market_cap=market_cap, price=price_val
+                )
+                if ratios:
+                    result['xbrl_ratios'] = ratios
+                    logger.info("SEC EDGAR: %d ratios computed for %s", 
+                                sum(1 for v in ratios.values() if v is not None), symbol)
+                
+                # Get composite quality score
+                quality = edgar.get_quality_score(
+                    symbol, market_cap=market_cap, price=price_val
+                )
+                if quality and quality.get('score') is not None:
+                    result['fundamental_quality'] = quality
+                    logger.info("SEC EDGAR quality score for %s: %s (%s)", 
+                                symbol, quality['score'], quality['grade'])
+        except Exception as e:
+            logger.debug("SEC EDGAR XBRL analysis failed for %s: %s", symbol, e)
         
         return result
     

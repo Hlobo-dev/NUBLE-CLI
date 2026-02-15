@@ -44,6 +44,38 @@ def _get_training_pipeline():
     return _TrainingPipeline
 
 
+# ── Lazy import of UniversalTechnicalModel ────────────────────
+_UniversalModel = None
+
+
+def _get_universal_model():
+    """Lazy import of UniversalTechnicalModel."""
+    global _UniversalModel
+    if _UniversalModel is None:
+        try:
+            from .universal_model import UniversalTechnicalModel
+            _UniversalModel = UniversalTechnicalModel
+        except ImportError:
+            _UniversalModel = None
+    return _UniversalModel
+
+
+# ── Lazy import of CrossSectionalModel ────────────────────────
+_CrossSectionalModel = None
+
+
+def _get_cross_sectional_model():
+    """Lazy import of CrossSectionalModel."""
+    global _CrossSectionalModel
+    if _CrossSectionalModel is None:
+        try:
+            from .cross_sectional_model import CrossSectionalModel
+            _CrossSectionalModel = CrossSectionalModel
+        except ImportError:
+            _CrossSectionalModel = None
+    return _CrossSectionalModel
+
+
 # ═══════════════════════════════════════════════════════════════
 # MLPredictor
 # ═══════════════════════════════════════════════════════════════
@@ -91,11 +123,24 @@ class MLPredictor:
         # Track loaded model paths for hot-swap detection
         self._loaded_paths: Dict[str, str] = {}
 
+        # ── Universal model (Phase 1 upgrade) ─────────────────
+        self._universal_model = None
+        self._universal_model_checked = False
+
+        # ── Cross-sectional regression model (Phase 6) ────────
+        self._cross_sectional_model = None
+        self._cross_sectional_checked = False
+
     # ── Public API ────────────────────────────────────────────
 
     def predict(self, symbol: str, df: pd.DataFrame) -> dict:
         """
         Make a prediction for *symbol* using the latest data in *df*.
+
+        Priority:
+        1. Universal model (works for ANY stock)
+        2. Per-ticker model (legacy, 5 symbols only)
+        3. Empty result
 
         Args:
             symbol: Ticker (e.g. "SPY").
@@ -107,6 +152,21 @@ class MLPredictor:
             On any error, returns a safe dict with confidence=0.
         """
         try:
+            # Priority 1: Cross-sectional regression (Phase 6 — best model)
+            cs_model = self._get_cross_sectional_model()
+            if cs_model and cs_model.is_ready():
+                result = cs_model.predict(symbol, df)
+                if result and result.get("confidence", 0) > 0:
+                    return result
+
+            # Priority 2: Universal classification (Phase 1 — fallback)
+            universal = self._get_universal_model()
+            if universal and universal.is_ready():
+                result = universal.predict(symbol, df)
+                if result and result.get("confidence", 0) > 0:
+                    return result
+
+            # Priority 3: Per-ticker model (legacy, only 5 symbols)
             pipeline = self._get_pipeline(symbol)
             if pipeline is None:
                 return self._empty_result(symbol, reason="no model found")
@@ -151,6 +211,14 @@ class MLPredictor:
 
     def has_model(self, symbol: str) -> bool:
         """Check whether a trained model exists for *symbol*."""
+        # Cross-sectional model works for ANY stock
+        cs_model = self._get_cross_sectional_model()
+        if cs_model and cs_model.is_ready():
+            return True
+        # Universal model works for ANY stock
+        universal = self._get_universal_model()
+        if universal and universal.is_ready():
+            return True
         return self._find_latest_model_dir(symbol) is not None
 
     def loaded_symbols(self) -> List[str]:
@@ -171,6 +239,68 @@ class MLPredictor:
         }
 
     # ── Internal helpers ──────────────────────────────────────
+
+    def _get_universal_model(self):
+        """Get or initialize the universal technical model. Thread-safe."""
+        if self._universal_model is not None:
+            return self._universal_model
+
+        if self._universal_model_checked:
+            return None  # Already tried, not available
+
+        with self._lock:
+            if self._universal_model is not None:
+                return self._universal_model
+
+            self._universal_model_checked = True
+            UniversalModel = _get_universal_model()
+            if UniversalModel is None:
+                return None
+
+            try:
+                model_root = os.path.join(self.model_dir, "universal")
+                universal = UniversalModel(model_root=model_root)
+                if universal.is_ready():
+                    self._universal_model = universal
+                    logger.info("Universal technical model loaded and ready")
+                    return universal
+                else:
+                    logger.info("Universal model directory exists but model not trained yet")
+            except Exception as e:
+                logger.debug("Universal model not available: %s", e)
+
+        return None
+
+    def _get_cross_sectional_model(self):
+        """Get or initialize the cross-sectional regression model. Thread-safe."""
+        if self._cross_sectional_model is not None:
+            return self._cross_sectional_model
+
+        if self._cross_sectional_checked:
+            return None
+
+        with self._lock:
+            if self._cross_sectional_model is not None:
+                return self._cross_sectional_model
+
+            self._cross_sectional_checked = True
+            CSModel = _get_cross_sectional_model()
+            if CSModel is None:
+                return None
+
+            try:
+                model_root = os.path.join(self.model_dir, "cross_sectional")
+                cs = CSModel(model_root=model_root)
+                if cs.is_ready():
+                    self._cross_sectional_model = cs
+                    logger.info("Cross-sectional regression model loaded and ready")
+                    return cs
+                else:
+                    logger.info("Cross-sectional model directory exists but model not trained")
+            except Exception as e:
+                logger.debug("Cross-sectional model not available: %s", e)
+
+        return None
 
     def _get_pipeline(self, symbol: str) -> Optional["TrainingPipeline"]:
         """Load or retrieve cached pipeline. Thread-safe."""

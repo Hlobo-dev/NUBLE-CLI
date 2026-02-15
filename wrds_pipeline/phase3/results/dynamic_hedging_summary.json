@@ -1,0 +1,68 @@
+{
+  "method": "dynamic_hedging_prompt3",
+  "timestamp": "2026-02-13 21:17:13",
+  "total_time_min": 0.0,
+  "tiers": {
+    "mega_raw": {
+      "sharpe": 0.242,
+      "max_dd": -0.436,
+      "sortino": 0.313,
+      "ann_return": 0.0333,
+      "n_months": 240
+    },
+    "mega_hedged": {
+      "sharpe": 0.164,
+      "max_dd": -0.511,
+      "sortino": 0.209,
+      "ann_return": 0.0178,
+      "n_months": 240
+    },
+    "large_raw": {
+      "sharpe": 0.193,
+      "max_dd": -0.451,
+      "sortino": 0.341,
+      "ann_return": 0.0321,
+      "n_months": 240
+    },
+    "large_hedged": {
+      "sharpe": 0.266,
+      "max_dd": -0.485,
+      "sortino": 0.444,
+      "ann_return": 0.0376,
+      "n_months": 240
+    },
+    "mid_raw": {
+      "sharpe": 0.764,
+      "max_dd": -0.34,
+      "sortino": 1.123,
+      "ann_return": 0.1236,
+      "n_months": 240
+    },
+    "mid_hedged": {
+      "sharpe": 0.729,
+      "max_dd": -0.352,
+      "sortino": 1.06,
+      "ann_return": 0.0925,
+      "n_months": 240
+    },
+    "small_raw": {
+      "sharpe": 1.762,
+      "max_dd": -0.467,
+      "sortino": 2.199,
+      "ann_return": 0.3975,
+      "n_months": 240
+    },
+    "small_hedged": {
+      "sharpe": 1.775,
+      "max_dd": -0.269,
+      "sortino": 2.637,
+      "ann_return": 0.3075,
+      "n_months": 240
+    }
+  },
+  "blend_hedged": {
+    "sharpe": 1.614,
+    "max_dd": -0.171,
+    "sortino": 2.65
+  }
+}

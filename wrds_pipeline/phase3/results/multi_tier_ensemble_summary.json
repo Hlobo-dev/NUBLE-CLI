@@ -1,0 +1,75 @@
+{
+  "method": "multi_tier_ensemble_prompt4",
+  "timestamp": "2026-02-13 21:18:27",
+  "total_time_min": 0.1,
+  "selected_ensemble": "ic_riskpar",
+  "tier_strategies": {
+    "mega": "raw",
+    "large": "hedged",
+    "mid": "raw",
+    "small": "vix"
+  },
+  "tier_ic_weights": {
+    "mega": 0.1483,
+    "large": 0.1053,
+    "mid": 0.2128,
+    "small": 0.5337
+  },
+  "tier_ics": {
+    "mega": 0.0268,
+    "large": 0.019,
+    "mid": 0.0384,
+    "small": 0.0964
+  },
+  "ensemble_performance": {
+    "sharpe": 2.0364,
+    "max_dd": -0.1505,
+    "ann_return": 0.2453,
+    "ann_vol": 0.1204,
+    "sortino": 3.6058,
+    "calmar": 1.6296,
+    "n_months": 235,
+    "pct_positive": 0.766,
+    "mean_monthly": 0.0204,
+    "std_monthly": 0.0348
+  },
+  "all_methods": {
+    "equal": {
+      "sharpe": 1.265,
+      "max_dd": -0.147,
+      "sortino": 2.118,
+      "ann_return": 0.1355
+    },
+    "ic_weighted": {
+      "sharpe": 1.742,
+      "max_dd": -0.184,
+      "sortino": 2.756,
+      "ann_return": 0.2206
+    },
+    "rolling_ic": {
+      "sharpe": 1.954,
+      "max_dd": -0.162,
+      "sortino": 3.241,
+      "ann_return": 0.2531
+    },
+    "risk_parity": {
+      "sharpe": 1.276,
+      "max_dd": -0.133,
+      "sortino": 2.247,
+      "ann_return": 0.1249
+    },
+    "ic_riskpar": {
+      "sharpe": 2.036,
+      "max_dd": -0.151,
+      "sortino": 3.606,
+      "ann_return": 0.2453
+    }
+  },
+  "risk_metrics": {
+    "beta_full": 0.0018,
+    "beta_crisis_vix25": 0.0054,
+    "beta_extreme_vix30": -0.0301,
+    "ff6_alpha_annual": 0.246,
+    "ff6_alpha_tstat": 8.58
+  }
+}

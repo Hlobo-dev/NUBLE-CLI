@@ -25,6 +25,22 @@ from .base import SpecializedAgent, AgentTask, AgentResult, AgentType
 
 logger = logging.getLogger(__name__)
 
+# ── FRED Macro Data integration (Phase 1 upgrade) ────────────
+_fred_macro = None
+
+
+def _get_fred_macro():
+    """Lazy-load FRED macro data singleton."""
+    global _fred_macro
+    if _fred_macro is None:
+        try:
+            from ..data.fred_macro import FREDMacroData
+            _fred_macro = FREDMacroData()
+            logger.info("FRED macro data pipeline initialized")
+        except Exception as e:
+            logger.debug("FRED macro data not available: %s", e)
+    return _fred_macro
+
 
 class MacroAnalystAgent(SpecializedAgent):
     """
@@ -82,6 +98,26 @@ class MacroAnalystAgent(SpecializedAgent):
                 'risk_assessment': await self._assess_macro_risk(shared),
                 'market_impact': await self._assess_impact(shared)
             }
+            
+            # === FRED Macro Data (Phase 1 upgrade) ===
+            try:
+                fred = _get_fred_macro()
+                if fred and fred.is_available:
+                    fred_data = fred.get_current()
+                    if fred_data:
+                        data['fred_macro'] = fred_data
+                        # Enrich yield curve with real FRED data
+                        regimes = fred_data.get('regimes', {})
+                        if regimes.get('yield_curve'):
+                            data['yield_curve_fred'] = regimes['yield_curve']
+                        if regimes.get('credit_cycle'):
+                            data['credit_cycle'] = regimes['credit_cycle']
+                        if regimes.get('monetary_policy'):
+                            data['monetary_policy'] = regimes['monetary_policy']
+                        logger.info("FRED macro data added: %d raw indicators, %d regimes",
+                                    len(fred_data.get('raw', {})), len(regimes))
+            except Exception as e:
+                logger.debug("FRED macro integration failed: %s", e)
             
             return AgentResult(
                 task_id=task.task_id,

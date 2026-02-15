@@ -1,0 +1,51 @@
+{
+  "step": "6i_final_fix",
+  "timestamp": "2026-02-13 21:06:05",
+  "total_time_min": 7.7,
+  "fixes_applied": [
+    "Large-cap IC: multi-seed (3\u00d72=6 models), 7-year window",
+    "Capacity: portfolio-level (sum of DDV \u00d7 2% participation)",
+    "Alpha concentration: sqrt-IC dampened ensemble weights"
+  ],
+  "score": 9,
+  "grade": "A-",
+  "tier_capacities": {
+    "mega": {
+      "capacity_1d": "5.079409e+06",
+      "capacity_5d": "2.5397044e+07",
+      "capacity_10d": "5.079409e+07",
+      "n_positions": 37.0,
+      "median_stock_mktcap_M": "2.2515958e+10",
+      "median_stock_ddv_M": "2.033431e+06",
+      "total_ddv_M": "1.2861007e+08"
+    },
+    "large": {
+      "capacity_1d": "1.580344e+06",
+      "capacity_5d": "7.9017205e+06",
+      "capacity_10d": "1.5803441e+07",
+      "n_positions": 71.0,
+      "median_stock_mktcap_M": "4.1829512e+09",
+      "median_stock_ddv_M": "368193.25",
+      "total_ddv_M": "3.3814256e+07"
+    },
+    "mid": {
+      "capacity_1d": "487662.84",
+      "capacity_5d": "2.4383142e+06",
+      "capacity_10d": "4.8766285e+06",
+      "n_positions": 88.0,
+      "median_stock_mktcap_M": "1.0275928e+09",
+      "median_stock_ddv_M": "83338.28",
+      "total_ddv_M": "9.900764e+06"
+    },
+    "small": {
+      "capacity_1d": "88419.92",
+      "capacity_5d": "442099.62",
+      "capacity_10d": "884199.25",
+      "n_positions": 98.0,
+      "median_stock_mktcap_M": "2.6826915e+08",
+      "median_stock_ddv_M": "12041.28",
+      "total_ddv_M": "1.815887e+06"
+    }
+  },
+  "ensemble_method": "ic_weighted"
+}

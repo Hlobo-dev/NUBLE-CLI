@@ -1,0 +1,2693 @@
+{
+  "deployment_timestamp": "2026-02-14T11:08:28.949645",
+  "bucket": "nuble-data-warehouse",
+  "region": "us-east-1",
+  "total_files": 326,
+  "total_size_bytes": 17493602911,
+  "layers": {
+    "results": {
+      "count": 56,
+      "size_bytes": 524325,
+      "files": [
+        "results/validation_scripts/sample_weighted_validation.py",
+        "results/training/result_SLV_mlp_20260130_164147.json",
+        "results/training/result_AMD_mlp_20260130_164236.json",
+        "results/training/result_TSLA_mlp_20260130_164223.json",
+        "results/training/result_XLK_mlp_20260130_164230.json",
+        "results/training/result_SPY_mlp_20260130_130912.json",
+        "results/validation/LSTM_20260130_114124_summary.json",
+        "results/validation/LSTM_20260130_113726_summary.json",
+        "results/validation/LinearBaseline_20260130_114117_summary.json",
+        "results/validation/N-BEATS_20260130_113545_summary.json",
+        "results/validation/LSTM_20260130_114036_summary.json",
+        "results/validation/MLP_20260130_114120_summary.json",
+        "results/validation/MLP_20260130_114033_summary.json",
+        "results/validation/MLP_20260130_113705_summary.json",
+        "results/validation/LinearBaseline_20260130_113659_summary.json",
+        "results/validation/LinearBaseline_20260130_114032_summary.json",
+        "results/validation_scripts/__init__.py",
+        "results/validation_scripts/quick_audit_test.py",
+        "results/validation_scripts/test_coindesk_api.py",
+        "results/validation_scripts/config.py",
+        "results/validation_scripts/PROGRESS_REPORT_v2.md",
+        "results/validation_scripts/PROGRESS_REPORT.md",
+        "results/validation_scripts/README.md",
+        "results/validation_scripts/test_crypto_quick.py",
+        "results/validation_scripts/institutional_audit_results.json",
+        "results/validation_scripts/test_crypto_direct.py",
+        "results/validation_scripts/simple_weighted_test.py",
+        "results/validation_scripts/test_news_integration.py",
+        "results/validation_scripts/weighted_cpcv_test.py",
+        "results/validation_scripts/data_downloader.py",
+        "results/validation_scripts/test_crypto_module.py",
+        "results/validation_scripts/phase12_pipeline.py",
+        "results/validation/LSTM_20260130_113726_predictions.csv",
+        "results/validation/LinearBaseline_20260130_114117_predictions.csv",
+        "results/validation/MLP_20260130_114120_predictions.csv",
+        "results/validation/LSTM_20260130_114124_predictions.csv",
+        "results/validation/MLP_20260130_113705_predictions.csv",
+        "results/validation/MLP_20260130_114033_predictions.csv",
+        "results/validation/LinearBaseline_20260130_113659_predictions.csv",
+        "results/validation/LSTM_20260130_114036_predictions.csv",
+        "results/validation/LinearBaseline_20260130_114032_predictions.csv",
+        "results/validation/N-BEATS_20260130_113545_predictions.csv",
+        "results/validation_scripts/sample_weighted_validation2.py",
+        "results/validation_scripts/final_oos_test.py",
+        "results/validation_scripts/run_validation.py",
+        "results/validation_scripts/robust_ensemble_test.py",
+        "results/validation_scripts/full_universe_test.py",
+        "results/validation_scripts/regime_adaptive_validation.py",
+        "results/validation_scripts/lookahead_audit.py",
+        "results/validation_scripts/walk_forward.py",
+        "results/validation_scripts/reduce_pbo_test.py",
+        "results/validation_scripts/cpcv.py",
+        "results/validation_scripts/alpha_attribution.py",
+        "results/validation_scripts/improved_pipeline_validation.py",
+        "results/validation_scripts/orchestrator.py",
+        "results/validation_scripts/run_institutional_audit.py"
+      ],
+      "size_gb": 0.0,
+      "monthly_cost_usd": 0.0
+    },
+    "pipeline": {
+      "count": 94,
+      "size_bytes": 1471542,
+      "files": [
+        "pipeline/phase3/results/model_summary.json",
+        "pipeline/phase3/results/ensemble_summary.json",
+        "pipeline/__init__.py",
+        "pipeline/phase3/results/full_re_audit_report.json",
+        "pipeline/phase3/results/walk_forward_metrics.csv",
+        "pipeline/phase3/results/dynamic_hedging_summary.json",
+        "pipeline/phase3/results/final_fix_summary.json",
+        "pipeline/phase3/results/multi_tier_ensemble_summary.json",
+        "pipeline/phase3/results/feature_importance_small.csv",
+        "pipeline/phase3/results/feature_importance_mid.csv",
+        "pipeline/phase3/results/feature_importance_mega.csv",
+        "pipeline/phase3/results/feature_importance_large.csv",
+        "pipeline/phase3/results/feature_importance_icfirst_mega.csv",
+        "pipeline/phase3/results/feature_importance_icfirst_large.csv",
+        "pipeline/phase3/results/feature_importance_curated_mega.csv",
+        "pipeline/phase3/results/feature_importance_curated_mid.csv",
+        "pipeline/phase3/results/feature_importance_curated_large.csv",
+        "pipeline/phase3/results/feature_importance_curated_small.csv",
+        "pipeline/phase3/results/metrics_mega.csv",
+        "pipeline/phase3/results/metrics_large.csv",
+        "pipeline/phase3/results/metrics_mid.csv",
+        "pipeline/phase3/results/metrics_small.csv",
+        "pipeline/phase3/results/final_audit_corrected.json",
+        "pipeline/config.py",
+        "pipeline/phase2_run_all.py",
+        "pipeline/phase2_step5_merge_daily.py",
+        "pipeline/test_connect_v3.py",
+        "pipeline/test_connect_quick.py",
+        "pipeline/phase3/results/ensemble_metrics.csv",
+        "pipeline/test_connect_v2.py",
+        "pipeline/phase3/run_phase3.py",
+        "pipeline/phase3/run_pipeline.py",
+        "pipeline/phase3/step4_optionmetrics.py",
+        "pipeline/test_connection.py",
+        "pipeline/phase3/step12_prediction_api.py",
+        "pipeline/phase3/results/ic_first_fix_summary.json",
+        "pipeline/phase3/step2_welch_goyal.py",
+        "pipeline/phase3/results/multi_universe_summary.json",
+        "pipeline/phase3/hyperparameter_optimization.py",
+        "pipeline/phase2_step1_crsp_daily.py",
+        "pipeline/phase2_step2_rolling_betas.py",
+        "pipeline/phase3/step0_s3_upload.py",
+        "pipeline/phase3/test_integration.py",
+        "pipeline/phase3/step14_alt_data.py",
+        "pipeline/phase3/results/curated_multi_universe_summary.json",
+        "pipeline/phase3/results/ensemble_monthly_ics.csv",
+        "pipeline/phase3/step9_apex_integration.py",
+        "pipeline/phase2_step4_daily_features.py",
+        "pipeline/phase3/advanced_features.py",
+        "pipeline/discover_wrds.py",
+        "pipeline/phase3/step11_feature_store.py",
+        "pipeline/phase3/step3_fred_macro.py",
+        "pipeline/phase3/step1_cz_predictors.py",
+        "pipeline/phase3/step10_monthly_refresh.py",
+        "pipeline/deploy_and_run.sh",
+        "pipeline/phase3/step13_multi_horizon.py",
+        "pipeline/phase3/step7_backtest.py",
+        "pipeline/phase3/step6_lightgbm.py",
+        "pipeline/phase3/step15_monitoring.py",
+        "pipeline/wrds_data_warehouse.py",
+        "pipeline/phase3/analyze_results.py",
+        "pipeline/run_complete_pipeline.py",
+        "pipeline/phase2_step6_validation.py",
+        "pipeline/validate.py",
+        "pipeline/phase3/step5_gkx_panel.py",
+        "pipeline/data_access.py",
+        "pipeline/phase3/step8_wrds_advisor.py",
+        "pipeline/phase3/step6b_ensemble.py",
+        "pipeline/phase3/step6c_neural.py",
+        "pipeline/phase3/step6d_meta_ensemble.py",
+        "pipeline/phase3/results/feature_importance.csv",
+        "pipeline/phase3/SYSTEMa",
+        "pipeline/phase3/step6j_final_audit.py",
+        "pipeline/phase3/audit_ic_integrity.py",
+        "pipeline/phase2_step3_training_panel.py",
+        "pipeline/phase3/ROketalpha",
+        "pipeline/phase3/step6b_ensemble_old.py",
+        "pipeline/phase3/step6e_dynamic_hedging.py",
+        "pipeline/phase3/step6c_multi_universe.py",
+        "pipeline/parquet_access.py",
+        "pipeline/phase3/audit_v2_definitive.py",
+        "pipeline/download_to_parquet.py",
+        "pipeline/characteristics.py",
+        "pipeline/phase3/audit_v4_path_a.py",
+        "pipeline/phase3/step6g_full_re_audit.py",
+        "pipeline/phase3/step6h_large_cap_fix.py",
+        "pipeline/phase3/step6f_multi_tier_ensemble.py",
+        "pipeline/phase3/step6d_curated_features.py",
+        "pipeline/phase3/results/ensemble_feature_importance.csv",
+        "pipeline/download_all.py",
+        "pipeline/phase3/step6i_final_fix.py",
+        "pipeline/download_complete.py",
+        "pipeline/phase3/audit_v3_cio.py",
+        "pipeline/phase3/step5b_financial_intelligence.py"
+      ],
+      "size_gb": 0.0,
+      "monthly_cost_usd": 0.0
+    },
+    "models": {
+      "count": 15,
+      "size_bytes": 9073827,
+      "files": [
+        "models/universal/backtest_results.json",
+        "models/universal/signal_analysis.json",
+        "models/cross_sectional/cross_sectional_features.json",
+        "models/cross_sectional/cross_sectional_metadata.json",
+        "models/universal/universal_metadata.json",
+        "models/universal/universal_feature_pipeline.pkl",
+        "models/mlp/mlp_AMD_20260130.pt",
+        "models/mlp/mlp_SLV_20260130.pt",
+        "models/mlp/mlp_SPY_20260130.pt",
+        "models/mlp/mlp_XLK_20260130.pt",
+        "models/mlp/mlp_TSLA_20260130.pt",
+        "models/lightgbm/lgb_latest_model.txt",
+        "models/cross_sectional/cross_sectional_model.txt",
+        "models/universal/backtest_results.png",
+        "models/universal/universal_technical_model.txt"
+      ],
+      "size_gb": 0.01,
+      "monthly_cost_usd": 0.0
+    },
+    "hedging": {
+      "count": 12,
+      "size_bytes": 147121,
+      "files": [
+        "hedging/dynamic_hedging_summary.json",
+        "hedging/strategies/best_strategy_mega.parquet",
+        "hedging/strategies/best_strategy_mid.parquet",
+        "hedging/strategies/best_strategy_small.parquet",
+        "hedging/ensemble_final_returns.parquet",
+        "hedging/strategies/best_strategy_large.parquet",
+        "hedging/blended_hedged_returns.parquet",
+        "hedging/ensemble_method_comparison.parquet",
+        "hedging/hedged_returns_mid.parquet",
+        "hedging/hedged_returns_large.parquet",
+        "hedging/hedged_returns_mega.parquet",
+        "hedging/hedged_returns_small.parquet"
+      ],
+      "size_gb": 0.0,
+      "monthly_cost_usd": 0.0
+    },
+    "raw": {
+      "count": 123,
+      "size_bytes": 4831555576,
+      "files": [
+        "raw/wrds/sp500_constituents_compustat.parquet",
+        "raw/wrds/sp500_constituents_crsp.parquet",
+        "raw/wrds/ff_factors_monthly.parquet",
+        "raw/wrds/crsp_index_monthly.parquet",
+        "raw/wrds/crsp_treasury_monthly.parquet",
+        "raw/wrds/ff_factors_daily.parquet",
+        "raw/wrds/ibes_crsp_link.parquet",
+        "raw/wrds/crsp_compustat_link.parquet",
+        "raw/wrds/crsp_delisting.parquet",
+        "raw/wrds/crsp_treasury_daily.parquet",
+        "raw/wrds/crsp_index_daily.parquet",
+        "raw/crsp_daily/crsp_daily_1926.parquet",
+        "raw/crsp_daily/crsp_daily_1932.parquet",
+        "raw/crsp_daily/crsp_daily_1927.parquet",
+        "raw/crsp_daily/crsp_daily_1933.parquet",
+        "raw/crsp_daily/crsp_daily_1934.parquet",
+        "raw/crsp_daily/crsp_daily_1935.parquet",
+        "raw/crsp_daily/crsp_daily_1942.parquet",
+        "raw/crsp_daily/crsp_daily_1928.parquet",
+        "raw/crsp_daily/crsp_daily_1931.parquet",
+        "raw/crsp_daily/crsp_daily_1941.parquet",
+        "raw/crsp_daily/crsp_daily_1939.parquet",
+        "raw/crsp_daily/crsp_daily_1940.parquet",
+        "raw/crsp_daily/crsp_daily_1936.parquet",
+        "raw/crsp_daily/crsp_daily_1938.parquet",
+        "raw/crsp_daily/crsp_daily_1943.parquet",
+        "raw/crsp_daily/crsp_daily_1944.parquet",
+        "raw/crsp_daily/crsp_daily_1937.parquet",
+        "raw/crsp_daily/crsp_daily_1930.parquet",
+        "raw/crsp_daily/crsp_daily_1945.parquet",
+        "raw/crsp_daily/crsp_daily_1929.parquet",
+        "raw/crsp_daily/crsp_daily_1953.parquet",
+        "raw/crsp_daily/crsp_daily_1946.parquet",
+        "raw/crsp_daily/crsp_daily_1947.parquet",
+        "raw/crsp_daily/crsp_daily_1949.parquet",
+        "raw/crsp_daily/crsp_daily_1954.parquet",
+        "raw/crsp_daily/crsp_daily_1948.parquet",
+        "raw/crsp_daily/crsp_daily_1956.parquet",
+        "raw/crsp_daily/crsp_daily_1957.parquet",
+        "raw/crsp_daily/crsp_daily_1952.parquet",
+        "raw/crsp_daily/crsp_daily_1958.parquet",
+        "raw/crsp_daily/crsp_daily_1955.parquet",
+        "raw/crsp_daily/crsp_daily_1950.parquet",
+        "raw/crsp_daily/crsp_daily_1959.parquet",
+        "raw/crsp_daily/crsp_daily_1960.parquet",
+        "raw/wrds/compustat_security.parquet",
+        "raw/crsp_daily/crsp_daily_1951.parquet",
+        "raw/crsp_daily/crsp_daily_1961.parquet",
+        "raw/crsp_daily/crsp_daily_1962.parquet",
+        "raw/crsp_daily/crsp_daily_1963.parquet",
+        "raw/crsp_daily/crsp_daily_1964.parquet",
+        "raw/crsp_daily/crsp_daily_1968.parquet",
+        "raw/crsp_daily/crsp_daily_1965.parquet",
+        "raw/wrds/ibes_actuals.parquet",
+        "raw/crsp_daily/crsp_daily_1966.parquet",
+        "raw/crsp_daily/crsp_daily_1967.parquet",
+        "raw/crsp_daily/crsp_daily_1969.parquet",
+        "raw/crsp_daily/crsp_daily_1970.parquet",
+        "raw/crsp_daily/crsp_daily_1971.parquet",
+        "raw/crsp_daily/crsp_daily_1972.parquet",
+        "raw/crsp_daily/crsp_daily_1977.parquet",
+        "raw/crsp_daily/crsp_daily_1979.parquet",
+        "raw/crsp_daily/crsp_daily_1975.parquet",
+        "raw/crsp_daily/crsp_daily_1976.parquet",
+        "raw/crsp_daily/crsp_daily_1978.parquet",
+        "raw/crsp_daily/crsp_daily_1974.parquet",
+        "raw/crsp_daily/crsp_daily_1980.parquet",
+        "raw/wrds/crsp_distributions.parquet",
+        "raw/crsp_daily/crsp_daily_1981.parquet",
+        "raw/crsp_daily/crsp_daily_1982.parquet",
+        "raw/crsp_daily/crsp_daily_1973.parquet",
+        "raw/crsp_daily/crsp_daily_1983.parquet",
+        "raw/crsp_daily/crsp_daily_1984.parquet",
+        "raw/crsp_daily/crsp_daily_1985.parquet",
+        "raw/wrds/execucomp.parquet",
+        "raw/crsp_daily/crsp_daily_1986.parquet",
+        "raw/crsp_daily/crsp_daily_1990.parquet",
+        "raw/crsp_daily/crsp_daily_1991.parquet",
+        "raw/crsp_daily/crsp_daily_1989.parquet",
+        "raw/crsp_daily/crsp_daily_1988.parquet",
+        "raw/crsp_daily/crsp_daily_1987.parquet",
+        "raw/crsp_daily/crsp_daily_1992.parquet",
+        "raw/crsp_daily/crsp_daily_1993.parquet",
+        "raw/crsp_daily/crsp_daily_1994.parquet",
+        "raw/crsp_daily/crsp_daily_1995.parquet",
+        "raw/crsp_daily/crsp_daily_1996.parquet",
+        "raw/crsp_daily/crsp_daily_2003.parquet",
+        "raw/crsp_daily/crsp_daily_2004.parquet",
+        "raw/crsp_daily/crsp_daily_2005.parquet",
+        "raw/crsp_daily/crsp_daily_1997.parquet",
+        "raw/crsp_daily/crsp_daily_1999.parquet",
+        "raw/crsp_daily/crsp_daily_2006.parquet",
+        "raw/crsp_daily/crsp_daily_1998.parquet",
+        "raw/crsp_daily/crsp_daily_2010.parquet",
+        "raw/crsp_daily/crsp_daily_2012.parquet",
+        "raw/crsp_daily/crsp_daily_2000.parquet",
+        "raw/crsp_daily/crsp_daily_2002.parquet",
+        "raw/crsp_daily/crsp_daily_2007.parquet",
+        "raw/crsp_daily/crsp_daily_2013.parquet",
+        "raw/crsp_daily/crsp_daily_2001.parquet",
+        "raw/crsp_daily/crsp_daily_2011.parquet",
+        "raw/crsp_daily/crsp_daily_2014.parquet",
+        "raw/crsp_daily/crsp_daily_2009.parquet",
+        "raw/crsp_daily/crsp_daily_2015.parquet",
+        "raw/crsp_daily/crsp_daily_2017.parquet",
+        "raw/crsp_daily/crsp_daily_2016.parquet",
+        "raw/wrds/short_interest.parquet",
+        "raw/crsp_daily/crsp_daily_2018.parquet",
+        "raw/crsp_daily/crsp_daily_2008.parquet",
+        "raw/crsp_daily/crsp_daily_2019.parquet",
+        "raw/wrds/ibes_recommendations.parquet",
+        "raw/crsp_daily/crsp_daily_2021.parquet",
+        "raw/crsp_daily/crsp_daily_2020.parquet",
+        "raw/crsp_daily/crsp_daily_2023.parquet",
+        "raw/wrds/compustat_annual.parquet",
+        "raw/crsp_daily/crsp_daily_2024.parquet",
+        "raw/crsp_daily/crsp_daily_2022.parquet",
+        "raw/wrds/ibes_summary.parquet",
+        "raw/wrds/crsp_monthly.parquet",
+        "raw/wrds/compustat_quarterly.parquet",
+        "raw/wrds/insider_trading.parquet",
+        "raw/wrds/wrds_financial_ratios.parquet",
+        "raw/wrds/institutional_holdings.parquet"
+      ],
+      "size_gb": 4.5,
+      "monthly_cost_usd": 0.1
+    },
+    "metadata": {
+      "count": 4,
+      "size_bytes": 642846,
+      "files": [
+        "metadata/manifests/download_manifest.json",
+        "metadata/manifests/crsp_daily_manifest.json",
+        "metadata/mappings/ticker_permno_map.parquet",
+        "metadata/mappings/permno_ticker_map.parquet"
+      ],
+      "size_gb": 0.0,
+      "monthly_cost_usd": 0.0
+    },
+    "features": {
+      "count": 10,
+      "size_bytes": 12500420540,
+      "files": [
+        "features/welch_goyal_macro.parquet",
+        "features/fred_monthly.parquet",
+        "features/macro_predictors.parquet",
+        "features/fred_daily.parquet",
+        "features/cz_predictors.parquet",
+        "features/rolling_betas.parquet",
+        "features/daily_features.parquet",
+        "features/training_panel.parquet",
+        "features/gkx_panel_pre_level3.parquet",
+        "features/gkx_panel.parquet"
+      ],
+      "size_gb": 11.64,
+      "monthly_cost_usd": 0.27
+    },
+    "predictions": {
+      "count": 12,
+      "size_bytes": 149767134,
+      "files": [
+        "predictions/curated/mega/curated_predictions_mega.parquet",
+        "predictions/curated/large/curated_predictions_large.parquet",
+        "predictions/by_tier/mega/predictions_mega.parquet",
+        "predictions/curated/mid/curated_predictions_mid.parquet",
+        "predictions/curated/small/curated_predictions_small.parquet",
+        "predictions/by_tier/large/predictions_large.parquet",
+        "predictions/by_tier/mid/predictions_mid.parquet",
+        "predictions/by_tier/small/predictions_small.parquet",
+        "predictions/ensemble/curated_multi_universe_predictions.parquet",
+        "predictions/ensemble/multi_universe_predictions.parquet",
+        "predictions/ensemble/ensemble_predictions.parquet",
+        "predictions/ensemble/lgb_predictions.parquet"
+      ],
+      "size_gb": 0.14,
+      "monthly_cost_usd": 0.0
+    }
+  },
+  "file_inventory": [
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation/sample_weighted_validation.py",
+      "s3_key": "results/validation_scripts/sample_weighted_validation.py",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation_scripts/sample_weighted_validation.py",
+      "size_bytes": 0,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/results/model_summary.json",
+      "s3_key": "pipeline/phase3/results/model_summary.json",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/results/model_summary.json",
+      "size_bytes": 740,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/results/ensemble_summary.json",
+      "s3_key": "pipeline/phase3/results/ensemble_summary.json",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/results/ensemble_summary.json",
+      "size_bytes": 885,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/training_results/result_SLV_mlp_20260130_164147.json",
+      "s3_key": "results/training/result_SLV_mlp_20260130_164147.json",
+      "s3_uri": "s3://nuble-data-warehouse/results/training/result_SLV_mlp_20260130_164147.json",
+      "size_bytes": 887,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/training_results/result_AMD_mlp_20260130_164236.json",
+      "s3_key": "results/training/result_AMD_mlp_20260130_164236.json",
+      "s3_uri": "s3://nuble-data-warehouse/results/training/result_AMD_mlp_20260130_164236.json",
+      "size_bytes": 890,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/training_results/result_TSLA_mlp_20260130_164223.json",
+      "s3_key": "results/training/result_TSLA_mlp_20260130_164223.json",
+      "s3_uri": "s3://nuble-data-warehouse/results/training/result_TSLA_mlp_20260130_164223.json",
+      "size_bytes": 890,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/training_results/result_XLK_mlp_20260130_164230.json",
+      "s3_key": "results/training/result_XLK_mlp_20260130_164230.json",
+      "s3_uri": "s3://nuble-data-warehouse/results/training/result_XLK_mlp_20260130_164230.json",
+      "size_bytes": 893,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/training_results/result_SPY_mlp_20260130_130912.json",
+      "s3_key": "results/training/result_SPY_mlp_20260130_130912.json",
+      "s3_uri": "s3://nuble-data-warehouse/results/training/result_SPY_mlp_20260130_130912.json",
+      "size_bytes": 896,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation_results/LSTM_20260130_114124_summary.json",
+      "s3_key": "results/validation/LSTM_20260130_114124_summary.json",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation/LSTM_20260130_114124_summary.json",
+      "size_bytes": 1129,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation_results/LSTM_20260130_113726_summary.json",
+      "s3_key": "results/validation/LSTM_20260130_113726_summary.json",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation/LSTM_20260130_113726_summary.json",
+      "size_bytes": 1132,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation_results/LinearBaseline_20260130_114117_summary.json",
+      "s3_key": "results/validation/LinearBaseline_20260130_114117_summary.json",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation/LinearBaseline_20260130_114117_summary.json",
+      "size_bytes": 1132,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation_results/N-BEATS_20260130_113545_summary.json",
+      "s3_key": "results/validation/N-BEATS_20260130_113545_summary.json",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation/N-BEATS_20260130_113545_summary.json",
+      "size_bytes": 1142,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation_results/LSTM_20260130_114036_summary.json",
+      "s3_key": "results/validation/LSTM_20260130_114036_summary.json",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation/LSTM_20260130_114036_summary.json",
+      "size_bytes": 1144,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/__init__.py",
+      "s3_key": "pipeline/__init__.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/__init__.py",
+      "size_bytes": 1146,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation_results/MLP_20260130_114120_summary.json",
+      "s3_key": "results/validation/MLP_20260130_114120_summary.json",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation/MLP_20260130_114120_summary.json",
+      "size_bytes": 1146,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation_results/MLP_20260130_114033_summary.json",
+      "s3_key": "results/validation/MLP_20260130_114033_summary.json",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation/MLP_20260130_114033_summary.json",
+      "size_bytes": 1147,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/models/universal/backtest_results.json",
+      "s3_key": "models/universal/backtest_results.json",
+      "s3_uri": "s3://nuble-data-warehouse/models/universal/backtest_results.json",
+      "size_bytes": 1149,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation_results/MLP_20260130_113705_summary.json",
+      "s3_key": "results/validation/MLP_20260130_113705_summary.json",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation/MLP_20260130_113705_summary.json",
+      "size_bytes": 1149,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation_results/LinearBaseline_20260130_113659_summary.json",
+      "s3_key": "results/validation/LinearBaseline_20260130_113659_summary.json",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation/LinearBaseline_20260130_113659_summary.json",
+      "size_bytes": 1153,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation_results/LinearBaseline_20260130_114032_summary.json",
+      "s3_key": "results/validation/LinearBaseline_20260130_114032_summary.json",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation/LinearBaseline_20260130_114032_summary.json",
+      "size_bytes": 1155,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/results/full_re_audit_report.json",
+      "s3_key": "pipeline/phase3/results/full_re_audit_report.json",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/results/full_re_audit_report.json",
+      "size_bytes": 1218,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/results/walk_forward_metrics.csv",
+      "s3_key": "pipeline/phase3/results/walk_forward_metrics.csv",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/results/walk_forward_metrics.csv",
+      "size_bytes": 1253,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/results/dynamic_hedging_summary.json",
+      "s3_key": "pipeline/phase3/results/dynamic_hedging_summary.json",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/results/dynamic_hedging_summary.json",
+      "size_bytes": 1389,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/models/universal/signal_analysis.json",
+      "s3_key": "models/universal/signal_analysis.json",
+      "s3_uri": "s3://nuble-data-warehouse/models/universal/signal_analysis.json",
+      "size_bytes": 1452,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation/__init__.py",
+      "s3_key": "results/validation_scripts/__init__.py",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation_scripts/__init__.py",
+      "size_bytes": 1540,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/results/final_fix_summary.json",
+      "s3_key": "pipeline/phase3/results/final_fix_summary.json",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/results/final_fix_summary.json",
+      "size_bytes": 1545,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/results/multi_tier_ensemble_summary.json",
+      "s3_key": "pipeline/phase3/results/multi_tier_ensemble_summary.json",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/results/multi_tier_ensemble_summary.json",
+      "size_bytes": 1556,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/results/feature_importance_small.csv",
+      "s3_key": "pipeline/phase3/results/feature_importance_small.csv",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/results/feature_importance_small.csv",
+      "size_bytes": 1582,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/results/feature_importance_mid.csv",
+      "s3_key": "pipeline/phase3/results/feature_importance_mid.csv",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/results/feature_importance_mid.csv",
+      "size_bytes": 1628,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/results/feature_importance_mega.csv",
+      "s3_key": "pipeline/phase3/results/feature_importance_mega.csv",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/results/feature_importance_mega.csv",
+      "size_bytes": 1635,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/results/feature_importance_large.csv",
+      "s3_key": "pipeline/phase3/results/feature_importance_large.csv",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/results/feature_importance_large.csv",
+      "size_bytes": 1636,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/results/feature_importance_icfirst_mega.csv",
+      "s3_key": "pipeline/phase3/results/feature_importance_icfirst_mega.csv",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/results/feature_importance_icfirst_mega.csv",
+      "size_bytes": 1637,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/dynamic_hedging_summary.json",
+      "s3_key": "hedging/dynamic_hedging_summary.json",
+      "s3_uri": "s3://nuble-data-warehouse/hedging/dynamic_hedging_summary.json",
+      "size_bytes": 1758,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/results/feature_importance_icfirst_large.csv",
+      "s3_key": "pipeline/phase3/results/feature_importance_icfirst_large.csv",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/results/feature_importance_icfirst_large.csv",
+      "size_bytes": 1764,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/results/feature_importance_curated_mega.csv",
+      "s3_key": "pipeline/phase3/results/feature_importance_curated_mega.csv",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/results/feature_importance_curated_mega.csv",
+      "size_bytes": 2374,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/results/feature_importance_curated_mid.csv",
+      "s3_key": "pipeline/phase3/results/feature_importance_curated_mid.csv",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/results/feature_importance_curated_mid.csv",
+      "size_bytes": 2378,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/results/feature_importance_curated_large.csv",
+      "s3_key": "pipeline/phase3/results/feature_importance_curated_large.csv",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/results/feature_importance_curated_large.csv",
+      "size_bytes": 2404,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/results/feature_importance_curated_small.csv",
+      "s3_key": "pipeline/phase3/results/feature_importance_curated_small.csv",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/results/feature_importance_curated_small.csv",
+      "size_bytes": 2414,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/results/metrics_mega.csv",
+      "s3_key": "pipeline/phase3/results/metrics_mega.csv",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/results/metrics_mega.csv",
+      "size_bytes": 2425,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/results/metrics_large.csv",
+      "s3_key": "pipeline/phase3/results/metrics_large.csv",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/results/metrics_large.csv",
+      "size_bytes": 2450,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/results/metrics_mid.csv",
+      "s3_key": "pipeline/phase3/results/metrics_mid.csv",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/results/metrics_mid.csv",
+      "size_bytes": 2457,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/results/metrics_small.csv",
+      "s3_key": "pipeline/phase3/results/metrics_small.csv",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/results/metrics_small.csv",
+      "size_bytes": 2494,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/models/cross_sectional/cross_sectional_features.json",
+      "s3_key": "models/cross_sectional/cross_sectional_features.json",
+      "s3_uri": "s3://nuble-data-warehouse/models/cross_sectional/cross_sectional_features.json",
+      "size_bytes": 2614,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/models/cross_sectional/cross_sectional_metadata.json",
+      "s3_key": "models/cross_sectional/cross_sectional_metadata.json",
+      "s3_uri": "s3://nuble-data-warehouse/models/cross_sectional/cross_sectional_metadata.json",
+      "size_bytes": 2709,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation/quick_audit_test.py",
+      "s3_key": "results/validation_scripts/quick_audit_test.py",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation_scripts/quick_audit_test.py",
+      "size_bytes": 2745,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/models/universal/universal_metadata.json",
+      "s3_key": "models/universal/universal_metadata.json",
+      "s3_uri": "s3://nuble-data-warehouse/models/universal/universal_metadata.json",
+      "size_bytes": 2936,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/results/final_audit_corrected.json",
+      "s3_key": "pipeline/phase3/results/final_audit_corrected.json",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/results/final_audit_corrected.json",
+      "size_bytes": 3001,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation/test_coindesk_api.py",
+      "s3_key": "results/validation_scripts/test_coindesk_api.py",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation_scripts/test_coindesk_api.py",
+      "size_bytes": 3089,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/config.py",
+      "s3_key": "pipeline/config.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/config.py",
+      "size_bytes": 4229,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation/config.py",
+      "s3_key": "results/validation_scripts/config.py",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation_scripts/config.py",
+      "size_bytes": 3574,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation/PROGRESS_REPORT_v2.md",
+      "s3_key": "results/validation_scripts/PROGRESS_REPORT_v2.md",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation_scripts/PROGRESS_REPORT_v2.md",
+      "size_bytes": 3873,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase2_run_all.py",
+      "s3_key": "pipeline/phase2_run_all.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase2_run_all.py",
+      "size_bytes": 3988,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation/PROGRESS_REPORT.md",
+      "s3_key": "results/validation_scripts/PROGRESS_REPORT.md",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation_scripts/PROGRESS_REPORT.md",
+      "size_bytes": 4077,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase2_step5_merge_daily.py",
+      "s3_key": "pipeline/phase2_step5_merge_daily.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase2_step5_merge_daily.py",
+      "size_bytes": 4110,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/test_connect_v3.py",
+      "s3_key": "pipeline/test_connect_v3.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/test_connect_v3.py",
+      "size_bytes": 4134,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/test_connect_quick.py",
+      "s3_key": "pipeline/test_connect_quick.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/test_connect_quick.py",
+      "size_bytes": 4447,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/results/ensemble_metrics.csv",
+      "s3_key": "pipeline/phase3/results/ensemble_metrics.csv",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/results/ensemble_metrics.csv",
+      "size_bytes": 4593,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/test_connect_v2.py",
+      "s3_key": "pipeline/test_connect_v2.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/test_connect_v2.py",
+      "size_bytes": 4614,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation/README.md",
+      "s3_key": "results/validation_scripts/README.md",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation_scripts/README.md",
+      "size_bytes": 4691,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/run_phase3.py",
+      "s3_key": "pipeline/phase3/run_phase3.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/run_phase3.py",
+      "size_bytes": 4728,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/run_pipeline.py",
+      "s3_key": "pipeline/phase3/run_pipeline.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/run_pipeline.py",
+      "size_bytes": 5317,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/step4_optionmetrics.py",
+      "s3_key": "pipeline/phase3/step4_optionmetrics.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/step4_optionmetrics.py",
+      "size_bytes": 5350,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/best_strategy_mega.parquet",
+      "s3_key": "hedging/strategies/best_strategy_mega.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/hedging/strategies/best_strategy_mega.parquet",
+      "size_bytes": 5405,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/best_strategy_mid.parquet",
+      "s3_key": "hedging/strategies/best_strategy_mid.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/hedging/strategies/best_strategy_mid.parquet",
+      "size_bytes": 5405,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation/test_crypto_quick.py",
+      "s3_key": "results/validation_scripts/test_crypto_quick.py",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation_scripts/test_crypto_quick.py",
+      "size_bytes": 5539,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/test_connection.py",
+      "s3_key": "pipeline/test_connection.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/test_connection.py",
+      "size_bytes": 5740,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/best_strategy_small.parquet",
+      "s3_key": "hedging/strategies/best_strategy_small.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/hedging/strategies/best_strategy_small.parquet",
+      "size_bytes": 5990,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation/institutional_audit_results.json",
+      "s3_key": "results/validation_scripts/institutional_audit_results.json",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation_scripts/institutional_audit_results.json",
+      "size_bytes": 6014,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/ensemble_final_returns.parquet",
+      "s3_key": "hedging/ensemble_final_returns.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/hedging/ensemble_final_returns.parquet",
+      "size_bytes": 6385,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/best_strategy_large.parquet",
+      "s3_key": "hedging/strategies/best_strategy_large.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/hedging/strategies/best_strategy_large.parquet",
+      "size_bytes": 6396,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/step12_prediction_api.py",
+      "s3_key": "pipeline/phase3/step12_prediction_api.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/step12_prediction_api.py",
+      "size_bytes": 6765,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/results/ic_first_fix_summary.json",
+      "s3_key": "pipeline/phase3/results/ic_first_fix_summary.json",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/results/ic_first_fix_summary.json",
+      "size_bytes": 6839,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/step2_welch_goyal.py",
+      "s3_key": "pipeline/phase3/step2_welch_goyal.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/step2_welch_goyal.py",
+      "size_bytes": 6967,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/results/multi_universe_summary.json",
+      "s3_key": "pipeline/phase3/results/multi_universe_summary.json",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/results/multi_universe_summary.json",
+      "size_bytes": 6987,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/hyperparameter_optimization.py",
+      "s3_key": "pipeline/phase3/hyperparameter_optimization.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/hyperparameter_optimization.py",
+      "size_bytes": 7277,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase2_step1_crsp_daily.py",
+      "s3_key": "pipeline/phase2_step1_crsp_daily.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase2_step1_crsp_daily.py",
+      "size_bytes": 7310,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase2_step2_rolling_betas.py",
+      "s3_key": "pipeline/phase2_step2_rolling_betas.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase2_step2_rolling_betas.py",
+      "size_bytes": 7507,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/step0_s3_upload.py",
+      "s3_key": "pipeline/phase3/step0_s3_upload.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/step0_s3_upload.py",
+      "size_bytes": 7524,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/test_integration.py",
+      "s3_key": "pipeline/phase3/test_integration.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/test_integration.py",
+      "size_bytes": 7668,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation/test_crypto_direct.py",
+      "s3_key": "results/validation_scripts/test_crypto_direct.py",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation_scripts/test_crypto_direct.py",
+      "size_bytes": 7838,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/step14_alt_data.py",
+      "s3_key": "pipeline/phase3/step14_alt_data.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/step14_alt_data.py",
+      "size_bytes": 7905,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/results/curated_multi_universe_summary.json",
+      "s3_key": "pipeline/phase3/results/curated_multi_universe_summary.json",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/results/curated_multi_universe_summary.json",
+      "size_bytes": 8067,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/models/universal/universal_feature_pipeline.pkl",
+      "s3_key": "models/universal/universal_feature_pipeline.pkl",
+      "s3_uri": "s3://nuble-data-warehouse/models/universal/universal_feature_pipeline.pkl",
+      "size_bytes": 8664,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/results/ensemble_monthly_ics.csv",
+      "s3_key": "pipeline/phase3/results/ensemble_monthly_ics.csv",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/results/ensemble_monthly_ics.csv",
+      "size_bytes": 8666,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/sp500_constituents_compustat.parquet",
+      "s3_key": "raw/wrds/sp500_constituents_compustat.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/wrds/sp500_constituents_compustat.parquet",
+      "size_bytes": 8735,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/step9_apex_integration.py",
+      "s3_key": "pipeline/phase3/step9_apex_integration.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/step9_apex_integration.py",
+      "size_bytes": 8790,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase2_step4_daily_features.py",
+      "s3_key": "pipeline/phase2_step4_daily_features.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase2_step4_daily_features.py",
+      "size_bytes": 8809,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/advanced_features.py",
+      "s3_key": "pipeline/phase3/advanced_features.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/advanced_features.py",
+      "size_bytes": 8871,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/discover_wrds.py",
+      "s3_key": "pipeline/discover_wrds.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/discover_wrds.py",
+      "size_bytes": 8903,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation/simple_weighted_test.py",
+      "s3_key": "results/validation_scripts/simple_weighted_test.py",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation_scripts/simple_weighted_test.py",
+      "size_bytes": 8933,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/blended_hedged_returns.parquet",
+      "s3_key": "hedging/blended_hedged_returns.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/hedging/blended_hedged_returns.parquet",
+      "size_bytes": 9038,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation/test_news_integration.py",
+      "s3_key": "results/validation_scripts/test_news_integration.py",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation_scripts/test_news_integration.py",
+      "size_bytes": 9485,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/step11_feature_store.py",
+      "s3_key": "pipeline/phase3/step11_feature_store.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/step11_feature_store.py",
+      "size_bytes": 9629,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/step3_fred_macro.py",
+      "s3_key": "pipeline/phase3/step3_fred_macro.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/step3_fred_macro.py",
+      "size_bytes": 9707,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/step1_cz_predictors.py",
+      "s3_key": "pipeline/phase3/step1_cz_predictors.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/step1_cz_predictors.py",
+      "size_bytes": 9883,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation/weighted_cpcv_test.py",
+      "s3_key": "results/validation_scripts/weighted_cpcv_test.py",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation_scripts/weighted_cpcv_test.py",
+      "size_bytes": 10117,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation/data_downloader.py",
+      "s3_key": "results/validation_scripts/data_downloader.py",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation_scripts/data_downloader.py",
+      "size_bytes": 10333,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/step10_monthly_refresh.py",
+      "s3_key": "pipeline/phase3/step10_monthly_refresh.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/step10_monthly_refresh.py",
+      "size_bytes": 10340,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/deploy_and_run.sh",
+      "s3_key": "pipeline/deploy_and_run.sh",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/deploy_and_run.sh",
+      "size_bytes": 10595,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/step13_multi_horizon.py",
+      "s3_key": "pipeline/phase3/step13_multi_horizon.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/step13_multi_horizon.py",
+      "size_bytes": 10639,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/step7_backtest.py",
+      "s3_key": "pipeline/phase3/step7_backtest.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/step7_backtest.py",
+      "size_bytes": 10668,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation/test_crypto_module.py",
+      "s3_key": "results/validation_scripts/test_crypto_module.py",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation_scripts/test_crypto_module.py",
+      "size_bytes": 11355,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/step6_lightgbm.py",
+      "s3_key": "pipeline/phase3/step6_lightgbm.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/step6_lightgbm.py",
+      "size_bytes": 11416,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation/phase12_pipeline.py",
+      "s3_key": "results/validation_scripts/phase12_pipeline.py",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation_scripts/phase12_pipeline.py",
+      "size_bytes": 11892,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation_results/LSTM_20260130_113726_predictions.csv",
+      "s3_key": "results/validation/LSTM_20260130_113726_predictions.csv",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation/LSTM_20260130_113726_predictions.csv",
+      "size_bytes": 12272,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation_results/LinearBaseline_20260130_114117_predictions.csv",
+      "s3_key": "results/validation/LinearBaseline_20260130_114117_predictions.csv",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation/LinearBaseline_20260130_114117_predictions.csv",
+      "size_bytes": 12289,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation_results/MLP_20260130_114120_predictions.csv",
+      "s3_key": "results/validation/MLP_20260130_114120_predictions.csv",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation/MLP_20260130_114120_predictions.csv",
+      "size_bytes": 12289,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation_results/LSTM_20260130_114124_predictions.csv",
+      "s3_key": "results/validation/LSTM_20260130_114124_predictions.csv",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation/LSTM_20260130_114124_predictions.csv",
+      "size_bytes": 12294,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation_results/MLP_20260130_113705_predictions.csv",
+      "s3_key": "results/validation/MLP_20260130_113705_predictions.csv",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation/MLP_20260130_113705_predictions.csv",
+      "size_bytes": 12318,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation_results/MLP_20260130_114033_predictions.csv",
+      "s3_key": "results/validation/MLP_20260130_114033_predictions.csv",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation/MLP_20260130_114033_predictions.csv",
+      "size_bytes": 12326,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/step15_monitoring.py",
+      "s3_key": "pipeline/phase3/step15_monitoring.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/step15_monitoring.py",
+      "size_bytes": 12337,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation_results/LinearBaseline_20260130_113659_predictions.csv",
+      "s3_key": "results/validation/LinearBaseline_20260130_113659_predictions.csv",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation/LinearBaseline_20260130_113659_predictions.csv",
+      "size_bytes": 12373,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation_results/LSTM_20260130_114036_predictions.csv",
+      "s3_key": "results/validation/LSTM_20260130_114036_predictions.csv",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation/LSTM_20260130_114036_predictions.csv",
+      "size_bytes": 12375,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation_results/LinearBaseline_20260130_114032_predictions.csv",
+      "s3_key": "results/validation/LinearBaseline_20260130_114032_predictions.csv",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation/LinearBaseline_20260130_114032_predictions.csv",
+      "size_bytes": 12384,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation_results/N-BEATS_20260130_113545_predictions.csv",
+      "s3_key": "results/validation/N-BEATS_20260130_113545_predictions.csv",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation/N-BEATS_20260130_113545_predictions.csv",
+      "size_bytes": 12585,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation/sample_weighted_validation2.py",
+      "s3_key": "results/validation_scripts/sample_weighted_validation2.py",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation_scripts/sample_weighted_validation2.py",
+      "size_bytes": 12934,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation/final_oos_test.py",
+      "s3_key": "results/validation_scripts/final_oos_test.py",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation_scripts/final_oos_test.py",
+      "size_bytes": 13611,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation/run_validation.py",
+      "s3_key": "results/validation_scripts/run_validation.py",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation_scripts/run_validation.py",
+      "size_bytes": 13674,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/wrds_data_warehouse.py",
+      "s3_key": "pipeline/wrds_data_warehouse.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/wrds_data_warehouse.py",
+      "size_bytes": 13780,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/analyze_results.py",
+      "s3_key": "pipeline/phase3/analyze_results.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/analyze_results.py",
+      "size_bytes": 14826,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/run_complete_pipeline.py",
+      "s3_key": "pipeline/run_complete_pipeline.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/run_complete_pipeline.py",
+      "size_bytes": 15333,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase2_step6_validation.py",
+      "s3_key": "pipeline/phase2_step6_validation.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase2_step6_validation.py",
+      "size_bytes": 15558,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/validate.py",
+      "s3_key": "pipeline/validate.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/validate.py",
+      "size_bytes": 16458,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/download_manifest.json",
+      "s3_key": "metadata/manifests/download_manifest.json",
+      "s3_uri": "s3://nuble-data-warehouse/metadata/manifests/download_manifest.json",
+      "size_bytes": 16628,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation/robust_ensemble_test.py",
+      "s3_key": "results/validation_scripts/robust_ensemble_test.py",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation_scripts/robust_ensemble_test.py",
+      "size_bytes": 16894,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/ensemble_method_comparison.parquet",
+      "s3_key": "hedging/ensemble_method_comparison.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/hedging/ensemble_method_comparison.parquet",
+      "size_bytes": 17468,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation/full_universe_test.py",
+      "s3_key": "results/validation_scripts/full_universe_test.py",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation_scripts/full_universe_test.py",
+      "size_bytes": 17787,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation/regime_adaptive_validation.py",
+      "s3_key": "results/validation_scripts/regime_adaptive_validation.py",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation_scripts/regime_adaptive_validation.py",
+      "size_bytes": 18072,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation/lookahead_audit.py",
+      "s3_key": "results/validation_scripts/lookahead_audit.py",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation_scripts/lookahead_audit.py",
+      "size_bytes": 18323,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/step5_gkx_panel.py",
+      "s3_key": "pipeline/phase3/step5_gkx_panel.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/step5_gkx_panel.py",
+      "size_bytes": 18957,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation/walk_forward.py",
+      "s3_key": "results/validation_scripts/walk_forward.py",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation_scripts/walk_forward.py",
+      "size_bytes": 19017,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/data_access.py",
+      "s3_key": "pipeline/data_access.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/data_access.py",
+      "size_bytes": 19587,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/step8_wrds_advisor.py",
+      "s3_key": "pipeline/phase3/step8_wrds_advisor.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/step8_wrds_advisor.py",
+      "size_bytes": 20188,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily_manifest.json",
+      "s3_key": "metadata/manifests/crsp_daily_manifest.json",
+      "s3_uri": "s3://nuble-data-warehouse/metadata/manifests/crsp_daily_manifest.json",
+      "size_bytes": 20471,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation/reduce_pbo_test.py",
+      "s3_key": "results/validation_scripts/reduce_pbo_test.py",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation_scripts/reduce_pbo_test.py",
+      "size_bytes": 20658,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation/cpcv.py",
+      "s3_key": "results/validation_scripts/cpcv.py",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation_scripts/cpcv.py",
+      "size_bytes": 21307,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/step6b_ensemble.py",
+      "s3_key": "pipeline/phase3/step6b_ensemble.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/step6b_ensemble.py",
+      "size_bytes": 22083,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/hedged_returns_mid.parquet",
+      "s3_key": "hedging/hedged_returns_mid.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/hedging/hedged_returns_mid.parquet",
+      "size_bytes": 22189,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/hedged_returns_large.parquet",
+      "s3_key": "hedging/hedged_returns_large.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/hedging/hedged_returns_large.parquet",
+      "size_bytes": 22290,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/hedged_returns_mega.parquet",
+      "s3_key": "hedging/hedged_returns_mega.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/hedging/hedged_returns_mega.parquet",
+      "size_bytes": 22322,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/hedged_returns_small.parquet",
+      "s3_key": "hedging/hedged_returns_small.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/hedging/hedged_returns_small.parquet",
+      "size_bytes": 22475,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation/alpha_attribution.py",
+      "s3_key": "results/validation_scripts/alpha_attribution.py",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation_scripts/alpha_attribution.py",
+      "size_bytes": 22844,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation/improved_pipeline_validation.py",
+      "s3_key": "results/validation_scripts/improved_pipeline_validation.py",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation_scripts/improved_pipeline_validation.py",
+      "size_bytes": 23006,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/step6c_neural.py",
+      "s3_key": "pipeline/phase3/step6c_neural.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/step6c_neural.py",
+      "size_bytes": 23968,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/step6d_meta_ensemble.py",
+      "s3_key": "pipeline/phase3/step6d_meta_ensemble.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/step6d_meta_ensemble.py",
+      "size_bytes": 24230,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation/orchestrator.py",
+      "s3_key": "results/validation_scripts/orchestrator.py",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation_scripts/orchestrator.py",
+      "size_bytes": 24788,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/results/feature_importance.csv",
+      "s3_key": "pipeline/phase3/results/feature_importance.csv",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/results/feature_importance.csv",
+      "size_bytes": 25063,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/SYSTEMa",
+      "s3_key": "pipeline/phase3/SYSTEMa",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/SYSTEMa",
+      "size_bytes": 27045,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/sp500_constituents_crsp.parquet",
+      "s3_key": "raw/wrds/sp500_constituents_crsp.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/wrds/sp500_constituents_crsp.parquet",
+      "size_bytes": 27373,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/step6j_final_audit.py",
+      "s3_key": "pipeline/phase3/step6j_final_audit.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/step6j_final_audit.py",
+      "size_bytes": 27515,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/models/mlp_AMD_20260130.pt",
+      "s3_key": "models/mlp/mlp_AMD_20260130.pt",
+      "s3_uri": "s3://nuble-data-warehouse/models/mlp/mlp_AMD_20260130.pt",
+      "size_bytes": 28387,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/models/mlp_SLV_20260130.pt",
+      "s3_key": "models/mlp/mlp_SLV_20260130.pt",
+      "s3_uri": "s3://nuble-data-warehouse/models/mlp/mlp_SLV_20260130.pt",
+      "size_bytes": 28387,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/models/mlp_SPY_20260130.pt",
+      "s3_key": "models/mlp/mlp_SPY_20260130.pt",
+      "s3_uri": "s3://nuble-data-warehouse/models/mlp/mlp_SPY_20260130.pt",
+      "size_bytes": 28387,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/models/mlp_XLK_20260130.pt",
+      "s3_key": "models/mlp/mlp_XLK_20260130.pt",
+      "s3_uri": "s3://nuble-data-warehouse/models/mlp/mlp_XLK_20260130.pt",
+      "size_bytes": 28387,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/models/mlp_TSLA_20260130.pt",
+      "s3_key": "models/mlp/mlp_TSLA_20260130.pt",
+      "s3_uri": "s3://nuble-data-warehouse/models/mlp/mlp_TSLA_20260130.pt",
+      "size_bytes": 28416,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/audit_ic_integrity.py",
+      "s3_key": "pipeline/phase3/audit_ic_integrity.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/audit_ic_integrity.py",
+      "size_bytes": 28545,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/lgb_latest_model.txt",
+      "s3_key": "models/lightgbm/lgb_latest_model.txt",
+      "s3_uri": "s3://nuble-data-warehouse/models/lightgbm/lgb_latest_model.txt",
+      "size_bytes": 29942,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase2_step3_training_panel.py",
+      "s3_key": "pipeline/phase2_step3_training_panel.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase2_step3_training_panel.py",
+      "size_bytes": 31141,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/ROketalpha",
+      "s3_key": "pipeline/phase3/ROketalpha",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/ROketalpha",
+      "size_bytes": 32568,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/ff_factors_monthly.parquet",
+      "s3_key": "raw/wrds/ff_factors_monthly.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/wrds/ff_factors_monthly.parquet",
+      "size_bytes": 33317,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/step6b_ensemble_old.py",
+      "s3_key": "pipeline/phase3/step6b_ensemble_old.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/step6b_ensemble_old.py",
+      "size_bytes": 33335,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/step6e_dynamic_hedging.py",
+      "s3_key": "pipeline/phase3/step6e_dynamic_hedging.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/step6e_dynamic_hedging.py",
+      "size_bytes": 36467,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/validation/run_institutional_audit.py",
+      "s3_key": "results/validation_scripts/run_institutional_audit.py",
+      "s3_uri": "s3://nuble-data-warehouse/results/validation_scripts/run_institutional_audit.py",
+      "size_bytes": 36925,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/step6c_multi_universe.py",
+      "s3_key": "pipeline/phase3/step6c_multi_universe.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/step6c_multi_universe.py",
+      "size_bytes": 37854,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/parquet_access.py",
+      "s3_key": "pipeline/parquet_access.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/parquet_access.py",
+      "size_bytes": 37863,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/audit_v2_definitive.py",
+      "s3_key": "pipeline/phase3/audit_v2_definitive.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/audit_v2_definitive.py",
+      "size_bytes": 38312,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/download_to_parquet.py",
+      "s3_key": "pipeline/download_to_parquet.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/download_to_parquet.py",
+      "size_bytes": 38329,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/characteristics.py",
+      "s3_key": "pipeline/characteristics.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/characteristics.py",
+      "size_bytes": 38417,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/audit_v4_path_a.py",
+      "s3_key": "pipeline/phase3/audit_v4_path_a.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/audit_v4_path_a.py",
+      "size_bytes": 39793,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/step6g_full_re_audit.py",
+      "s3_key": "pipeline/phase3/step6g_full_re_audit.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/step6g_full_re_audit.py",
+      "size_bytes": 41647,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/step6h_large_cap_fix.py",
+      "s3_key": "pipeline/phase3/step6h_large_cap_fix.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/step6h_large_cap_fix.py",
+      "size_bytes": 41908,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/step6f_multi_tier_ensemble.py",
+      "s3_key": "pipeline/phase3/step6f_multi_tier_ensemble.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/step6f_multi_tier_ensemble.py",
+      "size_bytes": 42675,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/step6d_curated_features.py",
+      "s3_key": "pipeline/phase3/step6d_curated_features.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/step6d_curated_features.py",
+      "size_bytes": 43864,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/results/ensemble_feature_importance.csv",
+      "s3_key": "pipeline/phase3/results/ensemble_feature_importance.csv",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/results/ensemble_feature_importance.csv",
+      "size_bytes": 43881,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/download_all.py",
+      "s3_key": "pipeline/download_all.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/download_all.py",
+      "size_bytes": 45842,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/step6i_final_fix.py",
+      "s3_key": "pipeline/phase3/step6i_final_fix.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/step6i_final_fix.py",
+      "size_bytes": 50091,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/download_complete.py",
+      "s3_key": "pipeline/download_complete.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/download_complete.py",
+      "size_bytes": 50661,
+      "size_mb": 0.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/audit_v3_cio.py",
+      "s3_key": "pipeline/phase3/audit_v3_cio.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/audit_v3_cio.py",
+      "size_bytes": 58811,
+      "size_mb": 0.1
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/wrds_pipeline/phase3/step5b_financial_intelligence.py",
+      "s3_key": "pipeline/phase3/step5b_financial_intelligence.py",
+      "s3_uri": "s3://nuble-data-warehouse/pipeline/phase3/step5b_financial_intelligence.py",
+      "size_bytes": 61617,
+      "size_mb": 0.1
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/welch_goyal_macro.parquet",
+      "s3_key": "features/welch_goyal_macro.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/features/welch_goyal_macro.parquet",
+      "size_bytes": 77062,
+      "size_mb": 0.1
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_index_monthly.parquet",
+      "s3_key": "raw/wrds/crsp_index_monthly.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/wrds/crsp_index_monthly.parquet",
+      "size_bytes": 105430,
+      "size_mb": 0.1
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_treasury_monthly.parquet",
+      "s3_key": "raw/wrds/crsp_treasury_monthly.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/wrds/crsp_treasury_monthly.parquet",
+      "size_bytes": 122365,
+      "size_mb": 0.1
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/models/cross_sectional/cross_sectional_model.txt",
+      "s3_key": "models/cross_sectional/cross_sectional_model.txt",
+      "s3_uri": "s3://nuble-data-warehouse/models/cross_sectional/cross_sectional_model.txt",
+      "size_bytes": 141354,
+      "size_mb": 0.1
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/ff_factors_daily.parquet",
+      "s3_key": "raw/wrds/ff_factors_daily.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/wrds/ff_factors_daily.parquet",
+      "size_bytes": 223989,
+      "size_mb": 0.2
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/models/universal/backtest_results.png",
+      "s3_key": "models/universal/backtest_results.png",
+      "s3_uri": "s3://nuble-data-warehouse/models/universal/backtest_results.png",
+      "size_bytes": 250915,
+      "size_mb": 0.2
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/fred_monthly.parquet",
+      "s3_key": "features/fred_monthly.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/features/fred_monthly.parquet",
+      "size_bytes": 252594,
+      "size_mb": 0.2
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/ticker_permno_map.parquet",
+      "s3_key": "metadata/mappings/ticker_permno_map.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/metadata/mappings/ticker_permno_map.parquet",
+      "size_bytes": 282676,
+      "size_mb": 0.3
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/macro_predictors.parquet",
+      "s3_key": "features/macro_predictors.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/features/macro_predictors.parquet",
+      "size_bytes": 308549,
+      "size_mb": 0.3
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/permno_ticker_map.parquet",
+      "s3_key": "metadata/mappings/permno_ticker_map.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/metadata/mappings/permno_ticker_map.parquet",
+      "size_bytes": 323071,
+      "size_mb": 0.3
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/fred_daily.parquet",
+      "s3_key": "features/fred_daily.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/features/fred_daily.parquet",
+      "size_bytes": 638749,
+      "size_mb": 0.6
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/ibes_crsp_link.parquet",
+      "s3_key": "raw/wrds/ibes_crsp_link.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/wrds/ibes_crsp_link.parquet",
+      "size_bytes": 758799,
+      "size_mb": 0.7
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_compustat_link.parquet",
+      "s3_key": "raw/wrds/crsp_compustat_link.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/wrds/crsp_compustat_link.parquet",
+      "size_bytes": 894554,
+      "size_mb": 0.9
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_delisting.parquet",
+      "s3_key": "raw/wrds/crsp_delisting.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/wrds/crsp_delisting.parquet",
+      "size_bytes": 1159982,
+      "size_mb": 1.1
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_treasury_daily.parquet",
+      "s3_key": "raw/wrds/crsp_treasury_daily.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/wrds/crsp_treasury_daily.parquet",
+      "size_bytes": 1357957,
+      "size_mb": 1.3
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/curated_predictions_mega.parquet",
+      "s3_key": "predictions/curated/mega/curated_predictions_mega.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/predictions/curated/mega/curated_predictions_mega.parquet",
+      "size_bytes": 1448249,
+      "size_mb": 1.4
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_index_daily.parquet",
+      "s3_key": "raw/wrds/crsp_index_daily.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/wrds/crsp_index_daily.parquet",
+      "size_bytes": 1629146,
+      "size_mb": 1.6
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1926.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1926.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1926.parquet",
+      "size_bytes": 1983716,
+      "size_mb": 1.9
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1932.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1932.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1932.parquet",
+      "size_bytes": 2117107,
+      "size_mb": 2.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1927.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1927.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1927.parquet",
+      "size_bytes": 2187285,
+      "size_mb": 2.1
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1933.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1933.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1933.parquet",
+      "size_bytes": 2196057,
+      "size_mb": 2.1
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1934.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1934.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1934.parquet",
+      "size_bytes": 2342526,
+      "size_mb": 2.2
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1935.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1935.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1935.parquet",
+      "size_bytes": 2363674,
+      "size_mb": 2.3
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1942.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1942.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1942.parquet",
+      "size_bytes": 2400674,
+      "size_mb": 2.3
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1928.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1928.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1928.parquet",
+      "size_bytes": 2411708,
+      "size_mb": 2.3
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1931.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1931.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1931.parquet",
+      "size_bytes": 2437707,
+      "size_mb": 2.3
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1941.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1941.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1941.parquet",
+      "size_bytes": 2512375,
+      "size_mb": 2.4
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1939.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1939.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1939.parquet",
+      "size_bytes": 2518797,
+      "size_mb": 2.4
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1940.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1940.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1940.parquet",
+      "size_bytes": 2524894,
+      "size_mb": 2.4
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1936.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1936.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1936.parquet",
+      "size_bytes": 2583656,
+      "size_mb": 2.5
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1938.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1938.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1938.parquet",
+      "size_bytes": 2590651,
+      "size_mb": 2.5
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/curated_predictions_large.parquet",
+      "s3_key": "predictions/curated/large/curated_predictions_large.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/predictions/curated/large/curated_predictions_large.parquet",
+      "size_bytes": 2625563,
+      "size_mb": 2.5
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1943.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1943.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1943.parquet",
+      "size_bytes": 2636765,
+      "size_mb": 2.5
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1944.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1944.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1944.parquet",
+      "size_bytes": 2639498,
+      "size_mb": 2.5
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1937.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1937.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1937.parquet",
+      "size_bytes": 2673158,
+      "size_mb": 2.5
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1930.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1930.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1930.parquet",
+      "size_bytes": 2714272,
+      "size_mb": 2.6
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1945.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1945.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1945.parquet",
+      "size_bytes": 2728601,
+      "size_mb": 2.6
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1929.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1929.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1929.parquet",
+      "size_bytes": 2751626,
+      "size_mb": 2.6
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/predictions_mega.parquet",
+      "s3_key": "predictions/by_tier/mega/predictions_mega.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/predictions/by_tier/mega/predictions_mega.parquet",
+      "size_bytes": 2759281,
+      "size_mb": 2.6
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1953.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1953.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1953.parquet",
+      "size_bytes": 2843055,
+      "size_mb": 2.7
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1946.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1946.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1946.parquet",
+      "size_bytes": 2892281,
+      "size_mb": 2.8
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1947.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1947.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1947.parquet",
+      "size_bytes": 2910692,
+      "size_mb": 2.8
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1949.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1949.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1949.parquet",
+      "size_bytes": 2948982,
+      "size_mb": 2.8
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1954.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1954.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1954.parquet",
+      "size_bytes": 2961836,
+      "size_mb": 2.8
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1948.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1948.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1948.parquet",
+      "size_bytes": 3010898,
+      "size_mb": 2.9
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1956.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1956.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1956.parquet",
+      "size_bytes": 3034112,
+      "size_mb": 2.9
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1957.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1957.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1957.parquet",
+      "size_bytes": 3045965,
+      "size_mb": 2.9
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1952.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1952.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1952.parquet",
+      "size_bytes": 3067009,
+      "size_mb": 2.9
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1958.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1958.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1958.parquet",
+      "size_bytes": 3078769,
+      "size_mb": 2.9
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1955.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1955.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1955.parquet",
+      "size_bytes": 3088102,
+      "size_mb": 2.9
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1950.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1950.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1950.parquet",
+      "size_bytes": 3174223,
+      "size_mb": 3.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1959.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1959.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1959.parquet",
+      "size_bytes": 3194472,
+      "size_mb": 3.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1960.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1960.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1960.parquet",
+      "size_bytes": 3208513,
+      "size_mb": 3.1
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/compustat_security.parquet",
+      "s3_key": "raw/wrds/compustat_security.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/wrds/compustat_security.parquet",
+      "size_bytes": 3260177,
+      "size_mb": 3.1
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1951.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1951.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1951.parquet",
+      "size_bytes": 3269427,
+      "size_mb": 3.1
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/curated_predictions_mid.parquet",
+      "s3_key": "predictions/curated/mid/curated_predictions_mid.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/predictions/curated/mid/curated_predictions_mid.parquet",
+      "size_bytes": 3296120,
+      "size_mb": 3.1
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1961.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1961.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1961.parquet",
+      "size_bytes": 3323799,
+      "size_mb": 3.2
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/curated_predictions_small.parquet",
+      "s3_key": "predictions/curated/small/curated_predictions_small.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/predictions/curated/small/curated_predictions_small.parquet",
+      "size_bytes": 3733359,
+      "size_mb": 3.6
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1962.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1962.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1962.parquet",
+      "size_bytes": 4178131,
+      "size_mb": 4.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1963.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1963.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1963.parquet",
+      "size_bytes": 4950959,
+      "size_mb": 4.7
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1964.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1964.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1964.parquet",
+      "size_bytes": 5100161,
+      "size_mb": 4.9
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1968.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1968.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1968.parquet",
+      "size_bytes": 5239894,
+      "size_mb": 5.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1965.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1965.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1965.parquet",
+      "size_bytes": 5269844,
+      "size_mb": 5.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/ibes_actuals.parquet",
+      "s3_key": "raw/wrds/ibes_actuals.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/wrds/ibes_actuals.parquet",
+      "size_bytes": 5391790,
+      "size_mb": 5.1
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1966.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1966.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1966.parquet",
+      "size_bytes": 5469138,
+      "size_mb": 5.2
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1967.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1967.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1967.parquet",
+      "size_bytes": 5660288,
+      "size_mb": 5.4
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/predictions_large.parquet",
+      "s3_key": "predictions/by_tier/large/predictions_large.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/predictions/by_tier/large/predictions_large.parquet",
+      "size_bytes": 5758137,
+      "size_mb": 5.5
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1969.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1969.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1969.parquet",
+      "size_bytes": 5810441,
+      "size_mb": 5.5
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1970.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1970.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1970.parquet",
+      "size_bytes": 5957773,
+      "size_mb": 5.7
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1971.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1971.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1971.parquet",
+      "size_bytes": 6233441,
+      "size_mb": 5.9
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1972.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1972.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1972.parquet",
+      "size_bytes": 6879389,
+      "size_mb": 6.6
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/predictions_mid.parquet",
+      "s3_key": "predictions/by_tier/mid/predictions_mid.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/predictions/by_tier/mid/predictions_mid.parquet",
+      "size_bytes": 7345656,
+      "size_mb": 7.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/models/universal/universal_technical_model.txt",
+      "s3_key": "models/universal/universal_technical_model.txt",
+      "s3_uri": "s3://nuble-data-warehouse/models/universal/universal_technical_model.txt",
+      "size_bytes": 8490128,
+      "size_mb": 8.1
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1977.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1977.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1977.parquet",
+      "size_bytes": 9072282,
+      "size_mb": 8.7
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1979.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1979.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1979.parquet",
+      "size_bytes": 9235015,
+      "size_mb": 8.8
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1975.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1975.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1975.parquet",
+      "size_bytes": 9271595,
+      "size_mb": 8.8
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1976.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1976.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1976.parquet",
+      "size_bytes": 9309881,
+      "size_mb": 8.9
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1978.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1978.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1978.parquet",
+      "size_bytes": 9407429,
+      "size_mb": 9.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/predictions_small.parquet",
+      "s3_key": "predictions/by_tier/small/predictions_small.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/predictions/by_tier/small/predictions_small.parquet",
+      "size_bytes": 9472219,
+      "size_mb": 9.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1974.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1974.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1974.parquet",
+      "size_bytes": 9636411,
+      "size_mb": 9.2
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/curated_multi_universe_predictions.parquet",
+      "s3_key": "predictions/ensemble/curated_multi_universe_predictions.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/predictions/ensemble/curated_multi_universe_predictions.parquet",
+      "size_bytes": 9917943,
+      "size_mb": 9.5
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1980.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1980.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1980.parquet",
+      "size_bytes": 10229337,
+      "size_mb": 9.8
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_distributions.parquet",
+      "s3_key": "raw/wrds/crsp_distributions.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/wrds/crsp_distributions.parquet",
+      "size_bytes": 10760192,
+      "size_mb": 10.3
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1981.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1981.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1981.parquet",
+      "size_bytes": 10775902,
+      "size_mb": 10.3
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1982.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1982.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1982.parquet",
+      "size_bytes": 10935440,
+      "size_mb": 10.4
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1973.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1973.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1973.parquet",
+      "size_bytes": 11117752,
+      "size_mb": 10.6
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1983.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1983.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1983.parquet",
+      "size_bytes": 14193023,
+      "size_mb": 13.5
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1984.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1984.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1984.parquet",
+      "size_bytes": 14398635,
+      "size_mb": 13.7
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1985.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1985.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1985.parquet",
+      "size_bytes": 15129013,
+      "size_mb": 14.4
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/execucomp.parquet",
+      "s3_key": "raw/wrds/execucomp.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/wrds/execucomp.parquet",
+      "size_bytes": 15392255,
+      "size_mb": 14.7
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1986.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1986.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1986.parquet",
+      "size_bytes": 16456711,
+      "size_mb": 15.7
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1990.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1990.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1990.parquet",
+      "size_bytes": 16582431,
+      "size_mb": 15.8
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1991.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1991.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1991.parquet",
+      "size_bytes": 16820455,
+      "size_mb": 16.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1989.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1989.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1989.parquet",
+      "size_bytes": 16899856,
+      "size_mb": 16.1
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1988.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1988.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1988.parquet",
+      "size_bytes": 17039364,
+      "size_mb": 16.3
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1987.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1987.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1987.parquet",
+      "size_bytes": 18128661,
+      "size_mb": 17.3
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1992.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1992.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1992.parquet",
+      "size_bytes": 19669034,
+      "size_mb": 18.8
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1993.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1993.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1993.parquet",
+      "size_bytes": 23042978,
+      "size_mb": 22.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/multi_universe_predictions.parquet",
+      "s3_key": "predictions/ensemble/multi_universe_predictions.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/predictions/ensemble/multi_universe_predictions.parquet",
+      "size_bytes": 23581847,
+      "size_mb": 22.5
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1994.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1994.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1994.parquet",
+      "size_bytes": 25600341,
+      "size_mb": 24.4
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1995.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1995.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1995.parquet",
+      "size_bytes": 27620733,
+      "size_mb": 26.3
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1996.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1996.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1996.parquet",
+      "size_bytes": 30844521,
+      "size_mb": 29.4
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_2003.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_2003.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_2003.parquet",
+      "size_bytes": 33235513,
+      "size_mb": 31.7
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_2004.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_2004.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_2004.parquet",
+      "size_bytes": 33254661,
+      "size_mb": 31.7
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_2005.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_2005.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_2005.parquet",
+      "size_bytes": 33897537,
+      "size_mb": 32.3
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1997.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1997.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1997.parquet",
+      "size_bytes": 33945498,
+      "size_mb": 32.4
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1999.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1999.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1999.parquet",
+      "size_bytes": 34353694,
+      "size_mb": 32.8
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_2006.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_2006.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_2006.parquet",
+      "size_bytes": 34774840,
+      "size_mb": 33.2
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_1998.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_1998.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_1998.parquet",
+      "size_bytes": 34989206,
+      "size_mb": 33.4
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_2010.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_2010.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_2010.parquet",
+      "size_bytes": 35381888,
+      "size_mb": 33.7
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_2012.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_2012.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_2012.parquet",
+      "size_bytes": 35779177,
+      "size_mb": 34.1
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_2000.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_2000.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_2000.parquet",
+      "size_bytes": 35952282,
+      "size_mb": 34.3
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_2002.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_2002.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_2002.parquet",
+      "size_bytes": 36227257,
+      "size_mb": 34.5
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_2007.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_2007.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_2007.parquet",
+      "size_bytes": 36307862,
+      "size_mb": 34.6
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_2013.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_2013.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_2013.parquet",
+      "size_bytes": 36402950,
+      "size_mb": 34.7
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_2001.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_2001.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_2001.parquet",
+      "size_bytes": 36620170,
+      "size_mb": 34.9
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_2011.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_2011.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_2011.parquet",
+      "size_bytes": 37809771,
+      "size_mb": 36.1
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_2014.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_2014.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_2014.parquet",
+      "size_bytes": 39670132,
+      "size_mb": 37.8
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/ensemble_predictions.parquet",
+      "s3_key": "predictions/ensemble/ensemble_predictions.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/predictions/ensemble/ensemble_predictions.parquet",
+      "size_bytes": 39914380,
+      "size_mb": 38.1
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/lgb_predictions.parquet",
+      "s3_key": "predictions/ensemble/lgb_predictions.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/predictions/ensemble/lgb_predictions.parquet",
+      "size_bytes": 39914380,
+      "size_mb": 38.1
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_2009.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_2009.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_2009.parquet",
+      "size_bytes": 40470723,
+      "size_mb": 38.6
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_2015.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_2015.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_2015.parquet",
+      "size_bytes": 41391067,
+      "size_mb": 39.5
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_2017.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_2017.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_2017.parquet",
+      "size_bytes": 41849861,
+      "size_mb": 39.9
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_2016.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_2016.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_2016.parquet",
+      "size_bytes": 41986755,
+      "size_mb": 40.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/short_interest.parquet",
+      "s3_key": "raw/wrds/short_interest.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/wrds/short_interest.parquet",
+      "size_bytes": 43034251,
+      "size_mb": 41.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_2018.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_2018.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_2018.parquet",
+      "size_bytes": 44458889,
+      "size_mb": 42.4
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_2008.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_2008.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_2008.parquet",
+      "size_bytes": 45315666,
+      "size_mb": 43.2
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_2019.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_2019.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_2019.parquet",
+      "size_bytes": 47381327,
+      "size_mb": 45.2
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/ibes_recommendations.parquet",
+      "s3_key": "raw/wrds/ibes_recommendations.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/wrds/ibes_recommendations.parquet",
+      "size_bytes": 53990397,
+      "size_mb": 51.5
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_2021.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_2021.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_2021.parquet",
+      "size_bytes": 58023300,
+      "size_mb": 55.3
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_2020.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_2020.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_2020.parquet",
+      "size_bytes": 59741325,
+      "size_mb": 57.0
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_2023.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_2023.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_2023.parquet",
+      "size_bytes": 63452704,
+      "size_mb": 60.5
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/compustat_annual.parquet",
+      "s3_key": "raw/wrds/compustat_annual.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/wrds/compustat_annual.parquet",
+      "size_bytes": 65131459,
+      "size_mb": 62.1
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_2024.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_2024.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_2024.parquet",
+      "size_bytes": 66852971,
+      "size_mb": 63.8
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_daily/crsp_daily_2022.parquet",
+      "s3_key": "raw/crsp_daily/crsp_daily_2022.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/crsp_daily/crsp_daily_2022.parquet",
+      "size_bytes": 68775938,
+      "size_mb": 65.6
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/ibes_summary.parquet",
+      "s3_key": "raw/wrds/ibes_summary.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/wrds/ibes_summary.parquet",
+      "size_bytes": 79816493,
+      "size_mb": 76.1
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/cz_predictors.parquet",
+      "s3_key": "features/cz_predictors.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/features/cz_predictors.parquet",
+      "size_bytes": 91387914,
+      "size_mb": 87.2
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/crsp_monthly.parquet",
+      "s3_key": "raw/wrds/crsp_monthly.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/wrds/crsp_monthly.parquet",
+      "size_bytes": 93396089,
+      "size_mb": 89.1
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/compustat_quarterly.parquet",
+      "s3_key": "raw/wrds/compustat_quarterly.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/wrds/compustat_quarterly.parquet",
+      "size_bytes": 177783970,
+      "size_mb": 169.5
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/rolling_betas.parquet",
+      "s3_key": "features/rolling_betas.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/features/rolling_betas.parquet",
+      "size_bytes": 212647368,
+      "size_mb": 202.8
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/insider_trading.parquet",
+      "s3_key": "raw/wrds/insider_trading.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/wrds/insider_trading.parquet",
+      "size_bytes": 350639086,
+      "size_mb": 334.4
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/daily_features.parquet",
+      "s3_key": "features/daily_features.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/features/daily_features.parquet",
+      "size_bytes": 360937883,
+      "size_mb": 344.2
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/wrds_financial_ratios.parquet",
+      "s3_key": "raw/wrds/wrds_financial_ratios.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/wrds/wrds_financial_ratios.parquet",
+      "size_bytes": 818302091,
+      "size_mb": 780.4
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/institutional_holdings.parquet",
+      "s3_key": "raw/wrds/institutional_holdings.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/raw/wrds/institutional_holdings.parquet",
+      "size_bytes": 1389499574,
+      "size_mb": 1325.1
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/training_panel.parquet",
+      "s3_key": "features/training_panel.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/features/training_panel.parquet",
+      "size_bytes": 1777705785,
+      "size_mb": 1695.4
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/gkx_panel_pre_level3.parquet",
+      "s3_key": "features/gkx_panel_pre_level3.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/features/gkx_panel_pre_level3.parquet",
+      "size_bytes": 4794369003,
+      "size_mb": 4572.3
+    },
+    {
+      "local": "/Users/humbertolobo/Desktop/NUBLE-CLI/data/wrds/gkx_panel.parquet",
+      "s3_key": "features/gkx_panel.parquet",
+      "s3_uri": "s3://nuble-data-warehouse/features/gkx_panel.parquet",
+      "size_bytes": 5262095633,
+      "size_mb": 5018.3
+    }
+  ],
+  "total_size_gb": 16.29,
+  "monthly_storage_cost_usd": 0.37,
+  "upload_summary": {
+    "uploaded": 194,
+    "skipped": 132,
+    "failed": 0,
+    "total_gb": 4.62,
+    "failed_files": []
+  },
+  "upload_duration_seconds": 1269
+}
