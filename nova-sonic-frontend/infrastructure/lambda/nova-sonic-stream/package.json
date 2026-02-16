@@ -1,0 +1,19 @@
+{
+  "name": "nova-sonic-stream-lambda",
+  "version": "1.0.0",
+  "description": "Nova Sonic Stream Lambda for Bedrock bidirectional streaming",
+  "main": "index.js",
+  "scripts": {
+    "build": "npm install --omit=dev && zip -r function.zip .",
+    "test": "node -e \"require('./index.js')\""
+  },
+  "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.787.0",
+    "@aws-sdk/client-dynamodb": "^3.787.0",
+    "@aws-sdk/util-dynamodb": "^3.787.0",
+    "@smithy/node-http-handler": "^4.4.9"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

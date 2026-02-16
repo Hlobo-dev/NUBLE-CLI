@@ -1,0 +1,48 @@
+# IDE files
+.idea/
+.vscode/
+
+# Build output
+out/
+
+# Logs
+logs/
+
+# Node modules
+node_modules/
+
+# Build artifacts
+dist/
+
+output/*
+
+# SvelteKit generated files
+.svelte-kit/
+
+# Vite cache
+.vite/
+
+# Pyodide local cache (downloaded at build time)
+nuble-frontend/static/pyodide/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files (secrets!)
+.env
+.env.local
+.env.production
+.env.*.local
+
+# User data (generated at runtime, not source code)
+nuble-backend/data/chats.json
+nuble-backend/data/users.json
+nuble-backend/data/config.json
+nuble-backend/data/memories.json
+nuble-backend/data/folders.json
+nuble-backend/data/files.json
+nuble-backend/data/uploads/
+
+# Docker
+docker-compose.override.yml

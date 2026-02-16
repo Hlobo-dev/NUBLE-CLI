@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+nuble-frontend/node_modules/
+nuble-backend/node_modules/
+
+# Build artifacts
+nuble-frontend/.svelte-kit/
+nuble-frontend/build/
+dist/
+out/
+
+# Dev/IDE files
+.git/
+.gitignore
+.idea/
+.vscode/
+*.md
+*.yml
+!cloudformation-stack.yaml
+
+# Data (don't bake into image)
+nuble-backend/data/
+data/
+
+# Environment files (secrets injected at runtime)
+.env
+.env.*
+nuble-backend/.env
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Infrastructure (not needed in container)
+infrastructure/
+deploy*.sh
+buildspec.yml
+DEPLOYMENT*.md
+
+# Pyodide cache
+nuble-frontend/static/pyodide/

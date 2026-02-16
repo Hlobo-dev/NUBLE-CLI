@@ -1,0 +1,38 @@
+# docker-compose.yml — Local development stack matching production architecture
+# Usage: docker compose up --build
+
+version: '3.8'
+
+services:
+  roket-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - SERVE_FRONTEND=true
+      - FRONTEND_PATH=/app/frontend-build
+      - AWS_REGION=us-east-1
+      # Pass through AWS credentials from host for Bedrock access
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_SESSION_TOKEN
+    env_file:
+      - nuble-backend/.env
+    volumes:
+      # Persist chat data across restarts
+      - roket-data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  roket-data:
+    driver: local

@@ -1,0 +1,15 @@
+{
+  "name": "cloudlobo",
+  "version": "1.0.0",
+  "description": "CloudLobo - Nuble AI Platform",
+  "private": true,
+  "scripts": {
+    "dev:backend": "cd nuble-backend && node server.js",
+    "dev:frontend": "cd nuble-frontend && npm run dev",
+    "dev": "npm run dev:backend & npm run dev:frontend",
+    "start": "npm run dev:backend"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

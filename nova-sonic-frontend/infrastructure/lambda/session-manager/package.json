@@ -1,0 +1,18 @@
+{
+  "name": "session-manager-lambda",
+  "version": "1.0.0",
+  "description": "Session Manager Lambda for Nova Sonic",
+  "main": "index.js",
+  "scripts": {
+    "build": "npm install --omit=dev && zip -r function.zip .",
+    "test": "node -e \"require('./index.js')\""
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.787.0",
+    "@aws-sdk/client-lambda": "^3.787.0",
+    "@aws-sdk/util-dynamodb": "^3.787.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
