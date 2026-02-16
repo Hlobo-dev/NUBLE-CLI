@@ -1,0 +1,93 @@
+# ════════════════════════════════════════════════════════════
+#  NUBLE ELITE — Docker Ignore
+# ════════════════════════════════════════════════════════════
+
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+.eggs
+dist
+build
+*.egg
+
+# Virtual environments
+.venv
+venv
+env
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# CI/CD
+.github
+
+# Documentation (not needed in production image)
+docs/
+*.md
+!README.md
+
+# Test files
+tests/
+test_*.py
+*_test.py
+adversarial_output.txt
+*.txt
+
+# Large data directories (synced from S3 at runtime)
+data/wrds/
+data/historical/
+data/train/
+data/test/
+data_cache/
+wrdscomplete/
+WRDS2/
+WRDS3/
+wrds_pipeline/
+training_results/
+validation/
+validation_results/
+filings_db/
+test_filings_db/
+
+# Logs
+*.log
+wrds_download*.log
+
+# Demo
+demo/
+
+# Redundant infrastructure
+infrastructure/aws/cloudformation/
+infrastructure/aws/deploy/
+infrastructure/aws/lambda/
+infrastructure/aws/dashboard/
+infrastructure/aws/.package/
+
+# Other large/unnecessary files
+TENK_SOURCE/
+Contextandphase3/
+AArchitecture/
+Validation_instructions/
+Nuble_mltrading_system/
+*.toml
+!pyproject.toml
+deploy_webhooks.py
+migrate_*.py
+patch_server.py
+run_production.py
+train_properly.py
+system_manifest.json
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore

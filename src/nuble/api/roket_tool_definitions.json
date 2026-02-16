@@ -1,0 +1,253 @@
+[
+  {
+    "name": "roket_predict",
+    "description": "Get an institutional-grade ML prediction for a single stock. Returns composite score (70% fundamental + 30% timing), signal (strong_buy/buy/hold/sell/strong_sell), confidence, tier, top feature drivers. The model is a multi-tier LightGBM ensemble trained on 3.76M observations of 539 academic features from WRDS/GKX. Use for any question about a specific stock's outlook.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "ticker": {
+          "type": "string",
+          "description": "Stock ticker symbol (e.g. AAPL, TSLA, SPY)"
+        }
+      },
+      "required": ["ticker"]
+    }
+  },
+  {
+    "name": "roket_analyze",
+    "description": "Full deep-dive analysis on a single stock. Returns prediction + fundamentals + earnings + risk + insider + institutional + regime in one call. Use when the user says 'analyze AAPL' or 'tell me everything about TSLA'. This is the most comprehensive WRDS-based tool — prefer it for detailed single-stock questions.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "ticker": {
+          "type": "string",
+          "description": "Stock ticker symbol"
+        }
+      },
+      "required": ["ticker"]
+    }
+  },
+  {
+    "name": "roket_fundamentals",
+    "description": "Get fundamental valuation factors for a stock from the WRDS/GKX panel. Returns metrics like E/P, B/M, S/P, CF/P, D/P, ROE, ROA, gross margin, operating profitability, leverage, depreciation, sales growth, asset growth, R&D intensity. Use for valuation questions.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "ticker": {
+          "type": "string",
+          "description": "Stock ticker symbol"
+        }
+      },
+      "required": ["ticker"]
+    }
+  },
+  {
+    "name": "roket_earnings",
+    "description": "Get earnings quality and surprise metrics for a stock. Returns SUE (standardized unexpected earnings), earnings yield, ROE, ROA, accruals, cash flow ratios, analyst dispersion, forecast growth. Use for earnings-related questions.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "ticker": {
+          "type": "string",
+          "description": "Stock ticker symbol"
+        }
+      },
+      "required": ["ticker"]
+    }
+  },
+  {
+    "name": "roket_risk",
+    "description": "Get risk and volatility metrics for a stock. Returns beta, idiosyncratic volatility, return volatility, max daily return, momentum factors (1m, 6m, 12m, 36m), realized vol, GARCH vol, coskewness, illiquidity. Use for risk assessment questions.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "ticker": {
+          "type": "string",
+          "description": "Stock ticker symbol"
+        }
+      },
+      "required": ["ticker"]
+    }
+  },
+  {
+    "name": "roket_insider",
+    "description": "Get insider and analyst sentiment metrics for a stock. Returns analyst count, forecast growth, dispersion, standardized forecast error, secured/convertible indicators. Use for questions about insider activity or analyst consensus.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "ticker": {
+          "type": "string",
+          "description": "Stock ticker symbol"
+        }
+      },
+      "required": ["ticker"]
+    }
+  },
+  {
+    "name": "roket_institutional",
+    "description": "Get institutional ownership and market structure metrics. Returns organizational capital, Herfindahl index, dollar volume, turnover, market cap, firm age, S&P membership, R&D intensity. Use for questions about institutional flows or market microstructure.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "ticker": {
+          "type": "string",
+          "description": "Stock ticker symbol"
+        }
+      },
+      "required": ["ticker"]
+    }
+  },
+  {
+    "name": "roket_regime",
+    "description": "Detect current market regime using a Hidden Markov Model trained on 420 months of macro data. Returns regime state (bull/neutral/crisis), state probabilities, transition matrix, VIX-based exposure adjustment. Use for any question about overall market conditions or macro environment.",
+    "input_schema": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "name": "roket_screener",
+    "description": "Screen the 20,723-ticker universe with filters. Filter by tier (mega/large/mid/small), signal (strong_buy/buy/hold/sell/strong_sell), minimum decile ranking. Returns ranked list of matching stocks with predictions. Use when user asks to screen or filter stocks.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "tier": {
+          "type": "string",
+          "enum": ["mega", "large", "mid", "small"],
+          "description": "Filter by market cap tier"
+        },
+        "signal": {
+          "type": "string",
+          "enum": ["strong_buy", "buy", "hold", "sell", "strong_sell"],
+          "description": "Filter by signal"
+        },
+        "min_decile": {
+          "type": "integer",
+          "description": "Minimum decile ranking (1-10, 10=top)"
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Max results to return (default 20)"
+        }
+      }
+    }
+  },
+  {
+    "name": "roket_universe",
+    "description": "Browse the ranked stock universe. Returns top stocks ranked by ML composite score. Can filter by tier. Use when user asks 'what are your top picks' or 'show me the best stocks' or 'what's in the universe'.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "tier": {
+          "type": "string",
+          "enum": ["mega", "large", "mid", "small"],
+          "description": "Filter by tier"
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Max results (default 50)"
+        }
+      }
+    }
+  },
+  {
+    "name": "roket_news",
+    "description": "Get REAL-TIME news and sentiment for a stock from the StockNews API. Returns today's news articles, 7-day daily sentiment scores (-1.5 to +1.5), and trending headlines. Use when the user asks about news, sentiment, what's happening with a stock, or recent catalysts.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "ticker": {
+          "type": "string",
+          "description": "Stock ticker symbol"
+        }
+      },
+      "required": ["ticker"]
+    }
+  },
+  {
+    "name": "roket_snapshot",
+    "description": "Get a LIVE real-time market snapshot from Polygon.io. Returns current price, bid/ask, volume, technicals (SMA 20/50/200, RSI 14, MACD, Bollinger Bands, ATR), options flow (put/call ratio, unusual activity, IV), news sentiment, market regime, and LuxAlgo multi-timeframe signals. Use for real-time market data, technical analysis, or options flow questions.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "ticker": {
+          "type": "string",
+          "description": "Stock ticker symbol"
+        }
+      },
+      "required": ["ticker"]
+    }
+  },
+  {
+    "name": "roket_sec_quality",
+    "description": "Get LIVE fundamental quality score from SEC EDGAR XBRL filings. Returns a composite quality score (0-100), letter grade (A/B/C/D/F), and 40 GKX fundamental ratios computed from the company's actual SEC filings (book-to-market, E/P, CF/P, ROE, ROA, debt/equity, sales growth, accruals, etc.). This is LIVE data directly from SEC EDGAR, not the historical WRDS panel. Use for questions about a company's fundamental quality or financial health.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "ticker": {
+          "type": "string",
+          "description": "Stock ticker symbol"
+        }
+      },
+      "required": ["ticker"]
+    }
+  },
+  {
+    "name": "roket_macro",
+    "description": "Get the current macroeconomic environment from FRED. Returns Treasury yields (3M, 10Y), credit spreads (BBB, AAA), breakeven inflation, industrial production, unemployment, Fed Funds rate, plus derived regime indicators: yield curve state (inverted/flat/normal/steep), credit cycle (tightening/easing/stable), monetary policy stance (hawkish/dovish/neutral). Use for macro environment questions, yield curve analysis, or when placing stock analysis in macro context.",
+    "input_schema": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "name": "roket_lambda",
+    "description": "Get a LIVE composite decision from the production Lambda Decision Engine. Aggregates data from Polygon.io (price/technicals), StockNews API (sentiment/headlines), CryptoNews API (for crypto), LuxAlgo multi-timeframe signals, and HMM regime detection into a single action (STRONG_BUY/BUY/HOLD/SELL/STRONG_SELL) with score (0-100). This is the MOST POWERFUL real-time tool — it combines ALL live data sources. Use for the most authoritative live trading decision on any symbol.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "ticker": {
+          "type": "string",
+          "description": "Stock or crypto ticker symbol"
+        }
+      },
+      "required": ["ticker"]
+    }
+  },
+  {
+    "name": "roket_compare",
+    "description": "Side-by-side comparison of 2-5 stocks. Returns ML prediction, key fundamentals (E/P, B/M, ROE, ROA, growth, leverage), and risk metrics (beta, volatility, momentum) for each stock, plus the current market regime. Use when user asks to compare stocks, says 'AAPL vs MSFT', or wants to choose between options.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "tickers": {
+          "type": "string",
+          "description": "Comma-separated ticker symbols (e.g. 'AAPL,MSFT,GOOGL')"
+        }
+      },
+      "required": ["tickers"]
+    }
+  },
+  {
+    "name": "roket_position_size",
+    "description": "Calculate optimal position size using modified Kelly Criterion. Returns recommended shares, dollar amount, stop-loss price, three take-profit levels (1:1, 2:1, 3:1 R:R), risk/reward ratio, and max loss in dollars. Uses the ML prediction confidence to estimate win rate, ATR for stop distance, with 2% max risk and 10% max position caps. Use when user asks 'how much should I buy', 'what's my position size', or 'where do I put my stop loss'.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "ticker": {
+          "type": "string",
+          "description": "Stock ticker symbol"
+        },
+        "portfolio_value": {
+          "type": "number",
+          "description": "Total portfolio value in dollars (default 100000)"
+        },
+        "risk_per_trade": {
+          "type": "number",
+          "description": "Max risk per trade as fraction (default 0.02 = 2%)"
+        }
+      },
+      "required": ["ticker"]
+    }
+  }
+]

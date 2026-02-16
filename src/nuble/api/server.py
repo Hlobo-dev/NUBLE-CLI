@@ -673,6 +673,15 @@ if TOOL_ROUTER_AVAILABLE and tool_router is not None:
     app.include_router(tool_router)
     logger.info("✅ Tool Executor registered at /api/intel/chat-with-tools")
 
+# Register LuxAlgo Webhook router (TradingView → signal store)
+try:
+    from .luxalgo_api import create_luxalgo_router
+    _luxalgo_server_router = create_luxalgo_router()
+    app.include_router(_luxalgo_server_router)
+    logger.info("✅ LuxAlgo webhook router registered (POST /webhooks/luxalgo, GET /signals/*)")
+except Exception as e:
+    logger.warning(f"LuxAlgo webhook router not available: {e}")
+
 _start_time = datetime.now()
 _conversations = ConversationStore()
 _mgr = _EliteManagerWrapper()

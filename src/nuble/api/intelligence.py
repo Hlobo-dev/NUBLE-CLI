@@ -424,7 +424,7 @@ async def universe_stats():
         panel_end = ""
         try:
             import pandas as pd
-            from nuble.data.data_service import get_data_service
+            from ..data.data_service import get_data_service
             _ds = get_data_service()
             panel_path = str(_ds.data_dir / "gkx_panel.parquet")
             if os.path.exists(panel_path):
@@ -572,7 +572,7 @@ async def system_status():
 
         # Models
         models = {}
-        from nuble.data.data_service import get_data_service
+        from ..data.data_service import get_data_service
         _ds = get_data_service()
 
         # Research models
