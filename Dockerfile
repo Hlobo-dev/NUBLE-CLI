@@ -12,9 +12,9 @@ FROM python:3.11-slim AS builder
 
 WORKDIR /app
 
-# Install build dependencies
+# Install build dependencies (libgomp-dev needed for LightGBM OpenMP)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc g++ libffi-dev curl \
+    gcc g++ libffi-dev curl libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy dependency definitions first for layer caching
@@ -44,9 +44,13 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
 # ── Stage 2: Production Image ────────────────────────────
 FROM python:3.11-slim AS production
 
-# Install runtime deps: curl (healthcheck), awscli (S3 data sync)
+# Install runtime deps:
+#   curl       — healthcheck
+#   libgomp1   — OpenMP runtime required by LightGBM (CRITICAL)
+#   awscli     — S3 data sync at startup
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    libgomp1 \
     && pip install --no-cache-dir awscli \
     && rm -rf /var/lib/apt/lists/*
 

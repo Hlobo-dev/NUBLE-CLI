@@ -40,7 +40,10 @@ import joblib
 import lightgbm as lgb
 import numpy as np
 import pandas as pd
-import shap
+try:
+    import shap
+except ImportError:
+    shap = None
 from scipy import stats as sp_stats
 from sklearn.isotonic import IsotonicRegression
 from sklearn.metrics import precision_recall_fscore_support
@@ -52,7 +55,8 @@ logger = logging.getLogger(__name__)
 
 # Suppress verbose LightGBM / SHAP output
 warnings.filterwarnings("ignore", category=UserWarning, module="lightgbm")
-warnings.filterwarnings("ignore", category=FutureWarning, module="shap")
+if shap is not None:
+    warnings.filterwarnings("ignore", category=FutureWarning, module="shap")
 
 
 # ══════════════════════════════════════════════════════════════
@@ -551,7 +555,7 @@ class ModelTrainer:
         self.model: lgb.Booster | None = None
         self.calibrators: dict[int, IsotonicRegression] = {}
         self.feature_names: list[str] = []
-        self.shap_explainer: shap.TreeExplainer | None = None
+        self.shap_explainer: Any = None
         self.training_metrics: list[dict] = []
         self.best_iteration: int = 0
 
@@ -667,7 +671,11 @@ class ModelTrainer:
 
         # ── SHAP explainer ────────────────────────────────────
         try:
-            self.shap_explainer = shap.TreeExplainer(self.model)
+            if shap is not None:
+                self.shap_explainer = shap.TreeExplainer(self.model)
+            else:
+                logger.info("SHAP not installed — explainer disabled")
+                self.shap_explainer = None
         except Exception as exc:
             logger.warning("SHAP TreeExplainer init failed: %s", exc)
             self.shap_explainer = None

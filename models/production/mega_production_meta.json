@@ -333,5 +333,5 @@
     "seed": 42
   },
   "trained_at": "2026-02-14T19:15:20.032012",
-  "model_file": "/Users/humbertolobo/Desktop/NUBLE-CLI/models/production/mega_production.txt"
+  "model_file": "mega_production.txt"
 }

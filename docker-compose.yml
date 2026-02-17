@@ -38,6 +38,8 @@ services:
       - STOCKNEWS_API_KEY=${STOCKNEWS_API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - LAMBDA_API_URL=${LAMBDA_API_URL:-https://9vyvetp9c7.execute-api.us-east-1.amazonaws.com/production}
+      - NUBLE_DATA_BUCKET=${NUBLE_DATA_BUCKET:-}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
     volumes:
       # Mount local data for development (no S3 sync needed)
       - ./data:/app/data:ro

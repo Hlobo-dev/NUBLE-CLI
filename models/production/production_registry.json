@@ -4,7 +4,7 @@
   "trained_at": "2026-02-14T19:23:31.720859",
   "tiers": {
     "mega": {
-      "model_file": "/Users/humbertolobo/Desktop/NUBLE-CLI/models/production/mega_production.txt",
+      "model_file": "mega_production.txt",
       "features": [
         "accrual",
         "bm",
@@ -232,7 +232,7 @@
       "oos_ic": 0.0213
     },
     "large": {
-      "model_file": "/Users/humbertolobo/Desktop/NUBLE-CLI/models/production/large_production.txt",
+      "model_file": "large_production.txt",
       "features": [
         "accrual",
         "bm",
@@ -460,7 +460,7 @@
       "oos_ic": 0.0722
     },
     "mid": {
-      "model_file": "/Users/humbertolobo/Desktop/NUBLE-CLI/models/production/mid_production.txt",
+      "model_file": "mid_production.txt",
       "features": [
         "accrual",
         "bm",
@@ -688,7 +688,7 @@
       "oos_ic": 0.0727
     },
     "small": {
-      "model_file": "/Users/humbertolobo/Desktop/NUBLE-CLI/models/production/small_production.txt",
+      "model_file": "small_production.txt",
       "features": [
         "accrual",
         "bm",

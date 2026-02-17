@@ -7,7 +7,9 @@
 #  2. Fetches secrets from AWS Secrets Manager
 #  3. Execs into gunicorn (PID 1 handoff)
 # ════════════════════════════════════════════════════════════
-set -euo pipefail
+set -uo pipefail
+# NOTE: -e is intentionally omitted so S3 sync failures don't crash the container.
+# The app should start in degraded mode and self-heal when data becomes available.
 
 echo "═══════════════════════════════════════════════"
 echo " NUBLE ELITE — Container Starting"
@@ -109,5 +111,67 @@ echo ""
 echo "[entrypoint] Starting application..."
 echo ""
 
-# ── 6. Exec into CMD (gunicorn becomes PID 1) ───────────
+# ── 6. Verify critical dependencies ─────────────────────
+echo "[entrypoint] Verifying critical dependencies..."
+python3 -c "
+import sys
+errors = []
+try:
+    import lightgbm
+    print(f'  ✓ LightGBM {lightgbm.__version__}')
+except ImportError as e:
+    errors.append(f'LightGBM: {e}')
+    print(f'  ✗ LightGBM MISSING: {e}')
+try:
+    import numpy
+    print(f'  ✓ NumPy {numpy.__version__}')
+except ImportError as e:
+    errors.append(f'NumPy: {e}')
+try:
+    import pandas
+    print(f'  ✓ Pandas {pandas.__version__}')
+except ImportError as e:
+    errors.append(f'Pandas: {e}')
+try:
+    import torch
+    print(f'  ✓ PyTorch {torch.__version__}')
+except ImportError as e:
+    errors.append(f'PyTorch: {e}')
+try:
+    import hmmlearn
+    print(f'  ✓ hmmlearn {hmmlearn.__version__}')
+except ImportError as e:
+    errors.append(f'hmmlearn: {e}')
+
+# Check data
+import os
+wrds_dir = '/app/data/wrds'
+if os.path.isdir(wrds_dir):
+    files = [f for f in os.listdir(wrds_dir) if f.endswith('.parquet')]
+    print(f'  ✓ WRDS data: {len(files)} parquet files')
+    if os.path.exists(os.path.join(wrds_dir, 'gkx_panel.parquet')):
+        size_mb = os.path.getsize(os.path.join(wrds_dir, 'gkx_panel.parquet')) / 1e6
+        print(f'    gkx_panel.parquet: {size_mb:.0f} MB')
+else:
+    print(f'  ⚠ WRDS data directory missing: {wrds_dir}')
+
+# Check models
+models_dir = '/app/models'
+for subdir in ['lightgbm', 'production', 'regime', 'universal']:
+    sd = os.path.join(models_dir, subdir)
+    if os.path.isdir(sd):
+        files = os.listdir(sd)
+        print(f'  ✓ models/{subdir}: {len(files)} files')
+    else:
+        print(f'  ⚠ models/{subdir} missing')
+
+if errors:
+    print(f'  ⚠ {len(errors)} dependency issues (app may run in degraded mode)')
+else:
+    print('  ✓ All critical dependencies OK')
+" 2>&1 || echo "[entrypoint] ⚠ Dependency check script failed (continuing)"
+
+echo ""
+
+# ── 7. Exec into CMD (gunicorn becomes PID 1) ───────────
 exec "$@"

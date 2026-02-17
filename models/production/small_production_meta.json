@@ -333,5 +333,5 @@
     "seed": 42
   },
   "trained_at": "2026-02-14T19:23:31.682063",
-  "model_file": "/Users/humbertolobo/Desktop/NUBLE-CLI/models/production/small_production.txt"
+  "model_file": "small_production.txt"
 }

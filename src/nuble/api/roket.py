@@ -190,6 +190,14 @@ async def health():
 
     # Component readiness
     components = {}
+
+    # LightGBM availability (root cause of most failures)
+    try:
+        import lightgbm as lgb
+        components["lightgbm"] = {"available": True, "version": lgb.__version__}
+    except ImportError as e:
+        components["lightgbm"] = {"available": False, "error": str(e)}
+
     try:
         wp = _get_wp()
         wp._ensure_loaded()
@@ -203,15 +211,28 @@ async def health():
 
     try:
         lp = _get_lp()
+        lp._load_production_models()
         components["live_predictor"] = {
+            "ready": True,
             "polygon_engine": lp._polygon_engine is not None and lp._polygon_engine is not False,
             "production_models": len(lp._production_models),
+            "production_tiers": list(lp._production_models.keys()),
         }
     except Exception as e:
         components["live_predictor"] = {"ready": False, "error": str(e)}
 
-    det = _get_regime()
-    components["hmm_regime"] = {"ready": det is not None and det._ready} if det else {"ready": False}
+    try:
+        det = _get_regime()
+        if det is not None:
+            if not det._ready:
+                det.train()
+            components["hmm_regime"] = {
+                "ready": det._ready,
+            }
+        else:
+            components["hmm_regime"] = {"ready": False, "error": "detector unavailable"}
+    except Exception as e:
+        components["hmm_regime"] = {"ready": False, "error": str(e)}
 
     return {
         "status": "operational",

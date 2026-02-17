@@ -6,37 +6,65 @@ Feature engineering, model training, and prediction infrastructure
 built on de Prado's Advances in Financial Machine Learning.
 """
 
-from .features_v2 import (
-    FeaturePipeline,
-    FractionalDifferentiator,
-    CyclicalEncoder,
-    CrossAssetFeatures,
-    TechnicalFeatures,
-    build_features,
-)
+try:
+    from .features_v2 import (
+        FeaturePipeline,
+        FractionalDifferentiator,
+        CyclicalEncoder,
+        CrossAssetFeatures,
+        TechnicalFeatures,
+        build_features,
+    )
+except ImportError:
+    FeaturePipeline = None
+    FractionalDifferentiator = None
+    CyclicalEncoder = None
+    CrossAssetFeatures = None
+    TechnicalFeatures = None
+    build_features = None
 
-from .labeling import (
-    VolatilityEstimator,
-    TripleBarrierLabeler,
-    SampleWeighter,
-    MetaLabeler,
-    create_labels,
-    create_meta_labels,
-    label_distribution_report,
-)
+try:
+    from .labeling import (
+        VolatilityEstimator,
+        TripleBarrierLabeler,
+        SampleWeighter,
+        MetaLabeler,
+        create_labels,
+        create_meta_labels,
+        label_distribution_report,
+    )
+except ImportError:
+    VolatilityEstimator = None
+    TripleBarrierLabeler = None
+    SampleWeighter = None
+    MetaLabeler = None
+    create_labels = None
+    create_meta_labels = None
+    label_distribution_report = None
 
-from .trainer_v2 import (
-    PurgedWalkForwardCV,
-    FinancialMetrics,
-    ModelTrainer,
-    TrainingPipeline,
-    TrainingResults,
-)
+try:
+    from .trainer_v2 import (
+        PurgedWalkForwardCV,
+        FinancialMetrics,
+        ModelTrainer,
+        TrainingPipeline,
+        TrainingResults,
+    )
+except ImportError:
+    PurgedWalkForwardCV = None
+    FinancialMetrics = None
+    ModelTrainer = None
+    TrainingPipeline = None
+    TrainingResults = None
 
-from .predictor import (
-    MLPredictor,
-    get_predictor,
-)
+try:
+    from .predictor import (
+        MLPredictor,
+        get_predictor,
+    )
+except ImportError:
+    MLPredictor = None
+    get_predictor = None
 
 # Phase 1 upgrade: Universal Technical Model
 try:

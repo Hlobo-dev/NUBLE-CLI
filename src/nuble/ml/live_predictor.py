@@ -129,8 +129,14 @@ class LivePredictor:
             registry = json.load(f)
 
         loaded = 0
+        prod_dir = os.path.join(_PROJECT_ROOT, "models", "production")
         for tier, info in registry.get('tiers', {}).items():
-            model_path = info.get('model_file', '')
+            model_file = info.get('model_file', '')
+            # Resolve relative paths against the production models directory
+            if model_file and not os.path.isabs(model_file):
+                model_path = os.path.join(prod_dir, model_file)
+            else:
+                model_path = model_file
             if os.path.exists(model_path):
                 try:
                     self._production_models[tier] = lgb.Booster(model_file=model_path)
