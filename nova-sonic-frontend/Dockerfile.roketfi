@@ -10,20 +10,10 @@
 #   - supervisord manages both processes
 # ============================================================
 
-# ---- Stage 1: Build Frontend ----
-FROM node:20-alpine AS frontend-build
-
-WORKDIR /app/frontend
-
-# Install dependencies first (layer caching)
-COPY nova-sonic-frontend/nuble-frontend/package.json nova-sonic-frontend/nuble-frontend/package-lock.json* ./
-RUN npm ci --legacy-peer-deps 2>/dev/null || npm install --legacy-peer-deps
-
-# Copy source and build
-COPY nova-sonic-frontend/nuble-frontend/ ./
-ENV NODE_OPTIONS="--max-old-space-size=4096"
-# Skip pyodide:fetch (we use native Python in production, not browser-based Pyodide)
-RUN npx vite build
+# ---- Stage 1: Production Frontend ----
+# Use the verified production frontend build from the 07dd180 image
+# This is the exact build running on roketfi.com with correct sidebar UI
+FROM 456309723884.dkr.ecr.us-east-1.amazonaws.com/roket-production:07dd180 AS frontend-source
 
 # ---- Stage 2: Production (Node.js + Python) ----
 FROM node:20-slim AS production
@@ -99,8 +89,8 @@ COPY nova-sonic-frontend/nuble-backend/nova-sonic-client.js /app/node/
 # Copy static assets (favicons, logos)
 COPY nova-sonic-frontend/nuble-backend/static/ /app/node/static/
 
-# Copy built frontend from stage 1
-COPY --from=frontend-build /app/frontend/build /app/frontend-build
+# Copy verified production frontend from the 07dd180 image
+COPY --from=frontend-source /app/frontend-build /app/frontend-build
 
 # ── Data & Config ──
 
