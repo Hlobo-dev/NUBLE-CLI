@@ -1,0 +1,165 @@
+# ============================================================
+# ROKETFI Production Dockerfile
+# Multi-stage build: 
+#   Stage 1: Build SvelteKit frontend
+#   Stage 2: Production — Node.js backend + Python ROKET API
+#
+# Architecture (mirrors localhost exactly):
+#   - Node.js server.js on port 3000 (frontend + API proxy + WebSocket)
+#   - Python ROKET FastAPI on port 8000 (ML predictions + financial intelligence)
+#   - supervisord manages both processes
+# ============================================================
+
+# ---- Stage 1: Build Frontend ----
+FROM node:20-alpine AS frontend-build
+
+WORKDIR /app/frontend
+
+# Install dependencies first (layer caching)
+COPY nova-sonic-frontend/nuble-frontend/package.json nova-sonic-frontend/nuble-frontend/package-lock.json* ./
+RUN npm ci --legacy-peer-deps 2>/dev/null || npm install --legacy-peer-deps
+
+# Copy source and build
+COPY nova-sonic-frontend/nuble-frontend/ ./
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+# Skip pyodide:fetch (we use native Python in production, not browser-based Pyodide)
+RUN npx vite build
+
+# ---- Stage 2: Production (Node.js + Python) ----
+FROM node:20-slim AS production
+
+# Install Python 3, pip, supervisor, and build essentials for native Python packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    python3-venv \
+    supervisor \
+    wget \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN groupadd -g 1001 roket && \
+    useradd -u 1001 -g roket -m -s /bin/bash roket
+
+WORKDIR /app
+
+# ── Python ROKET API Setup ──
+
+# Create Python virtual environment
+RUN python3 -m venv /app/venv
+ENV PATH="/app/venv/bin:$PATH"
+
+# Install Python dependencies
+COPY pyproject.toml /app/pyproject.toml
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir \
+    fastapi \
+    "uvicorn[standard]" \
+    numpy \
+    pandas \
+    requests \
+    aiohttp \
+    httpx \
+    python-dotenv \
+    rich \
+    pydantic \
+    lightgbm \
+    scikit-learn \
+    scipy \
+    joblib \
+    statsmodels \
+    hmmlearn \
+    fredapi \
+    boto3 \
+    polygon-api-client \
+    pyarrow
+
+# Copy Python source code
+COPY src/ /app/src/
+
+# Copy trained ML models
+COPY models/ /app/models/
+
+# Set Python path so nuble package is importable
+ENV PYTHONPATH="/app/src:/app"
+
+# ── Node.js Backend Setup ──
+
+# Install Node.js dependencies first (layer caching)
+COPY nova-sonic-frontend/nuble-backend/package.json nova-sonic-frontend/nuble-backend/package-lock.json* /app/node/
+WORKDIR /app/node
+RUN npm ci --omit=dev 2>/dev/null || npm install --omit=dev && npm cache clean --force
+
+# Copy backend source (ALL .js files — server.js, nuble-tools.js, nova-sonic-client.js)
+COPY nova-sonic-frontend/nuble-backend/server.js /app/node/
+COPY nova-sonic-frontend/nuble-backend/nuble-tools.js /app/node/
+COPY nova-sonic-frontend/nuble-backend/nova-sonic-client.js /app/node/
+
+# Copy static assets (favicons, logos)
+COPY nova-sonic-frontend/nuble-backend/static/ /app/node/static/
+
+# Copy built frontend from stage 1
+COPY --from=frontend-build /app/frontend/build /app/frontend-build
+
+# ── Data & Config ──
+
+# Create writable data directory
+RUN mkdir -p /app/data /app/logs && chown -R roket:roket /app/data /app/logs
+
+WORKDIR /app
+
+# ── Supervisord Config ──
+# Runs BOTH Node.js + Python ROKET API in a single container
+RUN cat > /etc/supervisor/conf.d/roket.conf << 'EOF'
+[supervisord]
+nodaemon=true
+logfile=/app/logs/supervisord.log
+pidfile=/var/run/supervisord.pid
+user=root
+
+[program:roket-api]
+command=/app/venv/bin/python -m uvicorn nuble.api.roket:app --host 0.0.0.0 --port 8000 --workers 2
+directory=/app
+environment=PYTHONPATH="/app/src:/app",AWS_REGION="%(ENV_AWS_REGION)s",AWS_ACCESS_KEY_ID="%(ENV_AWS_ACCESS_KEY_ID)s",AWS_SECRET_ACCESS_KEY="%(ENV_AWS_SECRET_ACCESS_KEY)s",POLYGON_API_KEY="%(ENV_POLYGON_API_KEY)s",FRED_API_KEY="%(ENV_FRED_API_KEY)s"
+autostart=true
+autorestart=true
+startretries=5
+startsecs=5
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+priority=10
+
+[program:node-backend]
+command=node /app/node/server.js
+directory=/app/node
+environment=NODE_ENV="production",PORT="3000",SERVE_FRONTEND="true",FRONTEND_PATH="/app/frontend-build",ROKET_BASE_URL="http://127.0.0.1:8000",ANTHROPIC_API_KEY="%(ENV_ANTHROPIC_API_KEY)s",JWT_SECRET="%(ENV_JWT_SECRET)s",AWS_REGION="%(ENV_AWS_REGION)s",AWS_ACCESS_KEY_ID="%(ENV_AWS_ACCESS_KEY_ID)s",AWS_SECRET_ACCESS_KEY="%(ENV_AWS_SECRET_ACCESS_KEY)s"
+autostart=true
+autorestart=true
+startretries=5
+startsecs=3
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+priority=20
+EOF
+
+# Environment defaults (can be overridden at runtime)
+ENV NODE_ENV=production \
+    PORT=3000 \
+    SERVE_FRONTEND=true \
+    FRONTEND_PATH=/app/frontend-build \
+    ROKET_BASE_URL=http://127.0.0.1:8000
+
+# Expose port (only Node.js is externally accessible; Python is internal)
+EXPOSE 3000
+
+# Health check — checks both Node.js AND Python ROKET API
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
+
+# Start supervisord (manages both processes)
+CMD ["supervisord", "-c", "/etc/supervisor/supervisord.conf"]

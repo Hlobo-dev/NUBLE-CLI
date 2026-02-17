@@ -21,6 +21,20 @@ build
 venv
 env
 
+# Node modules (installed inside container)
+node_modules
+**/node_modules
+
+# Environment files (injected via ECS task definition)
+.env
+.env.*
+nova-sonic-frontend/.env
+nova-sonic-frontend/.env.*
+
+# Frontend build artifacts (rebuilt inside container)
+nova-sonic-frontend/nuble-frontend/.svelte-kit
+nova-sonic-frontend/nuble-frontend/build
+
 # IDE
 .vscode
 .idea
@@ -40,7 +54,6 @@ tests/
 test_*.py
 *_test.py
 adversarial_output.txt
-*.txt
 
 # Large data directories (synced from S3 at runtime)
 data/wrds/
@@ -77,7 +90,11 @@ TENK_SOURCE/
 Contextandphase3/
 AArchitecture/
 Validation_instructions/
+Masterplan/
 Nuble_mltrading_system/
+scripts/
+config/
+nova-sonic-frontend/nuble-frontend/static/pyodide
 *.toml
 !pyproject.toml
 deploy_webhooks.py
@@ -90,4 +107,9 @@ system_manifest.json
 # Docker
 Dockerfile
 docker-compose.yml
+nova-sonic-frontend/Dockerfile
+nova-sonic-frontend/docker-compose.yml
+nova-sonic-frontend/deploy*.sh
+nova-sonic-frontend/buildspec.yml
+nova-sonic-frontend/infrastructure
 .dockerignore

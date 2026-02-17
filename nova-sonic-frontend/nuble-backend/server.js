@@ -165,7 +165,7 @@ const DEV_ORIGINS = [
   'http://localhost:3000',
   'http://127.0.0.1:5173',
 ];
-const PROD_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://cloudlobo.com,https://www.cloudlobo.com,https://api.cloudlobo.com').split(',');
+const PROD_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://roketfi.com,https://www.roketfi.com,https://cloudlobo.com,https://www.cloudlobo.com,https://api.cloudlobo.com').split(',');
 const ALLOWED_ORIGINS = IS_PRODUCTION ? PROD_ORIGINS : [...DEV_ORIGINS, ...PROD_ORIGINS];
 
 const io = new Server(server, {
@@ -181,7 +181,7 @@ const io = new Server(server, {
   transports: ['websocket', 'polling'],
 });
 
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 3000;
 
 // JWT Secret: MUST be set in production via env var / Secrets Manager
 const JWT_SECRET = process.env.JWT_SECRET || (() => {
@@ -202,7 +202,123 @@ if (!ANTHROPIC_API_KEY) {
 }
 
 // Request timeout for Anthropic API calls (prevents hanging connections)
-const ANTHROPIC_REQUEST_TIMEOUT_MS = parseInt(process.env.ANTHROPIC_TIMEOUT_MS || '120000', 10);
+// Tool follow-up rounds send large payloads (13+ tool results), so needs generous timeout
+const ANTHROPIC_REQUEST_TIMEOUT_MS = parseInt(process.env.ANTHROPIC_TIMEOUT_MS || '300000', 10);
+// Max characters per tool result to prevent overwhelming Claude with data
+const MAX_TOOL_RESULT_CHARS = 6000;
+
+/**
+ * Intelligently truncate a JSON tool result while preserving valid structure.
+ * Instead of blind character cutting (which breaks JSON and confuses Claude),
+ * this function:
+ * 1. Keeps top-level scalar values (strings, numbers, booleans) intact
+ * 2. Truncates arrays to first N elements
+ * 3. Recursively condenses nested objects
+ * 4. Always produces valid JSON output
+ * 
+ * @param {object} obj - Parsed JSON object to truncate
+ * @param {number} maxChars - Maximum character budget
+ * @param {string} toolName - Tool name for context-aware truncation
+ * @returns {string} Valid JSON string within the character budget
+ */
+function smartTruncateJSON(obj, maxChars, toolName = '') {
+  // Priority keys — keep these in full if possible (most important data)
+  const PRIORITY_KEYS = [
+    'signal', 'score', 'composite_score', 'verdict', 'confidence', 'ticker',
+    'price', 'change_pct', 'close', 'volume', 'decision', 'action',
+    'regime', 'state', 'probability', 'risk_level', 'quality_grade',
+    'signal_summary', 'recommendation', 'overall', 'summary', 'error',
+    'optimal_shares', 'position_value', 'stop_loss', 'take_profit',
+    'rank', 'percentile', 'tier', 'sector', 'direction',
+  ];
+  
+  // For analyze tool, extract just the key sections
+  if (toolName === 'roket_analyze' && typeof obj === 'object' && obj !== null) {
+    const condensed = {};
+    // Keep the most important sections, skip raw data arrays
+    for (const [key, val] of Object.entries(obj)) {
+      if (val === null || val === undefined) continue;
+      if (typeof val === 'object' && !Array.isArray(val)) {
+        // For nested objects, extract key metrics
+        const inner = {};
+        for (const [k, v] of Object.entries(val)) {
+          if (PRIORITY_KEYS.includes(k) || typeof v !== 'object') {
+            inner[k] = typeof v === 'string' && v.length > 200 ? v.substring(0, 200) + '...' : v;
+          }
+        }
+        if (Object.keys(inner).length > 0) condensed[key] = inner;
+      } else if (Array.isArray(val)) {
+        condensed[key] = val.slice(0, 3); // Keep first 3 items of arrays
+      } else {
+        condensed[key] = val;
+      }
+    }
+    const result = JSON.stringify(condensed);
+    if (result.length <= maxChars) return result;
+    // If still too big, further reduce
+    return JSON.stringify(condensed).substring(0, maxChars - 30) + ',"_truncated":true}';
+  }
+  
+  // Generic truncation for other tools
+  if (typeof obj !== 'object' || obj === null) {
+    const s = JSON.stringify(obj);
+    return s.length <= maxChars ? s : s.substring(0, maxChars);
+  }
+  
+  // Build truncated object keeping priority keys first
+  const truncated = {};
+  const keys = Object.keys(obj);
+  const prioritized = keys.sort((a, b) => {
+    const aP = PRIORITY_KEYS.includes(a) ? 0 : 1;
+    const bP = PRIORITY_KEYS.includes(b) ? 0 : 1;
+    return aP - bP;
+  });
+  
+  for (const key of prioritized) {
+    const val = obj[key];
+    if (val === null || val === undefined) continue;
+    
+    if (Array.isArray(val)) {
+      truncated[key] = val.slice(0, 5).map(item => {
+        if (typeof item === 'string' && item.length > 150) return item.substring(0, 150) + '...';
+        if (typeof item === 'object' && item !== null) {
+          // Keep only priority keys from array objects
+          const filtered = {};
+          for (const [k, v] of Object.entries(item)) {
+            if (PRIORITY_KEYS.includes(k) || typeof v !== 'object') {
+              filtered[k] = typeof v === 'string' && v.length > 100 ? v.substring(0, 100) + '...' : v;
+            }
+          }
+          return filtered;
+        }
+        return item;
+      });
+    } else if (typeof val === 'object') {
+      // Nested object: flatten to key metrics
+      const inner = {};
+      for (const [k, v] of Object.entries(val)) {
+        if (typeof v !== 'object' || PRIORITY_KEYS.includes(k)) {
+          inner[k] = typeof v === 'string' && v.length > 200 ? v.substring(0, 200) + '...' : v;
+        }
+      }
+      truncated[key] = inner;
+    } else if (typeof val === 'string' && val.length > 300) {
+      truncated[key] = val.substring(0, 300) + '...';
+    } else {
+      truncated[key] = val;
+    }
+    
+    // Check if we're within budget
+    const currentStr = JSON.stringify(truncated);
+    if (currentStr.length > maxChars * 0.9) {
+      truncated._note = `${keys.length - Object.keys(truncated).length} additional fields omitted for brevity`;
+      break;
+    }
+  }
+  
+  return JSON.stringify(truncated);
+}
+
 // Static directory for favicons
 const STATIC_DIR = path.join(__dirname, 'static');
 if (!fs.existsSync(STATIC_DIR)) {
@@ -2413,8 +2529,8 @@ app.post('/api/chat/completions', authenticateToken, apiLimiter, async (req, res
             messages: currentMessages,
             // On the last possible round, don't allow tools to prevent infinite loops
             ...(isLastPossibleRound ? { tools: undefined } : {}),
-            // First round: stream for fast text display. Tool rounds: non-streaming for simplicity
-            stream: round === 0,
+            // Always stream — including tool follow-up rounds (large payloads need streaming)
+            stream: true,
           };
           
           const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -2447,8 +2563,8 @@ app.post('/api/chat/completions', authenticateToken, apiLimiter, async (req, res
             return;
           }
           
-          // ── Round 0: Stream the first response for fast typewriter effect ──
-          if (round === 0) {
+          // ── All rounds: Stream the response for fast typewriter effect ──
+          {
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let buffer = '';
@@ -2547,10 +2663,23 @@ app.post('/api/chat/completions', authenticateToken, apiLimiter, async (req, res
                 logger.info({ tool: toolBlock.name, input: toolBlock.input, round }, 'Executing NUBLE tool for chat');
                 try {
                   const result = await processNubleTool(toolBlock.name, toolBlock.input);
+                  let resultStr = typeof result === 'string' ? result : JSON.stringify(result);
+                  // Smart truncation: preserve valid JSON structure instead of blind character cut
+                  if (resultStr.length > MAX_TOOL_RESULT_CHARS) {
+                    const originalSize = resultStr.length;
+                    try {
+                      const parsed = typeof result === 'object' ? result : JSON.parse(resultStr);
+                      resultStr = smartTruncateJSON(parsed, MAX_TOOL_RESULT_CHARS, toolBlock.name);
+                    } catch {
+                      // Fallback: blind cut but add closing bracket
+                      resultStr = resultStr.substring(0, MAX_TOOL_RESULT_CHARS) + '..."truncated":true}';
+                    }
+                    logger.info({ tool: toolBlock.name, originalSize, truncatedTo: resultStr.length }, 'Truncated oversized tool result');
+                  }
                   return {
                     type: 'tool_result',
                     tool_use_id: toolBlock.id,
-                    content: typeof result === 'string' ? result : JSON.stringify(result),
+                    content: resultStr,
                   };
                 } catch (err) {
                   logger.error({ err, tool: toolBlock.name }, 'Tool execution failed');
@@ -2565,7 +2694,7 @@ app.post('/api/chat/completions', authenticateToken, apiLimiter, async (req, res
               
               currentMessages.push({ role: 'user', content: toolResults });
               
-              // Continue the loop — next round will NOT stream (simpler for tool follow-ups)
+              // Continue the loop — next round will also stream
               clearTimeout(timeout);
               continue;
             }
@@ -2578,72 +2707,22 @@ app.post('/api/chat/completions', authenticateToken, apiLimiter, async (req, res
             return;
           }
           
-          // ── Rounds 1+: Non-streaming (tool follow-up rounds) ──
-          const result = await response.json();
-          totalInputTokens += result.usage?.input_tokens || 0;
-          totalOutputTokens += result.usage?.output_tokens || 0;
-          
-          // Stream the text content to frontend
-          const textBlocks = (result.content || []).filter(b => b.type === 'text');
-          for (const block of textBlocks) {
-            if (block.text) {
-              // Send in chunks for a more natural typewriter effect
-              const chunks = block.text.match(/.{1,80}/gs) || [block.text];
-              for (const chunk of chunks) {
-                io.to(session_id).emit('events', {
-                  chat_id, message_id: responseMessageId,
-                  data: { type: 'chat:completion', data: { id: completionId, done: false, choices: [{ index: 0, delta: { content: chunk }, finish_reason: null }] } }
-                });
-              }
-            }
-          }
-          
-          // Check if more tools are needed
-          const toolBlocks = (result.content || []).filter(b => b.type === 'tool_use');
-          if (result.stop_reason === 'tool_use' && toolBlocks.length > 0) {
-            currentMessages.push({ role: 'assistant', content: result.content });
-            
-            // Notify frontend about tool calls
-            for (const tb of toolBlocks) {
-              io.to(session_id).emit('events', {
-                chat_id, message_id: responseMessageId,
-                data: { type: 'chat:completion', data: { id: completionId, done: false, choices: [{ index: 0, delta: { content: `\n\n*Querying ${tb.name.replace('roket_', '').replace(/_/g, ' ')}...*\n` }, finish_reason: null }] } }
-              });
-            }
-            
-            const toolResults = await Promise.all(toolBlocks.map(async (toolBlock) => {
-              logger.info({ tool: toolBlock.name, input: toolBlock.input, round }, 'Executing NUBLE tool for chat (follow-up)');
-              try {
-                const toolResult = await processNubleTool(toolBlock.name, toolBlock.input);
-                return {
-                  type: 'tool_result',
-                  tool_use_id: toolBlock.id,
-                  content: typeof toolResult === 'string' ? toolResult : JSON.stringify(toolResult),
-                };
-              } catch (err) {
-                logger.error({ err, tool: toolBlock.name }, 'Tool execution failed');
-                return { type: 'tool_result', tool_use_id: toolBlock.id, content: JSON.stringify({ error: err.message }), is_error: true };
-              }
-            }));
-            
-            currentMessages.push({ role: 'user', content: toolResults });
-            clearTimeout(timeout);
-            continue; // Next round
-          }
-          
-          // Done — emit final event
-          io.to(session_id).emit('events', {
-            chat_id, message_id: responseMessageId,
-            data: { type: 'chat:completion', data: { id: completionId, done: true, choices: [{ index: 0, delta: {}, finish_reason: 'stop' }], usage: { prompt_tokens: totalInputTokens, completion_tokens: totalOutputTokens, total_tokens: totalInputTokens + totalOutputTokens } } }
-          });
-          return;
-          
         } catch (error) {
-          logger.error({ err: error, round }, 'Async chat completion error');
+          const isAbort = error.name === 'AbortError';
+          const messageCount = currentMessages.length;
+          const totalToolResults = currentMessages.filter(m => m.role === 'user' && Array.isArray(m.content) && m.content[0]?.type === 'tool_result').length;
+          logger.error({ 
+            err: error, round, isAbort, messageCount, totalToolResults,
+            timeoutMs: ANTHROPIC_REQUEST_TIMEOUT_MS 
+          }, `Async chat completion ${isAbort ? 'TIMEOUT' : 'error'} at round ${round}`);
+          
           if (session_id) {
+            const userMessage = isAbort 
+              ? `The analysis is taking longer than expected (round ${round + 1}). This usually happens with very complex queries. Please try a simpler question or ask about fewer stocks at once.`
+              : (error.message || 'Failed to process chat completion');
             io.to(session_id).emit('events', {
               chat_id, message_id: responseMessageId,
-              data: { type: 'chat:completion', data: { error: { message: error.name === 'AbortError' ? 'Request timed out' : (error.message || 'Failed to process chat completion') } } }
+              data: { type: 'chat:completion', data: { error: { message: userMessage } } }
             });
           }
           return;
@@ -2785,8 +2864,8 @@ app.post('/api/anthropic/chat/completions', async (req, res) => {
           messages: currentMessages,
           // On the last round, remove tools to force a text response
           ...(isLastPossibleRound ? { tools: undefined } : {}),
-          // Always non-streaming for tool loop to simplify handling; stream the final round
-          stream: false,
+          // Always stream — prevents timeout on large tool-result payloads
+          stream: true,
         };
         
         const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
@@ -2811,33 +2890,98 @@ app.post('/api/anthropic/chat/completions', async (req, res) => {
           });
         }
         
-        const data = await anthropicResponse.json();
-        totalInputTokens += data.usage?.input_tokens || 0;
-        totalOutputTokens += data.usage?.output_tokens || 0;
+        // Parse streamed response into content blocks (same as main endpoint)
+        const reader = anthropicResponse.body.getReader();
+        const decoder = new TextDecoder();
+        let sseBuffer = '';
+        let stopReason = 'end_turn';
+        const contentBlocks = [];
+        let currentBlockType = null;
+        let currentToolUse = null;
+        let currentToolInput = '';
+        const collectedText = []; // Collect text chunks for final response
         
-        if (data.error) {
-          logger.error({ error: data.error, round }, 'Anthropic response error (proxy)');
-          return res.status(400).json({ error: data.error });
+        while (true) {
+          const { done: readerDone, value } = await reader.read();
+          if (readerDone) break;
+          
+          sseBuffer += decoder.decode(value, { stream: true });
+          const sseLines = sseBuffer.split('\n');
+          sseBuffer = sseLines.pop() || '';
+          
+          for (const sseLine of sseLines) {
+            if (!sseLine.startsWith('data: ')) continue;
+            const dataStr = sseLine.slice(6).trim();
+            if (!dataStr || dataStr === '[DONE]') continue;
+            
+            try {
+              const event = JSON.parse(dataStr);
+              
+              if (event.type === 'content_block_start') {
+                currentBlockType = event.content_block?.type;
+                if (currentBlockType === 'tool_use') {
+                  currentToolUse = { type: 'tool_use', id: event.content_block.id, name: event.content_block.name, input: {} };
+                  currentToolInput = '';
+                } else if (currentBlockType === 'text') {
+                  contentBlocks.push({ type: 'text', text: '' });
+                }
+              } else if (event.type === 'content_block_delta') {
+                if (currentBlockType === 'text' && event.delta?.text) {
+                  const lastBlock = contentBlocks[contentBlocks.length - 1];
+                  if (lastBlock && lastBlock.type === 'text') lastBlock.text += event.delta.text;
+                  collectedText.push(event.delta.text);
+                } else if (currentBlockType === 'tool_use' && event.delta?.partial_json) {
+                  currentToolInput += event.delta.partial_json;
+                }
+              } else if (event.type === 'content_block_stop') {
+                if (currentBlockType === 'tool_use' && currentToolUse) {
+                  try { currentToolUse.input = JSON.parse(currentToolInput); } catch { currentToolUse.input = {}; }
+                  contentBlocks.push(currentToolUse);
+                  currentToolUse = null;
+                  currentToolInput = '';
+                }
+                currentBlockType = null;
+              } else if (event.type === 'message_delta') {
+                if (event.usage) totalOutputTokens += event.usage.output_tokens || 0;
+                if (event.delta?.stop_reason) stopReason = event.delta.stop_reason;
+              } else if (event.type === 'message_start' && event.message?.usage) {
+                totalInputTokens += event.message.usage.input_tokens || 0;
+              } else if (event.type === 'error') {
+                logger.error({ event, round }, 'Anthropic stream error (proxy)');
+                return res.status(500).json({ error: { message: event.error?.message || 'Streaming error from Anthropic' } });
+              }
+            } catch (e) { /* skip non-JSON lines */ }
+          }
         }
         
         // Check if Claude wants to use tools
-        const toolBlocks = (data.content || []).filter(b => b.type === 'tool_use');
+        const toolBlocks = contentBlocks.filter(b => b.type === 'tool_use');
         
-        if (data.stop_reason === 'tool_use' && toolBlocks.length > 0) {
+        if (stopReason === 'tool_use' && toolBlocks.length > 0) {
           logger.info({ tools: toolBlocks.map(t => t.name), round }, 'Executing NUBLE tools (proxy)');
           
           // Add assistant message with tool calls
-          currentMessages.push({ role: 'assistant', content: data.content });
+          currentMessages.push({ role: 'assistant', content: contentBlocks });
           
           // Execute all tool calls in parallel
           const toolResults = await Promise.all(toolBlocks.map(async (toolBlock) => {
             logger.info({ tool: toolBlock.name, input: toolBlock.input, round }, 'Executing NUBLE tool for proxy chat');
             try {
               const result = await processNubleTool(toolBlock.name, toolBlock.input);
+              let resultStr = typeof result === 'string' ? result : JSON.stringify(result);
+              // Smart truncation (same as main endpoint)
+              if (resultStr.length > MAX_TOOL_RESULT_CHARS) {
+                try {
+                  const parsed = typeof result === 'object' ? result : JSON.parse(resultStr);
+                  resultStr = smartTruncateJSON(parsed, MAX_TOOL_RESULT_CHARS, toolBlock.name);
+                } catch {
+                  resultStr = resultStr.substring(0, MAX_TOOL_RESULT_CHARS) + '..."truncated":true}';
+                }
+              }
               return {
                 type: 'tool_result',
                 tool_use_id: toolBlock.id,
-                content: typeof result === 'string' ? result : JSON.stringify(result),
+                content: resultStr,
               };
             } catch (err) {
               logger.error({ err, tool: toolBlock.name }, 'Tool execution failed (proxy)');
@@ -2856,10 +3000,7 @@ app.post('/api/anthropic/chat/completions', async (req, res) => {
         }
         
         // No tool calls — this is the final response. Extract text content.
-        const textContent = (data.content || [])
-          .filter(b => b.type === 'text')
-          .map(b => b.text)
-          .join('');
+        const textContent = collectedText.join('');
         
         if (stream) {
           // Stream the final text as OpenAI-format SSE chunks
@@ -2895,14 +3036,14 @@ app.post('/api/anthropic/chat/completions', async (req, res) => {
         } else {
           // Non-streaming: convert to OpenAI format
           return res.json({
-            id: data.id || 'chatcmpl-' + Date.now(),
+            id: 'chatcmpl-' + Date.now(),
             object: 'chat.completion',
             created: Math.floor(Date.now() / 1000),
-            model: data.model,
+            model: model,
             choices: [{
               index: 0,
               message: { role: 'assistant', content: textContent },
-              finish_reason: data.stop_reason === 'end_turn' ? 'stop' : data.stop_reason
+              finish_reason: stopReason === 'end_turn' ? 'stop' : stopReason
             }],
             usage: {
               prompt_tokens: totalInputTokens,
@@ -2913,8 +3054,12 @@ app.post('/api/anthropic/chat/completions', async (req, res) => {
         }
         
       } catch (error) {
-        logger.error({ err: error, round }, 'Proxy chat completion error');
-        return res.status(500).json({ error: { message: error.name === 'AbortError' ? 'Request timed out' : (error.message || 'Failed to process chat completion') } });
+        const isAbort = error.name === 'AbortError';
+        logger.error({ err: error, round, isAbort, messageCount: currentMessages.length, timeoutMs: ANTHROPIC_REQUEST_TIMEOUT_MS }, 'Proxy chat completion error');
+        const userMessage = isAbort 
+          ? `The analysis is taking longer than expected (round ${round + 1}). Try a simpler question or ask about fewer stocks.`
+          : (error.message || 'Failed to process chat completion');
+        return res.status(500).json({ error: { message: userMessage } });
       } finally {
         clearTimeout(timeout);
       }

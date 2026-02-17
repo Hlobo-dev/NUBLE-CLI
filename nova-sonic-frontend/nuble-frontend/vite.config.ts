@@ -27,12 +27,12 @@ export default defineConfig({
 		format: 'es'
 	},
 	esbuild: {
-		pure: process.env.ENV === 'dev' ? [] : ['console.log', 'console.debug', 'console.error']
+		pure: process.env.ENV === 'dev' ? [] : ['console.log', 'console.debug']
 	},
 	server: {
 		proxy: {
 			'/api/anthropic': {
-				target: 'http://localhost:8080',
+				target: 'http://localhost:3000',
 				changeOrigin: true
 			}
 		}

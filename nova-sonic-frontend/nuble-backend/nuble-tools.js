@@ -497,9 +497,9 @@ async function processNubleTool(toolName, toolContent) {
 
     console.log(`[NUBLE] ${method} ${fullUrl}`);
     
-    // 30-second timeout to prevent hanging tool calls
+    // 60-second timeout to prevent hanging tool calls (analyze can take 15s+)
     const toolController = new AbortController();
-    const toolTimeout = setTimeout(() => toolController.abort(), 30000);
+    const toolTimeout = setTimeout(() => toolController.abort(), 60000);
     options.signal = toolController.signal;
     
     let resp;
@@ -523,9 +523,9 @@ async function processNubleTool(toolName, toolContent) {
 
   } catch (err) {
     const isTimeout = err.name === 'AbortError';
-    console.error(`[NUBLE] Tool ${toolName} ${isTimeout ? 'timed out (30s)' : 'failed'}:`, err.message);
+    console.error(`[NUBLE] Tool ${toolName} ${isTimeout ? 'timed out (60s)' : 'failed'}:`, err.message);
     return { 
-      error: isTimeout ? `Tool ${toolName} timed out after 30 seconds` : err.message, 
+      error: isTimeout ? `Tool ${toolName} timed out after 60 seconds` : err.message, 
       tool: toolName,
       hint: isTimeout 
         ? 'The ROKET API is running but this request took too long. Try a simpler query.'

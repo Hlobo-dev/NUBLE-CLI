@@ -1,9 +1,13 @@
-# Dependencies
+# Dependencies (installed inside container)
 node_modules/
 nuble-frontend/node_modules/
 nuble-backend/node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
 
-# Build artifacts
+# Build artifacts (rebuilt inside container)
 nuble-frontend/.svelte-kit/
 nuble-frontend/build/
 dist/
@@ -14,15 +18,20 @@ out/
 .gitignore
 .idea/
 .vscode/
-*.md
-*.yml
-!cloudformation-stack.yaml
 
-# Data (don't bake into image)
+# Data (mounted or generated at runtime)
 nuble-backend/data/
-data/
+data/paper_trading_state.json
+data/s3_deployment_manifest.json
+data/historical/
+data/test/
+data/train/
+data/wrds/
+data_cache/
+filings_db/
+test_filings_db/
 
-# Environment files (secrets injected at runtime)
+# Environment files (injected at runtime via ECS)
 .env
 .env.*
 nuble-backend/.env
@@ -31,11 +40,45 @@ nuble-backend/.env
 .DS_Store
 Thumbs.db
 
-# Infrastructure (not needed in container)
+# Infrastructure / deploy scripts (not needed in container)
 infrastructure/
 deploy*.sh
 buildspec.yml
 DEPLOYMENT*.md
+*.md
+
+# Test / validation / docs (not needed in container)
+tests/
+validation/
+validation_results/
+training_results/
+Validation_instructions/
+Masterplan/
+Contextandphase3/
+AArchitecture/
+docs/
+demo/
+WRDS*/
+wrds_pipeline/
+wrdscomplete/
+scripts/
+
+# Large unnecessary files
+*.log
+wrds_download*.log
+Nuble_mltrading_system/
+TENK_SOURCE/
 
 # Pyodide cache
 nuble-frontend/static/pyodide/
+
+# Old/misc Python files at root
+chat_with_roket.py
+deploy_webhooks.py
+migrate_*.py
+patch_server.py
+run_production.py
+test_*.py
+train_properly.py
+setup.py
+pyproject_institutional.toml
