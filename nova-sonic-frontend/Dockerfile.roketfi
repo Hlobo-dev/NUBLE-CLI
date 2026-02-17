@@ -19,6 +19,7 @@ FROM 456309723884.dkr.ecr.us-east-1.amazonaws.com/roket-production:07dd180 AS fr
 FROM node:20-slim AS production
 
 # Install Python 3, pip, supervisor, and build essentials for native Python packages
+# CRITICAL: libgomp1 is required by LightGBM (OpenMP runtime for gradient boosting)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
@@ -26,6 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     supervisor \
     wget \
     curl \
+    libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
@@ -116,9 +118,9 @@ pidfile=/var/run/supervisord.pid
 user=root
 
 [program:roket-api]
-command=/app/venv/bin/python -m uvicorn nuble.api.roket:app --host 0.0.0.0 --port 8000 --workers 2
+command=/app/venv/bin/python -m uvicorn nuble.api.roket:app --host 0.0.0.0 --port 8000 --workers 1
 directory=/app
-environment=PYTHONPATH="/app/src:/app",AWS_REGION="${AWS_REGION:-us-east-1}",AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-}",AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-}",AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN:-}",POLYGON_API_KEY="${POLYGON_API_KEY:-}",FRED_API_KEY="${FRED_API_KEY:-}"
+environment=PYTHONPATH="/app/src:/app",AWS_REGION="${AWS_REGION:-us-east-1}",AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-}",AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-}",AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN:-}",POLYGON_API_KEY="${POLYGON_API_KEY:-}",FRED_API_KEY="${FRED_API_KEY:-}",STOCKNEWS_API_KEY="${STOCKNEWS_API_KEY:-}",CRYPTONEWS_API_KEY="${CRYPTONEWS_API_KEY:-}"
 autostart=true
 autorestart=true
 startretries=5
@@ -132,7 +134,7 @@ priority=10
 [program:node-backend]
 command=node /app/node/server.js
 directory=/app/node
-environment=NODE_ENV="production",PORT="3000",SERVE_FRONTEND="true",FRONTEND_PATH="/app/frontend-build",ROKET_BASE_URL="http://127.0.0.1:8000",ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}",JWT_SECRET="${JWT_SECRET:-}",AWS_REGION="${AWS_REGION:-us-east-1}",AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-}",AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-}",AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN:-}",ALLOWED_ORIGINS="${ALLOWED_ORIGINS:-}"
+environment=NODE_ENV="production",PORT="3000",SERVE_FRONTEND="true",FRONTEND_PATH="/app/frontend-build",ROKET_BASE_URL="http://127.0.0.1:8000",ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}",JWT_SECRET="${JWT_SECRET:-}",AWS_REGION="${AWS_REGION:-us-east-1}",AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-}",AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-}",AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN:-}",ALLOWED_ORIGINS="${ALLOWED_ORIGINS:-}",POLYGON_API_KEY="${POLYGON_API_KEY:-}"
 autostart=true
 autorestart=true
 startretries=5

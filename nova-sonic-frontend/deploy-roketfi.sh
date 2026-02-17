@@ -38,6 +38,11 @@ DOCKERFILE="nova-sonic-frontend/Dockerfile.roketfi"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+# Load API keys from .env (for CloudFormation parameter injection)
+if [ -f "$SCRIPT_DIR/.env" ]; then
+    export $(grep -E '^(POLYGON_API_KEY|FRED_API_KEY|STOCKNEWS_API_KEY|CRYPTONEWS_API_KEY)=' "$SCRIPT_DIR/.env" | xargs)
+fi
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -249,6 +254,7 @@ aws cloudformation update-stack \
         ParameterKey=ECRImageUri,ParameterValue="${ECR_URI}:latest" \
         ParameterKey=AnthropicApiKey,UsePreviousValue=true \
         ParameterKey=JwtSecret,UsePreviousValue=true \
+        ParameterKey=PolygonApiKey,ParameterValue="${POLYGON_API_KEY:-}" \
         ParameterKey=DomainName,UsePreviousValue=true \
         ParameterKey=HostedZoneId,UsePreviousValue=true \
         ParameterKey=ContainerPort,UsePreviousValue=true \

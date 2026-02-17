@@ -22,6 +22,11 @@ Parameters:
     Type: String
     NoEcho: true
     Description: JWT signing secret
+  PolygonApiKey:
+    Type: String
+    NoEcho: true
+    Default: ''
+    Description: Polygon.io API Key for real-time market data
 
 Resources:
   # ============================================
@@ -339,6 +344,8 @@ Resources:
               Value: info
             - Name: ROKET_BASE_URL
               Value: 'http://127.0.0.1:8000'
+            - Name: POLYGON_API_KEY
+              Value: !Ref PolygonApiKey
           LogConfiguration:
             LogDriver: awslogs
             Options:
