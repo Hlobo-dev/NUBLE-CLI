@@ -101,7 +101,14 @@ WORKDIR /app
 
 # ── Supervisord Config ──
 # Runs BOTH Node.js + Python ROKET API in a single container
-RUN cat > /etc/supervisor/conf.d/roket.conf << 'EOF'
+# Generate supervisord config at container startup via entrypoint script
+# This avoids %(ENV_*)s expansion failures for optional env vars
+RUN cat > /app/entrypoint.sh << 'ENTRYPOINT_EOF'
+#!/bin/bash
+set -e
+
+# Build supervisord config dynamically so missing env vars get empty defaults
+cat > /etc/supervisor/conf.d/roket.conf << SUPEOF
 [supervisord]
 nodaemon=true
 logfile=/app/logs/supervisord.log
@@ -111,7 +118,7 @@ user=root
 [program:roket-api]
 command=/app/venv/bin/python -m uvicorn nuble.api.roket:app --host 0.0.0.0 --port 8000 --workers 2
 directory=/app
-environment=PYTHONPATH="/app/src:/app",AWS_REGION="%(ENV_AWS_REGION)s",AWS_ACCESS_KEY_ID="%(ENV_AWS_ACCESS_KEY_ID)s",AWS_SECRET_ACCESS_KEY="%(ENV_AWS_SECRET_ACCESS_KEY)s",POLYGON_API_KEY="%(ENV_POLYGON_API_KEY)s",FRED_API_KEY="%(ENV_FRED_API_KEY)s"
+environment=PYTHONPATH="/app/src:/app",AWS_REGION="${AWS_REGION:-us-east-1}",AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-}",AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-}",AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN:-}",POLYGON_API_KEY="${POLYGON_API_KEY:-}",FRED_API_KEY="${FRED_API_KEY:-}"
 autostart=true
 autorestart=true
 startretries=5
@@ -125,7 +132,7 @@ priority=10
 [program:node-backend]
 command=node /app/node/server.js
 directory=/app/node
-environment=NODE_ENV="production",PORT="3000",SERVE_FRONTEND="true",FRONTEND_PATH="/app/frontend-build",ROKET_BASE_URL="http://127.0.0.1:8000",ANTHROPIC_API_KEY="%(ENV_ANTHROPIC_API_KEY)s",JWT_SECRET="%(ENV_JWT_SECRET)s",AWS_REGION="%(ENV_AWS_REGION)s",AWS_ACCESS_KEY_ID="%(ENV_AWS_ACCESS_KEY_ID)s",AWS_SECRET_ACCESS_KEY="%(ENV_AWS_SECRET_ACCESS_KEY)s"
+environment=NODE_ENV="production",PORT="3000",SERVE_FRONTEND="true",FRONTEND_PATH="/app/frontend-build",ROKET_BASE_URL="http://127.0.0.1:8000",ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}",JWT_SECRET="${JWT_SECRET:-}",AWS_REGION="${AWS_REGION:-us-east-1}",AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-}",AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-}",AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN:-}",ALLOWED_ORIGINS="${ALLOWED_ORIGINS:-}"
 autostart=true
 autorestart=true
 startretries=5
@@ -135,7 +142,11 @@ stdout_logfile_maxbytes=0
 stderr_logfile=/dev/stderr
 stderr_logfile_maxbytes=0
 priority=20
-EOF
+SUPEOF
+
+exec supervisord -c /etc/supervisor/supervisord.conf
+ENTRYPOINT_EOF
+RUN chmod +x /app/entrypoint.sh
 
 # Environment defaults (can be overridden at runtime)
 ENV NODE_ENV=production \
@@ -151,5 +162,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
 
-# Start supervisord (manages both processes)
-CMD ["supervisord", "-c", "/etc/supervisor/supervisord.conf"]
+# Start entrypoint (generates supervisord config with runtime env vars, then launches supervisord)
+CMD ["/app/entrypoint.sh"]
