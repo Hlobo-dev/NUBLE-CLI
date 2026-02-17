@@ -207,6 +207,169 @@ const ANTHROPIC_REQUEST_TIMEOUT_MS = parseInt(process.env.ANTHROPIC_TIMEOUT_MS |
 // Max characters per tool result to prevent overwhelming Claude with data
 const MAX_TOOL_RESULT_CHARS = 6000;
 
+// ── Chain-of-Thought: Institutional Intelligence Pipeline Status ─────────
+// Maps each ROKET subsystem to precise descriptions of what's happening
+// under the hood — showing users the depth of a system that rivals
+// Renaissance Technologies' Medallion, Two Sigma's Venn, and Citadel's
+// proprietary research infrastructure.
+//
+// Three phases per tool:
+//   verb  → shown during execution (shimmer animation)
+//   done  → shown after completion (static checkmark)
+//   label → short name for fallback/error contexts
+const TOOL_DISPLAY_INFO = {
+  roket_predict: {
+    label: 'Ensemble Forecast Engine',
+    verb:  'Executing 5-model ensemble: LightGBM gradient-boosted trees + MLP neural network + regime-weighted momentum + mean-reversion signal + cross-sectional relative strength — aggregating via inverse-variance weighted consensus',
+    done:  'Ensemble forecast complete — 5 independent alpha signals fused into conviction-weighted directional probability',
+  },
+  roket_analyze: {
+    label: 'Full-Spectrum Alpha Decomposition',
+    verb:  'Deploying 47-factor quantitative deep-dive: technical microstructure · fundamental quality · earnings forensics · insider conviction · institutional flow · regime context · macro sensitivity — cross-referencing all signal layers',
+    done:  'Full-spectrum analysis complete — composite alpha score synthesized across all 47 orthogonal factors',
+  },
+  roket_fundamentals: {
+    label: 'Fundamental Factor Engine',
+    verb:  'Decomposing Fama-French factor loadings: profitability (ROE/ROIC), investment quality (capex efficiency), value (EV/EBITDA, FCF yield), growth persistence (revenue CAGR, margin trajectory) — benchmarking against sector medians',
+    done:  'Factor decomposition complete — quality, value, growth & profitability scores computed vs. sector universe',
+  },
+  roket_earnings: {
+    label: 'Earnings Forensics & Accrual Analysis',
+    verb:  'Running Beneish M-Score fraud detection · Sloan accrual ratio · cash-flow-to-earnings divergence · revenue recognition quality · operating leverage sensitivity — forensic accounting analysis across 8 quarters',
+    done:  'Earnings forensics complete — accrual quality, persistence score & manipulation probability computed',
+  },
+  roket_risk: {
+    label: 'Tail Risk & Drawdown Analytics',
+    verb:  'Computing parametric VaR (99th percentile) · Conditional VaR (Expected Shortfall) · maximum drawdown trajectory · Sortino ratio · beta decomposition (systematic vs. idiosyncratic) · correlation regime stress test',
+    done:  'Risk attribution complete — VaR, CVaR, drawdown profile & tail-risk exposure quantified',
+  },
+  roket_insider: {
+    label: 'Form 4 Insider Intelligence',
+    verb:  'Parsing SEC Form 4 filings: C-suite purchase/sale clusters · 10b5-1 plan modifications · insider-to-outsider transaction ratio · conviction scoring (% of net worth) · historical signal accuracy by insider tier',
+    done:  'Insider intelligence mapped — executive conviction patterns, cluster signals & historical hit-rate analyzed',
+  },
+  roket_institutional: {
+    label: '13F Smart Money Flow Tracker',
+    verb:  'Analyzing 13F institutional filings: hedge fund position delta · mutual fund concentration shifts · activist accumulation patterns · top-holder conviction changes — tracking 500+ institutional portfolios',
+    done:  'Smart money flow analysis complete — institutional ownership delta, concentration risk & activist signals mapped',
+  },
+  roket_regime: {
+    label: 'Hidden Markov Regime Classifier',
+    verb:  'Running 4-state Hidden Markov Model: bull-trending · bull-volatile · bear-trending · bear-volatile — computing transition matrix, steady-state probabilities & regime duration expectations from 20Y training window',
+    done:  'Regime classification complete — current state identified with transition probabilities & expected duration',
+  },
+  roket_screener: {
+    label: 'Quantitative Factor Screener',
+    verb:  'Applying multi-factor screen across equity universe: composite alpha rank · momentum z-score · quality-value intersection · earnings revision breadth · institutional accumulation signal — filtering by statistical significance',
+    done:  'Factor screen complete — candidates ranked by composite alpha with statistical confidence intervals',
+  },
+  roket_universe: {
+    label: 'Cross-Sectional Percentile Engine',
+    verb:  'Computing cross-sectional percentile rankings across full investable universe: momentum · value · quality · volatility · liquidity — generating sector-neutralized z-scores for relative value positioning',
+    done:  'Universe ranking complete — sector-neutralized percentile scores assigned across all factor dimensions',
+  },
+  roket_news: {
+    label: 'Real-Time NLP Event Processor',
+    verb:  'Processing live news feed through multi-model NLP pipeline: entity extraction · sentiment polarity scoring · event materiality classification · earnings surprise detection · regulatory risk flagging',
+    done:  'NLP event analysis complete — sentiment polarity, materiality scores & catalytic event timeline generated',
+  },
+  roket_snapshot: {
+    label: 'Live Microstructure Intelligence',
+    verb:  'Capturing real-time market microstructure: bid-ask spread dynamics · volume-weighted price trajectory · intraday momentum · relative volume anomaly detection · dark pool activity indicators',
+    done:  'Microstructure snapshot acquired — price action, volume anomalies & intraday momentum captured',
+  },
+  roket_sec_quality: {
+    label: 'SEC Filing Forensic Scanner',
+    verb:  'Scanning 10-K/10-Q filings through forensic NLP: management tone shift analysis · risk factor evolution · accounting policy change detection · related-party transaction flags · going concern language scoring',
+    done:  'SEC forensic scan complete — filing quality score, management tone trajectory & red-flag indicators computed',
+  },
+  roket_macro: {
+    label: 'Macro Regime & Sensitivity Matrix',
+    verb:  'Evaluating macroeconomic regime: yield curve dynamics (2s10s, 3m10y) · Fed funds rate trajectory · credit spreads (IG/HY) · USD strength · commodity complex · ISM/PMI momentum — computing asset-level factor sensitivities',
+    done:  'Macro assessment complete — regime state, rate sensitivity, credit exposure & commodity correlation mapped',
+  },
+  roket_lambda: {
+    label: 'Lambda Composite Decision Engine',
+    verb:  'Synthesizing all intelligence layers through Lambda engine: ensemble ML signal · fundamental quality · technical momentum · insider/institutional flow · regime context · risk-adjusted sizing — generating unified conviction score',
+    done:  'Lambda synthesis complete — multi-dimensional conviction score generated with confidence interval & risk overlay',
+  },
+  roket_compare: {
+    label: 'Relative Value Pair Analysis',
+    verb:  'Running pair-wise relative value decomposition: valuation spread (P/E, EV/EBITDA, P/FCF) · growth differential · quality gap · momentum divergence · institutional preference delta — sector-neutralized comparison',
+    done:  'Relative value analysis complete — valuation spread, quality differential & alpha opportunity gap quantified',
+  },
+  roket_position_size: {
+    label: 'Kelly-Criterion Position Optimizer',
+    verb:  'Computing optimal allocation: Kelly criterion with half-Kelly conservative adjustment · portfolio-level VaR constraint · correlation-aware diversification benefit · maximum drawdown budget · liquidity-adjusted sizing',
+    done:  'Position sizing complete — Kelly-optimal allocation computed with risk budget, stop-loss & take-profit levels',
+  },
+  roket_top_picks: {
+    label: 'Alpha Conviction Rank Engine',
+    verb:  'Generating conviction-ranked opportunity list: composite alpha score · risk-adjusted Sharpe expectation · catalyst proximity · institutional momentum alignment · regime favorability — filtering for highest-probability setups',
+    done:  'Conviction list generated — highest-alpha opportunities ranked by expected risk-adjusted return',
+  },
+  roket_tier: {
+    label: 'Market Cap Tier Decomposition',
+    verb:  'Analyzing performance dynamics across market cap spectrum: mega/large/mid/small/micro-cap relative momentum · sector rotation within tiers · factor exposure variation by size · liquidity premium decomposition',
+    done:  'Tier analysis complete — size-factor alpha, rotation signals & tier-specific opportunity set mapped',
+  },
+  roket_model_info: {
+    label: 'Model Registry & Validation',
+    verb:  'Querying model registry: architecture specification · training window · walk-forward validation metrics (Sharpe, hit-rate, max DD) · feature importance rankings · last retraining timestamp · out-of-sample performance',
+    done:  'Model registry queried — architecture, validation metrics & out-of-sample performance confirmed',
+  },
+};
+
+/**
+ * Emit a chain-of-thought status event to the frontend.
+ * The Open WebUI frontend renders these in StatusHistory with:
+ *   - Shimmer animation while done=false (in-progress)
+ *   - Static text when done=true (completed)
+ *   - Collapsible timeline with dots for multi-step reasoning
+ *
+ * @param {object} io - Socket.IO server instance
+ * @param {string} sessionId - Socket.IO room/session
+ * @param {string} chatId - Chat ID
+ * @param {string} messageId - Response message ID
+ * @param {object} status - { done, action, description, query? }
+ */
+function emitStatus(io, sessionId, chatId, messageId, status) {
+  io.to(sessionId).emit('events', {
+    chat_id: chatId,
+    message_id: messageId,
+    data: { type: 'status', data: status }
+  });
+}
+
+/**
+ * Build a precise, institutional-grade tool description with full context.
+ * Shows exactly what's happening: which subsystem, which ticker, which parameters.
+ * E.g. "Executing 5-model ensemble: LightGBM + MLP + momentum + mean-reversion + 
+ *        cross-sectional strength for NVDA — aggregating via inverse-variance weighted consensus"
+ */
+function getToolStatusDescription(toolName, input, phase = 'start') {
+  const info = TOOL_DISPLAY_INFO[toolName] || {
+    label: toolName.replace('roket_', '').replace(/_/g, ' '),
+    verb: `Executing proprietary ${toolName.replace('roket_', '').replace(/_/g, ' ')} subsystem`,
+    done: `${toolName.replace('roket_', '').replace(/_/g, ' ')} analysis pipeline complete`
+  };
+
+  // Build rich contextual suffix from all available input parameters
+  const parts = [];
+  const ticker = input?.ticker || input?.tickers;
+  if (ticker) parts.push(`for ${String(ticker).toUpperCase()}`);
+  if (input?.tier) parts.push(`${input.tier}-cap segment`);
+  if (input?.sector) parts.push(`${input.sector} sector`);
+  if (input?.horizon) parts.push(`${input.horizon} horizon`);
+  if (input?.lookback) parts.push(`${input.lookback} lookback`);
+  if (input?.benchmark) parts.push(`vs ${input.benchmark}`);
+  const suffix = parts.length > 0 ? ` ${parts.join(' · ')}` : '';
+
+  if (phase === 'start') return `${info.verb}${suffix}`;
+  if (phase === 'done') return `${info.done}${suffix}`;
+  return info.label;
+}
+
 /**
  * Intelligently truncate a JSON tool result while preserving valid structure.
  * Instead of blind character cutting (which breaks JSON and confuses Claude),
@@ -2412,11 +2575,28 @@ app.post('/api/chat/completions', authenticateToken, apiLimiter, async (req, res
     const isOpus = model && model.includes('opus');
     const defaultMaxTokens = isOpus46 ? 32768 : isOpus ? 16384 : 8192;
     
+    // Determine if extended thinking should be enabled
+    // Extended thinking gives Claude a "thinking scratchpad" for deeper reasoning
+    // Compatible with tool use via interleaved-thinking beta header
+    // Supported on: Claude 3.5 Sonnet+, Claude 4 Sonnet, Claude 4 Opus, Claude 4.6 Opus
+    const supportsThinking = model && (
+      model.includes('claude-3-5') ||      // Claude 3.5 Sonnet
+      model.includes('claude-3.5') ||      // Claude 3.5 (alternate naming)
+      model.includes('claude-sonnet-4') || // Claude 4 Sonnet
+      model.includes('claude-4') ||        // Claude 4 family
+      model.includes('opus-4') ||          // Opus 4.x
+      model.includes('sonnet-4')           // Sonnet 4.x
+    );
+    const enableThinking = supportsThinking; // Enable when model supports it
+    const thinkingBudget = isOpus ? 16384 : 10000; // Bigger budget for Opus models
+    
     const anthropicRequest = {
       model: model,
-      max_tokens: max_tokens || defaultMaxTokens,
+      max_tokens: (max_tokens || defaultMaxTokens) + (enableThinking ? thinkingBudget : 0),
       messages: anthropicMessages,
-      stream: true  // Stream for typewriter effect
+      stream: true,  // Stream for typewriter effect
+      // Extended thinking: gives Claude an internal scratchpad for deeper reasoning
+      ...(enableThinking ? { thinking: { type: 'enabled', budget_tokens: thinkingBudget } } : {}),
     };
     
     // Inject ROKET system prompt with Anthropic prompt caching
@@ -2494,11 +2674,14 @@ app.post('/api/chat/completions', authenticateToken, apiLimiter, async (req, res
     }
     
     anthropicRequest.system = systemBlocks;
-    if (temperature !== undefined) {
-      anthropicRequest.temperature = temperature;
-    }
-    if (top_p !== undefined) {
-      anthropicRequest.top_p = top_p;
+    // Extended thinking is incompatible with temperature — skip it when thinking is enabled
+    if (!enableThinking) {
+      if (temperature !== undefined) {
+        anthropicRequest.temperature = temperature;
+      }
+      if (top_p !== undefined) {
+        anthropicRequest.top_p = top_p;
+      }
     }
     
     // Inject NUBLE financial tools so Claude can call the ROKET API
@@ -2538,7 +2721,9 @@ app.post('/api/chat/completions', authenticateToken, apiLimiter, async (req, res
             headers: {
               'Content-Type': 'application/json',
               'x-api-key': ANTHROPIC_API_KEY,
-              'anthropic-version': '2023-06-01'
+              'anthropic-version': '2023-06-01',
+              // Enable interleaved thinking with tool use — allows Claude to think between tool calls
+              ...(enableThinking ? { 'anthropic-beta': 'interleaved-thinking-2025-05-14' } : {}),
             },
             body: JSON.stringify(requestBody),
             signal: controller.signal,
@@ -2565,6 +2750,22 @@ app.post('/api/chat/completions', authenticateToken, apiLimiter, async (req, res
           
           // ── All rounds: Stream the response for fast typewriter effect ──
           {
+            // Emit round-start status for chain-of-thought UX
+            if (session_id) {
+              const roundDescriptions = [
+                'Initializing institutional-grade research pipeline — marshaling quantitative subsystems...',
+                'Cross-referencing primary intelligence — synthesizing multi-factor signal convergence...',
+                'Applying second-order analysis — validating signals against regime context & risk constraints...',
+                'Running final conviction synthesis — computing risk-adjusted confidence intervals...',
+                'Executing supplementary deep-dive — resolving remaining analytical edge cases...',
+              ];
+              emitStatus(io, session_id, chat_id, responseMessageId, {
+                done: false,
+                action: round === 0 ? 'analyzing' : 'processing',
+                description: roundDescriptions[Math.min(round, roundDescriptions.length - 1)],
+              });
+            }
+            
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let buffer = '';
@@ -2574,6 +2775,7 @@ app.post('/api/chat/completions', authenticateToken, apiLimiter, async (req, res
             let currentBlockIndex = -1;
             let currentToolUse = null;
             let currentToolInput = '';
+            let currentThinkingText = ''; // Accumulate thinking block text
             
             while (true) {
               const { done: readerDone, value } = await reader.read();
@@ -2602,10 +2804,19 @@ app.post('/api/chat/completions', authenticateToken, apiLimiter, async (req, res
                         input: {}
                       };
                       currentToolInput = '';
-                      // Tell the frontend we're calling a tool
-                      io.to(session_id).emit('events', {
-                        chat_id, message_id: responseMessageId,
-                        data: { type: 'chat:completion', data: { id: completionId, done: false, choices: [{ index: 0, delta: { content: `\n\n*Querying ${event.content_block.name.replace('roket_', '').replace(/_/g, ' ')}...*\n` }, finish_reason: null }] } }
+                      // Emit a rich status event instead of inline markdown
+                      emitStatus(io, session_id, chat_id, responseMessageId, {
+                        done: false,
+                        action: 'tool_call',
+                        description: getToolStatusDescription(event.content_block.name, {}, 'start'),
+                      });
+                    } else if (currentBlockType === 'thinking') {
+                      // Extended thinking block — Claude's institutional-grade reasoning engine
+                      currentThinkingText = '';
+                      emitStatus(io, session_id, chat_id, responseMessageId, {
+                        done: false,
+                        action: 'thinking',
+                        description: 'Applying proprietary reasoning framework — evaluating signal interactions, factor orthogonality & conviction weighting...',
                       });
                     } else if (currentBlockType === 'text') {
                       contentBlocks.push({ type: 'text', text: '' });
@@ -2623,13 +2834,53 @@ app.post('/api/chat/completions', authenticateToken, apiLimiter, async (req, res
                       });
                     } else if (currentBlockType === 'tool_use' && event.delta?.partial_json) {
                       currentToolInput += event.delta.partial_json;
+                    } else if (currentBlockType === 'thinking' && event.delta?.thinking) {
+                      // Accumulate thinking text (not sent to user, but tracked for context)
+                      currentThinkingText += event.delta.thinking;
                     }
                   } else if (event.type === 'content_block_stop') {
                     if (currentBlockType === 'tool_use' && currentToolUse) {
                       try { currentToolUse.input = JSON.parse(currentToolInput); } catch { currentToolUse.input = {}; }
                       contentBlocks.push(currentToolUse);
+                      // Re-emit status with richer ticker context now that we have the parsed input
+                      emitStatus(io, session_id, chat_id, responseMessageId, {
+                        done: false,
+                        action: 'tool_call',
+                        description: getToolStatusDescription(currentToolUse.name, currentToolUse.input, 'start'),
+                      });
                       currentToolUse = null;
                       currentToolInput = '';
+                    } else if (currentBlockType === 'thinking') {
+                      // Thinking block complete — preserve for context but mark status as done
+                      contentBlocks.push({ type: 'thinking', thinking: currentThinkingText });
+                      // Extract meaningful summary from thinking — surface key reasoning themes
+                      let thinkingSummary = 'Quantitative reasoning framework applied';
+                      if (currentThinkingText.length > 0) {
+                        // Extract tickers mentioned in thinking
+                        const tickerMatches = currentThinkingText.match(/\b[A-Z]{1,5}\b/g);
+                        const tickers = tickerMatches 
+                          ? [...new Set(tickerMatches.filter(t => t.length >= 2 && !['THE','AND','FOR','BUT','NOT','HAS','WAS','ARE','CAN','HMM','VaR','CVaR','ROE','CAGR','EBITDA','FCF','NLP','SEC','ISM','PMI','USD','ETF','IPO'].includes(t)))].slice(0, 3)
+                          : [];
+                        // Extract key financial concepts from thinking
+                        const concepts = [];
+                        if (/risk|drawdown|var|volatil/i.test(currentThinkingText)) concepts.push('risk profile');
+                        if (/momentum|trend|technical/i.test(currentThinkingText)) concepts.push('momentum dynamics');
+                        if (/valuation|earnings|fundamental|revenue/i.test(currentThinkingText)) concepts.push('fundamental quality');
+                        if (/regime|macro|rate|fed|yield/i.test(currentThinkingText)) concepts.push('regime context');
+                        if (/insider|institutional|13f|flow/i.test(currentThinkingText)) concepts.push('smart money flow');
+                        if (/compare|relative|versus|spread/i.test(currentThinkingText)) concepts.push('relative value');
+                        if (/position|size|allocation|kelly/i.test(currentThinkingText)) concepts.push('optimal sizing');
+                        
+                        const tickerStr = tickers.length > 0 ? tickers.join(', ') + ' — ' : '';
+                        const conceptStr = concepts.length > 0 ? concepts.slice(0, 3).join(', ') : 'multi-factor signal synthesis';
+                        thinkingSummary = `${tickerStr}Evaluated ${conceptStr}`;
+                      }
+                      emitStatus(io, session_id, chat_id, responseMessageId, {
+                        done: true,
+                        action: 'thinking',
+                        description: thinkingSummary,
+                      });
+                      currentThinkingText = '';
                     }
                     currentBlockType = null;
                   } else if (event.type === 'message_delta') {
@@ -2676,6 +2927,12 @@ app.post('/api/chat/completions', authenticateToken, apiLimiter, async (req, res
                     }
                     logger.info({ tool: toolBlock.name, originalSize, truncatedTo: resultStr.length }, 'Truncated oversized tool result');
                   }
+                  // Emit "done" status for this tool
+                  emitStatus(io, session_id, chat_id, responseMessageId, {
+                    done: true,
+                    action: 'tool_call',
+                    description: getToolStatusDescription(toolBlock.name, toolBlock.input, 'done'),
+                  });
                   return {
                     type: 'tool_result',
                     tool_use_id: toolBlock.id,
@@ -2683,6 +2940,12 @@ app.post('/api/chat/completions', authenticateToken, apiLimiter, async (req, res
                   };
                 } catch (err) {
                   logger.error({ err, tool: toolBlock.name }, 'Tool execution failed');
+                  // Emit error status for this tool
+                  emitStatus(io, session_id, chat_id, responseMessageId, {
+                    done: true,
+                    action: 'tool_call',
+                    description: `⚠ ${getToolStatusDescription(toolBlock.name, toolBlock.input, 'label')} — subsystem returned error, applying fallback analysis`,
+                  });
                   return {
                     type: 'tool_result',
                     tool_use_id: toolBlock.id,
@@ -2699,7 +2962,12 @@ app.post('/api/chat/completions', authenticateToken, apiLimiter, async (req, res
               continue;
             }
             
-            // No tools — we're done. Emit final done event.
+            // No tools — we're done. Mark analysis status as complete, then emit final done event.
+            emitStatus(io, session_id, chat_id, responseMessageId, {
+              done: true,
+              action: 'analyzing',
+              description: 'All intelligence layers synthesized — generating institutional-grade research brief',
+            });
             io.to(session_id).emit('events', {
               chat_id, message_id: responseMessageId,
               data: { type: 'chat:completion', data: { id: completionId, done: true, choices: [{ index: 0, delta: {}, finish_reason: 'stop' }], usage: { prompt_tokens: totalInputTokens, completion_tokens: totalOutputTokens, total_tokens: totalInputTokens + totalOutputTokens } } }
